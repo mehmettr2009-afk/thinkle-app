@@ -1,0 +1,2468 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Thinkle — turn any file into a study deck</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;900&family=Space+Grotesk:wght@400;500;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js"></script>
+<script src="https://cdn.jsdelivr.net/gh/gitbrent/pptxgenjs@3.12.0/dist/pptxgen.bundle.js"></script>
+<style>
+  :root{
+    --bg:#070a18;
+    --bg2:#0d1230;
+    --panel:#10163a;
+    --line:#26305f;
+    --ink:#eaf0ff;
+    --ink-soft:#8a93c7;
+    --accent:#6ee7ff;
+    --accent2:#b46bff;
+    --pink:#ff6ec7;
+    --ok:#4dffb0;
+  }
+  /* ---------- Biome variants (different black hole / space color themes) ---------- */
+  body.biome-1{
+    --accent:#6ee7ff; --accent2:#b46bff; --pink:#ff6ec7;
+  }
+  body.biome-2{
+    --accent:#9dffb0; --accent2:#ffe066; --pink:#ff9d4d;
+    --bg:#04140f; --bg2:#0a2a1c;
+  }
+  body.biome-3{
+    --accent:#ff8a5b; --accent2:#ff4d6d; --pink:#ffd166;
+    --bg:#180609; --bg2:#2a0a14;
+  }
+  *{box-sizing:border-box; -webkit-tap-highlight-color: transparent;}
+  html,body{margin:0;height:100%;}
+  body{
+    font-family:'Space Grotesk',sans-serif;
+    background:var(--bg);
+    color:var(--ink);
+    display:flex;
+    min-height:100vh;
+    overflow:hidden;
+    position:relative;
+    -webkit-user-select:none;
+    user-select:none;
+  }
+  /* allow selecting/copying actual study content */
+  .slide-card, .quiz-q, .ai-msg{
+    -webkit-user-select:text;
+    user-select:text;
+  }
+  button, .tab, .lang-opt, .quiz-opt, .dropzone, .menu-toggle{
+    touch-action: manipulation;
+  }
+  .util{font-family:'Space Mono',monospace; letter-spacing:.04em;}
+
+  #space{
+    position:fixed; inset:0; z-index:0; pointer-events:none;
+    background:
+      radial-gradient(ellipse at 20% 30%, color-mix(in srgb, var(--accent) 10%, transparent), transparent 50%),
+      radial-gradient(ellipse at 80% 70%, color-mix(in srgb, var(--accent2) 12%, transparent), transparent 55%),
+      linear-gradient(160deg, var(--bg) 0%, var(--bg2) 50%, var(--bg) 100%);
+    transition: background 1.4s ease;
+  }
+  .stars{position:absolute; inset:0; width:100%; height:100%;}
+  .star{
+    position:absolute; background:#fff; border-radius:50%;
+    animation: twinkle var(--d) ease-in-out infinite;
+    opacity:.6;
+  }
+  @keyframes twinkle{
+    0%,100%{opacity:.2; transform:scale(1);}
+    50%{opacity:1; transform:scale(1.4);}
+  }
+  /* ============================================================
+     GALAKSİ — SVG tabanlı
+     ============================================================ */
+  #galaxy{
+    position:fixed; inset:0; pointer-events:none; z-index:0;
+  }
+
+  /* ============================================================
+     GALAKSİ — SVG tabanlı, çekirdek + spiral parıltılar JS ile eklenir
+     ============================================================ */
+  .galaxy-core{
+    position:fixed; left:50%; top:50%; transform:translate(-50%,-50%);
+    width:4px; height:4px; border-radius:50%; background:#fffff0;
+    box-shadow:
+      0 0 6px 3px rgba(255,252,220,1), 0 0 18px 8px rgba(255,240,180,.92),
+      0 0 40px 16px rgba(255,210,120,.72), 0 0 80px 32px rgba(255,175,70,.45),
+      0 0 160px 60px rgba(220,140,45,.22), 0 0 300px 100px rgba(160,110,35,.10);
+    pointer-events:none; z-index:1;
+    animation: core-pulse 5s ease-in-out infinite alternate;
+  }
+  @keyframes core-pulse{
+    0%{   box-shadow:0 0 6px 3px rgba(255,252,220,1),0 0 18px 8px rgba(255,240,180,.92),0 0 40px 16px rgba(255,210,120,.72),0 0 80px 32px rgba(255,175,70,.45),0 0 160px 60px rgba(220,140,45,.22); }
+    100%{ box-shadow:0 0 10px 5px rgba(255,255,240,1),0 0 26px 12px rgba(255,248,200,1),0 0 55px 22px rgba(255,220,140,.82),0 0 110px 44px rgba(255,190,90,.55),0 0 220px 80px rgba(240,160,60,.28); }
+  }
+  .spiral-glow{
+    position:fixed; border-radius:50%; pointer-events:none; z-index:0;
+    animation: spiral-drift var(--sg-dur,30s) ease-in-out infinite alternate;
+  }
+  @keyframes spiral-drift{
+    0%{   opacity:var(--sg-op,.3); transform:rotate(-28deg) translate(0,0) scale(1); }
+    100%{ opacity:calc(var(--sg-op,.3)*.65); transform:rotate(-28deg) translate(var(--sg-dx,6px),var(--sg-dy,4px)) scale(1.03); }
+  }
+  @keyframes galaxy-breathe{
+    0%{   opacity:.78; }
+    100%{ opacity:1; }
+  }
+
+  /* ---------- Laser beam fired at planets: lightsaber-style glowing beam ---------- */
+  #laserBeams{ position:fixed; inset:0; z-index:3; pointer-events:none; }
+  .laser-beam{
+    position:absolute; transform-origin:0 50%;
+    opacity:0;
+    animation: laser-fire 0.55s ease-out forwards;
+    overflow:visible;
+  }
+  .laser-beam .lb-glow{
+    stroke:#ff4040; stroke-width:14; stroke-linecap:round; fill:none;
+    opacity:.35; filter: blur(6px);
+  }
+  .laser-beam .lb-mid{
+    stroke:#ff7a3d; stroke-width:6; stroke-linecap:round; fill:none;
+    opacity:.8; filter: blur(1.5px);
+  }
+  .laser-beam .lb-core{
+    stroke:#fff5e0; stroke-width:2; stroke-linecap:round; fill:none;
+    opacity:1;
+  }
+  @keyframes laser-fire{
+    0%{ opacity:0; transform: scaleX(0); }
+    12%{ opacity:1; transform: scaleX(1); }
+    78%{ opacity:1; transform: scaleX(1); }
+    100%{ opacity:0; transform: scaleX(1); }
+  }
+  .planet.exploding .body{
+    animation: planet-explode 0.6s ease-out forwards;
+  }
+  .planet.exploding{
+    animation-play-state: paused;
+  }
+  @keyframes planet-explode{
+    0%{ opacity:1; transform: scale(1); filter:brightness(1); }
+    30%{ opacity:1; transform: scale(1.6); filter:brightness(3) saturate(2); background:radial-gradient(circle, #fff, #ff6ec7, #ff2d2d) !important; }
+    100%{ opacity:0; transform: scale(2.6); filter:brightness(4); }
+  }
+  .planet.respawn .body{
+    animation: planet-respawn 0.8s ease-out forwards;
+  }
+  @keyframes planet-respawn{
+    0%{ opacity:0; transform: scale(0); }
+    60%{ opacity:1; transform: scale(1.2); }
+    100%{ opacity:1; transform: scale(1); }
+  }
+
+  /* ---------- Black hole swallowing a ship or planet ---------- */
+  .swallowed{
+    animation: swallow-in 1.4s ease-in forwards !important;
+  }
+  @keyframes swallow-in{
+    0%{ opacity:1; transform: translate(0,0) scale(1) rotate(0deg); filter:blur(0px); }
+    60%{ opacity:.6; transform: translate(var(--sw-dx), var(--sw-dy)) scale(.4) rotate(180deg); filter:blur(1px); }
+    100%{ opacity:0; transform: translate(var(--sw-dx2), var(--sw-dy2)) scale(0) rotate(420deg); filter:blur(4px); }
+  }
+  .reappear{
+    animation: swallow-out 0.9s ease-out forwards !important;
+  }
+  @keyframes swallow-out{
+    0%{ opacity:0; transform: scale(0); }
+    60%{ opacity:1; transform: scale(1.15); }
+    100%{ opacity:1; transform: scale(1); }
+  }
+  .orbit-rings{
+    position:absolute; left:50%; top:50%; width:0; height:0; z-index:4;
+  }
+  .orbit-ring{
+    position:absolute; left:0; top:0;
+    border:2px solid;
+    border-radius:50%;
+    transform-origin: 0 0;
+    animation: orbit-ring-spin var(--or-dur) linear infinite;
+    opacity:.5;
+  }
+  @keyframes orbit-ring-spin{
+    from{ transform: rotate(0deg) translateX(var(--or-r)) rotate(var(--or-tilt)); }
+    to{ transform: rotate(360deg) translateX(var(--or-r)) rotate(var(--or-tilt)); }
+  }
+
+  /* ---------- Asteroids — gerçekçi taşlı, pütürlü ---------- */
+  .asteroid{
+    position:fixed; pointer-events:none; z-index:2;
+    animation: asteroid-fly var(--ast-dur,18s) linear forwards;
+    opacity:0;
+  }
+  @keyframes asteroid-fly{
+    0%{   opacity:0;   transform:translate(0,0) rotate(0deg); }
+    6%{   opacity:var(--ast-op,.85); }
+    94%{  opacity:var(--ast-op,.85); transform:translate(var(--ast-dx,400px),var(--ast-dy,60px)) rotate(var(--ast-rot,360deg)); }
+    100%{ opacity:0;   transform:translate(var(--ast-dx,400px),var(--ast-dy,60px)) rotate(var(--ast-rot,360deg)); }
+  }
+
+  /* ---------- Solar system orbital ---------- */
+  .orbit-container{
+    position:fixed; pointer-events:none; z-index:6; width:0; height:0;
+    /* JS ile konumlandırılacak */
+  }
+  .sol{
+    position:fixed;
+    border-radius:50%;
+    background: radial-gradient(circle at 38% 35%, #fff8e0 0%, #ffe060 18%, #ffaa00 40%, #ff6600 65%, #cc2200 100%);
+    box-shadow: 0 0 28px 10px rgba(255,180,0,.55), 0 0 70px 28px rgba(255,100,0,.3), 0 0 130px 55px rgba(255,60,0,.12);
+    animation: sol-pulse 4s ease-in-out infinite alternate;
+    z-index:9999;
+    overflow: visible;
+    pointer-events: all !important;
+    cursor: pointer;
+  }
+  @keyframes sol-pulse{
+    0%{ box-shadow:0 0 28px 10px rgba(255,180,0,.55), 0 0 70px 28px rgba(255,100,0,.3); }
+    100%{ box-shadow:0 0 38px 16px rgba(255,200,0,.7), 0 0 90px 38px rgba(255,120,0,.4); }
+  }
+
+  /* Güneş yüzü */
+  .sol-face{
+    position:absolute; inset:0; border-radius:50%;
+    pointer-events:none; z-index:3;
+  }
+  .sol-eye{
+    position:absolute;
+    width:28%; height:28%;
+    background:#fff8e0;
+    border-radius:50%;
+    top:28%; overflow:hidden;
+    box-shadow: inset 0 1px 3px rgba(180,80,0,.3);
+    transition: transform .15s ease, height .2s ease, top .2s ease, border-radius .2s ease;
+  }
+  .sol-eye.left { left:20%; }
+  .sol-eye.right{ left:52%; }
+  .sol-pupil{
+    position:absolute; width:55%; height:55%;
+    background:#8b1a00; border-radius:50%;
+    top:50%; left:50%;
+    transform:translate(-50%,-50%);
+    box-shadow: inset 0 0 3px #3a0800;
+    transition: transform .08s ease;
+  }
+  .sol-pupil::after{
+    content:''; position:absolute;
+    width:35%; height:35%; background:#fff8e0;
+    border-radius:50%; top:10%; left:14%; opacity:.7;
+  }
+  .sol-mouth{
+    position:absolute; bottom:20%; left:50%;
+    transform: translateX(-50%);
+    width:44%; height:22%;
+    border-radius:0 0 50px 50px;
+    border: 2.5px solid #8b1a00; border-top:none;
+    background: rgba(180,60,0,.15);
+    transition: all .35s ease;
+    overflow:hidden;
+  }
+  .sol-brow{
+    position:absolute; width:28%; height:11%;
+    background:#cc4400; border-radius:6px; top:16%;
+    transition: transform .3s ease, border-radius .3s ease, background .3s;
+  }
+  .sol-brow.left { left:18%; transform:rotate(-5deg); }
+  .sol-brow.right{ left:50%; transform:rotate(5deg); }
+
+  /* 😡 SİNİRLİ */
+  .sol.angry .sol-brow.left { transform:rotate(-28deg) translateY(4px); border-radius:3px; background:#ff1100; }
+  .sol.angry .sol-brow.right{ transform:rotate(28deg) translateY(4px); border-radius:3px; background:#ff1100; }
+  .sol.angry .sol-mouth{ border-radius:50px 50px 0 0; border-top:2.5px solid #8b1a00; border-bottom:none; bottom:18%; width:38%; height:16%; }
+  .sol.angry .sol-eye{ height:20%; top:33%; }
+  .sol.angry{ animation: sol-pulse 1s ease-in-out infinite alternate, sol-angry-shake .25s ease-in-out infinite !important;
+    background: radial-gradient(circle at 38% 35%, #fff0d0 0%, #ff9900 18%, #ff3300 40%, #cc0000 65%, #880000 100%) !important; }
+  @keyframes sol-angry-shake{
+    0%,100%{ transform:translate(-50%,-50%) rotate(-1.5deg) scale(1.02); }
+    50%{     transform:translate(-50%,-50%) rotate(1.5deg) scale(.98); }
+  }
+
+  /* 😢 AĞLIYOR */
+  .sol.crying .sol-brow.left { transform:rotate(12deg) translateY(-2px); background:#5588cc; }
+  .sol.crying .sol-brow.right{ transform:rotate(-12deg) translateY(-2px); background:#5588cc; }
+  .sol.crying .sol-mouth{ border-radius:50px 50px 0 0; border-top:2.5px solid #336699; border-bottom:none; bottom:16%; width:36%; height:14%; background:rgba(80,120,200,.15); }
+  .sol.crying .sol-eye{ background:#ddeeff; }
+  .sol.crying{ background: radial-gradient(circle at 38% 35%, #e8f0ff 0%, #aaccff 18%, #6699dd 40%, #3366bb 65%, #112255 100%) !important;
+    animation: sol-pulse 3s ease-in-out infinite alternate, sol-sad-bob 2s ease-in-out infinite !important; }
+  @keyframes sol-sad-bob{
+    0%,100%{ transform:translate(-50%,-50%) translateY(0); }
+    50%{     transform:translate(-50%,-50%) translateY(3px); }
+  }
+  /* Gözyaşları */
+  .sol-tear{
+    position:absolute; width:25%; bottom:-18%;
+    border-radius:50% 50% 50% 50% / 30% 30% 70% 70%;
+    background:linear-gradient(180deg,rgba(100,160,255,.9),rgba(80,140,255,.6));
+    animation: tear-fall .8s ease-in forwards;
+  }
+  .sol-tear.left-tear { left:22%; }
+  .sol-tear.right-tear{ left:54%; }
+  @keyframes tear-fall{
+    0%{   height:0; opacity:1; transform:translateY(0); }
+    60%{  height:130%; opacity:.9; }
+    100%{ height:160%; opacity:0; transform:translateY(40%); }
+  }
+
+  /* 🤪 ÇILGIN */
+  .sol.crazy .sol-brow.left { transform:rotate(35deg) translateX(-4px); background:#ff00ff; border-radius:2px; }
+  .sol.crazy .sol-brow.right{ transform:rotate(-35deg) translateX(4px); background:#00ffcc; border-radius:2px; }
+  .sol.crazy .sol-mouth{ border-radius:30% 70% 60% 40% / 50% 40% 60% 50%; width:50%; height:28%; bottom:14%; background:rgba(255,0,200,.2); border-color:#ff00cc; }
+  .sol.crazy .sol-eye{ border-radius:30% 70% 50% 50%; }
+  .sol.crazy{ animation: sol-crazy-spin 0.4s linear infinite !important;
+    background:radial-gradient(circle at 38% 35%, #fff 0%, #ff00ff 15%, #ffff00 35%, #00ffff 55%, #ff0088 75%, #aa00ff 100%) !important; }
+  @keyframes sol-crazy-spin{
+    0%{   transform:translate(-50%,-50%) rotate(0deg) scale(1); }
+    25%{  transform:translate(-50%,-50%) rotate(90deg) scale(1.08); }
+    50%{  transform:translate(-50%,-50%) rotate(180deg) scale(.94); }
+    75%{  transform:translate(-50%,-50%) rotate(270deg) scale(1.06); }
+    100%{ transform:translate(-50%,-50%) rotate(360deg) scale(1); }
+  }
+
+  /* 😍 ŞAŞIRMIŞ / mutlu tıklama */
+  .sol.surprised .sol-eye{ height:36%; top:22%; border-radius:50%; }
+  .sol.surprised .sol-mouth{ width:52%; height:26%; border-radius:0 0 60px 60px; background:rgba(255,120,0,.25); }
+  .sol.surprised .sol-brow.left{ transform:rotate(-10deg) translateY(-3px); }
+  .sol.surprised .sol-brow.right{ transform:rotate(10deg) translateY(-3px); }
+  .sol.surprised{ animation: sol-surprised-bounce .4s ease-out 1 !important; }
+  @keyframes sol-surprised-bounce{
+    0%{   transform:translate(-50%,-50%) scale(1); }
+    40%{  transform:translate(-50%,-50%) scale(1.22); }
+    70%{  transform:translate(-50%,-50%) scale(.92); }
+    100%{ transform:translate(-50%,-50%) scale(1); }
+  }
+
+  /* Göz kırpma */
+  @keyframes sol-blink{
+    0%,88%,100%{ height:28%; }
+    93%{ height:4%; }
+  }
+  .sol-eye.blinking{ animation: sol-blink 3.8s ease-in-out infinite; }
+
+  /* Quiz modunda güneş küçük, sağ alt köşede */
+  .sol.quiz-mode{
+    width:36px !important; height:36px !important;
+  }
+  @media (max-width:860px){
+    .sol.quiz-mode{ width:28px !important; height:28px !important; }
+  }
+  .orbiter{
+    position:absolute; left:0; top:0; width:0; height:0;
+    animation: orbit-cw var(--orbit-dur) linear infinite;
+    animation-delay: var(--orbit-delay,0s);
+  }
+  @keyframes orbit-cw{ from{transform:rotate(0deg);} to{transform:rotate(360deg);} }
+  .planet{
+    position:absolute;
+    left:var(--orbit-r); top:0;
+    margin-left:calc(var(--planet-size,14px) / -2);
+    margin-top:calc(var(--planet-size,14px) / -2);
+    border-radius:50%; pointer-events:none;
+    animation: orbit-ccw var(--orbit-dur) linear infinite;
+    animation-delay: var(--orbit-delay,0s);
+  }
+  @keyframes orbit-ccw{ from{transform:rotate(0deg);} to{transform:rotate(-360deg);} }
+  .planet .body{
+    width:100%; height:100%; border-radius:50%; display:block;
+    box-shadow: inset -5px -5px 14px rgba(0,0,0,.6), inset 2px 3px 8px rgba(255,255,255,.1);
+  }
+  .planet .ring{
+    position:absolute; left:50%; top:50%;
+    transform:translate(-50%,-50%) rotate(-20deg) scaleY(.32);
+    border-radius:50%; border:2px solid rgba(220,190,120,.5);
+    box-shadow:0 0 6px 2px rgba(220,190,120,.2); pointer-events:none;
+  }
+  .planet .atmo{ position:absolute; inset:-4px; border-radius:50%; pointer-events:none; }
+
+  /* ---------- Space ships / satellites ---------- */
+  .space-ship{
+    position:fixed; z-index:5; pointer-events:none; width:10px;
+    opacity:.88; filter:drop-shadow(0 0 3px rgba(110,231,255,.5));
+  }
+  .space-ship.transiting{
+    animation: ship-transit var(--transit-dur,16s) linear forwards !important;
+  }
+  @keyframes ship-transit{
+    0%{   opacity:0;   transform:translateX(0) translateY(var(--transit-dy,0px)); }
+    5%{   opacity:.88; }
+    95%{  opacity:.88; transform:translateX(var(--transit-dx,110vw)) translateY(var(--transit-dy,0px)); }
+    100%{ opacity:0;   transform:translateX(var(--transit-dx,110vw)) translateY(var(--transit-dy,0px)); }
+  }
+  /* Karadeliğe yutulma — içine doğru spiral */
+  .space-ship.bh-swallowed{
+    animation: bh-suck 1.1s ease-in forwards !important;
+  }
+  @keyframes bh-suck{
+    0%{   opacity:1;  transform:translate(0,0) scale(1) rotate(0deg); }
+    40%{  opacity:.8; transform:translate(calc(var(--bh-dx)*.5), calc(var(--bh-dy)*.5)) scale(.55) rotate(180deg); filter:brightness(2); }
+    80%{  opacity:.3; transform:translate(calc(var(--bh-dx)*.9), calc(var(--bh-dy)*.9)) scale(.18) rotate(360deg); filter:brightness(.3) blur(1px); }
+    100%{ opacity:0;  transform:translate(var(--bh-dx), var(--bh-dy)) scale(0) rotate(520deg); filter:blur(4px); }
+  }
+
+  /* ---------- Asteroids ---------- */
+  .asteroid{
+    position:fixed; pointer-events:none; z-index:2;
+    animation: asteroid-fly var(--ast-dur, 18s) linear forwards;
+    opacity:0;
+  }
+  @keyframes asteroid-fly{
+    0%{   opacity:0;   transform:translate(0,0) rotate(0deg) scale(var(--ast-scale,1)); }
+    6%{   opacity:.85; }
+    94%{  opacity:.85; transform:translate(var(--ast-dx,400px), var(--ast-dy,100px)) rotate(var(--ast-rot,360deg)) scale(var(--ast-scale,1)); }
+    100%{ opacity:0;   transform:translate(var(--ast-dx,400px), var(--ast-dy,100px)) rotate(var(--ast-rot,360deg)) scale(var(--ast-scale,1)); }
+  }
+
+  /* ---------- Solar system planets drifting ---------- */
+  .planets{ position:fixed; inset:0; z-index:1; pointer-events:none; overflow:hidden; }
+  .planet.exploding .body{ animation:planet-explode .6s ease-out forwards; }
+  .planet.exploding{ animation-play-state:paused; }
+  @keyframes planet-explode{
+    0%{opacity:1;transform:scale(1);}
+    30%{opacity:1;transform:scale(1.6);filter:brightness(3) saturate(2);}
+    100%{opacity:0;transform:scale(2.6);filter:brightness(4);}
+  }
+
+  /* ---------- Logo intro: fades in, then gets sucked into black hole ---------- */
+  .logo-intro{
+    position:relative;
+    animation: logo-fadein 1.4s ease-out forwards, logo-suckin 1.1s ease-in forwards;
+    animation-delay: 0s, 2.6s;
+  }
+  @keyframes logo-fadein{
+    from{ opacity:0; transform: translateY(-20px) scale(.7); }
+    to{ opacity:1; transform: translateY(0) scale(1); }
+  }
+  @keyframes logo-suckin{
+    0%{ opacity:1; transform: translateY(0) scale(1) rotate(0deg); filter:blur(0px); }
+    60%{ opacity:.6; transform: translateY(40px) scale(.4) rotate(120deg); filter:blur(1px); }
+    100%{ opacity:0; transform: translateY(70px) scale(0) rotate(280deg); filter:blur(3px); }
+  }
+
+  /* ---------- File-eating animation ---------- */
+  .file-eaten{
+    animation: file-suck 1.4s ease-in forwards;
+  }
+  @keyframes file-suck{
+    0%{ opacity:1; transform: scale(1) translateY(0) rotate(0deg); filter:blur(0px); }
+    40%{ opacity:.7; transform: scale(.85) translateY(10px) rotate(15deg); filter:blur(.5px); }
+    100%{ opacity:.08; transform: scale(.15) translateY(120px) rotate(540deg); filter:blur(4px); }
+  }
+
+  /* ---------- Laser eye inside black hole core ---------- */
+  .laser-eye{
+    position:absolute; inset:0; border-radius:50%;
+    display:flex; align-items:center; justify-content:center;
+    z-index:3; pointer-events:none;
+  }
+  .laser-eye::before{
+    content:''; display:block; width:38%; height:38%; border-radius:50%;
+    background: radial-gradient(circle, #fff 0%, #ff2d2d 35%, #8a0000 75%, transparent 100%);
+    box-shadow: 0 0 6px 2px rgba(255,40,40,.9);
+    opacity:0;
+    animation: laser-blink 60s ease-in-out infinite;
+  }
+  @keyframes laser-blink{
+    0%, 92%   { opacity:0;   transform:scale(.6); }
+    93%       { opacity:1;   transform:scale(1.1); }
+    94%       { opacity:.85; transform:scale(.95); }
+    95%       { opacity:1;   transform:scale(1.05); }
+    97%       { opacity:1;   transform:scale(1); }
+    99%       { opacity:0;   transform:scale(.6); }
+    100%      { opacity:0;   transform:scale(.6); }
+  }
+
+  /* Invisible anchor at the black hole's center, used as the laser origin point */
+  #mainLaserEye{
+    position:absolute; left:50%; top:50%; width:1px; height:1px;
+    pointer-events:none;
+  }
+
+  .left-column{
+    width:300px; flex-shrink:0; position:relative; z-index:2;
+    background:rgba(16,22,58,.55);
+    backdrop-filter: blur(10px);
+    border-right:1px solid var(--line);
+    display:flex; flex-direction:column;
+    max-height:100vh; overflow-y:auto;
+  }
+
+  .sidebar{
+    flex-shrink:0; position:relative;
+    display:flex; flex-direction:column;
+    padding:24px 0;
+    border-bottom:1px solid var(--line);
+  }
+
+  /* ---------- AI question/answer side panel ---------- */
+  .ai-panel{
+    flex:1; min-height:320px; position:relative;
+    display:flex; flex-direction:column;
+    padding:20px;
+  }
+  .ai-panel-header{
+    display:flex; align-items:center; gap:10px; margin-bottom:14px;
+    padding-bottom:14px; border-bottom:1px solid var(--line);
+  }
+  .ai-panel-header .mark{
+    width:30px; height:30px; border-radius:10px; flex-shrink:0;
+    position:relative; overflow:hidden; background:#05030c;
+    box-shadow:0 0 18px rgba(110,231,255,.35);
+  }
+  .ai-panel-header h3{
+    font-family:'Orbitron',sans-serif; font-size:.95rem; font-weight:700; margin:0;
+    background:linear-gradient(135deg, var(--accent), var(--accent2));
+    -webkit-background-clip:text; background-clip:text; color:transparent;
+  }
+  .ai-panel-header .util{display:block; font-size:.6rem; color:var(--ink-soft); margin-top:2px;}
+  .ai-chat{
+    flex:1; overflow-y:auto; display:flex; flex-direction:column; gap:10px;
+    margin-bottom:12px; min-height:120px;
+  }
+  .ai-msg{
+    padding:10px 13px; border-radius:12px; font-size:.85rem; line-height:1.55;
+    max-width:92%;
+  }
+  .ai-msg.user{
+    align-self:flex-end; background:linear-gradient(135deg, var(--accent), var(--accent2));
+    color:#070a18; font-weight:500;
+  }
+  .ai-msg.ai{
+    align-self:flex-start; background:rgba(255,255,255,.04); border:1px solid var(--line);
+    color:var(--ink);
+  }
+  .ai-msg.ai.thinking{ color:var(--ink-soft); font-style:italic; }
+  .ai-panel-empty{
+    color:var(--ink-soft); font-size:.8rem; line-height:1.6; padding:8px 2px;
+  }
+  .ai-input-row{
+    display:flex; gap:8px;
+  }
+  .ai-input-row textarea{
+    flex:1; resize:none; min-height:44px; max-height:120px;
+    padding:10px 12px; border:1px solid var(--line); border-radius:10px;
+    font-family:'Space Grotesk',sans-serif; font-size:.85rem;
+    background:rgba(255,255,255,.03); color:var(--ink);
+    -webkit-user-select:text; user-select:text;
+  }
+  .ai-input-row textarea:focus{ outline:none; border-color:var(--accent); }
+  .ai-send-btn{
+    flex-shrink:0; align-self:flex-end;
+    width:44px; height:44px; border-radius:10px;
+    border:none; background:linear-gradient(135deg, var(--accent), var(--accent2));
+    color:#070a18; font-size:1rem; cursor:pointer; font-weight:700;
+    display:flex; align-items:center; justify-content:center;
+    transition:.15s;
+  }
+  .ai-send-btn:hover{ box-shadow:0 0 16px rgba(110,231,255,.4); }
+  .ai-send-btn:disabled{ opacity:.4; cursor:not-allowed; box-shadow:none; }
+  .brand{
+    padding:0 20px 20px; border-bottom:1px solid var(--line); margin-bottom:8px;
+    display:flex; align-items:center; gap:12px;
+  }
+  .brand-mark{
+    width:38px; height:38px; border-radius:12px; flex-shrink:0;
+    position:relative; overflow:hidden;
+    background:#05030c;
+    box-shadow:0 0 24px rgba(110,231,255,.35);
+  }
+  .brand-mark .mini-disk, .ai-panel-header .mark .mini-disk{
+    position:absolute; inset:-30%; border-radius:50%;
+    background: conic-gradient(from 0deg, var(--accent2), var(--accent), var(--pink), var(--accent2));
+    animation: bh-spin 5s linear infinite;
+  }
+  .brand-mark .mini-core, .ai-panel-header .mark .mini-core{
+    position:absolute; inset:22%; border-radius:50%;
+    background: radial-gradient(circle at 35% 35%, #1a0b2e 0%, #000 70%);
+  }
+  @keyframes float-logo{
+    0%,100%{transform:translateY(0) rotate(0deg);}
+    50%{transform:translateY(-6px) rotate(6deg);}
+  }
+  .brand h1{
+    font-family:'Orbitron',sans-serif; font-size:1.25rem; font-weight:700; margin:0; line-height:1.1;
+    background:linear-gradient(135deg, var(--accent), var(--accent2));
+    -webkit-background-clip:text; background-clip:text; color:transparent;
+  }
+  .brand .util{display:block; margin-top:2px; font-size:.62rem; color:var(--ink-soft);}
+  .tabs{max-height:240px; overflow-y:auto; padding:8px 0;}
+  .tab{
+    display:flex; align-items:center; gap:10px;
+    padding:11px 18px; cursor:pointer;
+    border-left:3px solid transparent;
+    font-size:.85rem; color:var(--ink-soft);
+    transition:.15s;
+  }
+  .tab:hover{background:rgba(110,231,255,.08); color:var(--ink);}
+  .tab.active{
+    border-left-color:var(--accent);
+    background:rgba(110,231,255,.1);
+    color:var(--ink); font-weight:600;
+  }
+  .tab .num{font-family:'Space Mono',monospace; font-size:.7rem; opacity:.6;}
+  .tab.quiz-tab{border-top:1px dashed var(--line); margin-top:6px; padding-top:14px;}
+
+  .main{flex:1; display:flex; flex-direction:column; min-width:0; position:relative; z-index:2;}
+  .topbar{
+    display:flex; align-items:center; justify-content:space-between;
+    padding:16px 32px; border-bottom:1px solid var(--line);
+    background:rgba(16,22,58,.4); backdrop-filter: blur(10px);
+  }
+  .topbar h2{font-size:1.05rem; font-weight:500; color:var(--ink-soft); font-family:'Space Grotesk'; user-select:none;}
+  .btn{
+    font-family:'Space Mono',monospace; font-size:.78rem;
+    border:1px solid var(--line); background:rgba(255,255,255,.03); color:var(--ink);
+    padding:9px 18px; border-radius:8px; cursor:pointer;
+    transition:.15s;
+  }
+  .btn:hover{border-color:var(--accent); color:var(--accent); box-shadow:0 0 16px rgba(110,231,255,.25);}
+  .btn.primary{background:linear-gradient(135deg, var(--accent), var(--accent2)); border:none; color:#070a18; font-weight:700;}
+  .btn.primary:hover{box-shadow:0 0 22px rgba(110,231,255,.5); color:#070a18;}
+  .btn:disabled{opacity:.35; cursor:not-allowed; box-shadow:none;}
+
+  .content{flex:1; overflow-y:auto; padding:40px 60px; display:flex; justify-content:center; position:relative;}
+  .content-inner{max-width:760px; width:100%;}
+
+  .upload-screen{
+    max-width:580px; margin:40px auto; text-align:center;
+    padding-top:120px;
+  }
+  .logo-swim{
+    width:90px; height:90px; margin:0 auto 18px; border-radius:24px;
+    position:relative; overflow:hidden;
+    background:#05030c;
+    animation: float-logo 4s ease-in-out infinite;
+    box-shadow:0 0 50px rgba(110,231,255,.35);
+  }
+  .logo-swim .mini-disk{
+    position:absolute; inset:-30%; border-radius:50%;
+    background: conic-gradient(from 0deg, var(--accent2), var(--accent), var(--pink), var(--accent2));
+    animation: bh-spin 5s linear infinite;
+  }
+  .logo-swim .mini-disk.d2{
+    inset:-10%;
+    background: conic-gradient(from 180deg, var(--accent), var(--accent2), var(--pink), var(--accent));
+    animation: bh-spin 3s linear infinite reverse;
+    opacity:.8;
+  }
+  .logo-swim .mini-core{
+    position:absolute; inset:22%; border-radius:50%;
+    background: radial-gradient(circle at 35% 35%, #1a0b2e 0%, #000 70%);
+  }
+  @keyframes swim{
+    0%{transform:translate(0,0) rotate(0deg);}
+    25%{transform:translate(14px,-10px) rotate(4deg);}
+    50%{transform:translate(0,8px) rotate(-3deg);}
+    75%{transform:translate(-14px,-6px) rotate(3deg);}
+    100%{transform:translate(0,0) rotate(0deg);}
+  }
+  .upload-screen h1{
+    font-family:'Orbitron',sans-serif; font-size:2.3rem; font-weight:700;
+    background:linear-gradient(135deg, var(--accent), var(--ink) 60%, var(--accent2));
+    -webkit-background-clip:text; background-clip:text; color:transparent;
+    position:absolute; top:24px; left:24px; margin:0;
+    text-align:left; max-width:calc(100% - 48px);
+    z-index:2;
+  }
+  .upload-screen p{color:var(--ink-soft); margin:14px 0 30px; line-height:1.6;}
+  .dropzone{
+    border:2px dashed var(--line); border-radius:18px; padding:50px 24px;
+    cursor:pointer; transition:.18s; background:rgba(255,255,255,.02);
+    position:relative;
+  }
+  .dropzone:hover, .dropzone.drag{
+    border-color:var(--accent); background:rgba(110,231,255,.06);
+    box-shadow:0 0 30px rgba(110,231,255,.15) inset;
+  }
+  .dropzone .icon{font-size:2.6rem; margin-bottom:10px;}
+  .rocket-icon{
+    width:64px; height:90px; margin:0 auto 10px;
+    filter: drop-shadow(0 0 10px rgba(110,231,255,.35));
+  }
+  .rocket-icon svg{ width:100%; height:100%; display:block; }
+  .rocket-flame{
+    transform-origin: 50% 108px;
+    animation: rocket-flame-flicker 0.35s ease-in-out infinite alternate;
+  }
+  @keyframes rocket-flame-flicker{
+    0%{ transform: scaleY(1) scaleX(1); opacity:1; }
+    100%{ transform: scaleY(1.18) scaleX(0.9); opacity:.85; }
+  }
+  .dropzone .small{font-size:.74rem; color:var(--ink-soft); margin-top:8px; font-family:'Space Mono',monospace;}
+  .dropzone .filename{margin-top:10px; font-size:.85rem; color:var(--accent); font-family:'Space Mono',monospace;}
+  .dropzone.distort1{ transform: rotate(-1deg) scale(.99); border-color: var(--accent2); }
+  .dropzone.distort2{ transform: rotate(2deg) skewX(-2deg) scale(.97); border-color: var(--pink); filter: blur(.4px); }
+  .dropzone.distort3{
+    transform: rotate(-4deg) skewX(4deg) scale(.92);
+    border-color: var(--pink);
+    filter: blur(1px);
+    animation: dz-shake .4s ease-in-out infinite alternate;
+  }
+  @keyframes dz-shake{
+    from{ transform: rotate(-4deg) skewX(4deg) scale(.92) translateX(0); }
+    to{ transform: rotate(-4deg) skewX(4deg) scale(.92) translateX(-6px); }
+  }
+  input[type=file]{display:none;}
+
+  .api-key-row{margin-top:24px; text-align:left;}
+  .api-key-row label{font-size:.7rem; font-family:'Space Mono',monospace; color:var(--ink-soft); display:block; margin-bottom:6px;}
+  .api-key-row input{
+    width:100%; padding:11px 14px; border:1px solid var(--line); border-radius:10px;
+    font-family:'Space Mono',monospace; font-size:.8rem; background:rgba(255,255,255,.03); color:var(--ink);
+  }
+  .api-key-row input:focus{outline:none; border-color:var(--accent);}
+
+  .go-btn{margin-top:18px; width:100%; padding:14px; font-size:.85rem; border-radius:10px;}
+
+  .slide-card{
+    background:rgba(16,22,58,.55); backdrop-filter: blur(10px);
+    border:1px solid var(--line); border-radius:18px;
+    padding:36px 40px; min-height:380px; position:relative;
+    box-shadow:0 0 0 1px rgba(110,231,255,.04), 0 20px 60px -20px rgba(110,231,255,.15);
+    animation: slide-in .45s ease;
+  }
+  @keyframes slide-in{
+    from{opacity:0; transform:translateY(18px) scale(.98);}
+    to{opacity:1; transform:translateY(0) scale(1);}
+  }
+  .slide-eyebrow{
+    font-family:'Space Mono',monospace; font-size:.72rem; color:var(--accent);
+    text-transform:uppercase; letter-spacing:.18em; margin-bottom:10px;
+  }
+  .slide-card h2{
+    font-family:'Orbitron',sans-serif; font-size:1.6rem; font-weight:700; margin-bottom:18px; line-height:1.3;
+    color:var(--ink);
+  }
+  .bullets{margin:0 0 20px; padding-left:0; list-style:none;}
+  .bullets li{
+    position:relative; padding-left:28px; margin-bottom:12px; line-height:1.6; font-size:.98rem;
+    opacity:0; animation: bullet-in .4s ease forwards;
+  }
+  .bullets li::before{
+    content:'◆'; position:absolute; left:0; color:var(--accent); font-size:.7rem; top:5px;
+  }
+  @keyframes bullet-in{
+    from{opacity:0; transform:translateX(-10px);}
+    to{opacity:1; transform:translateX(0);}
+  }
+  .explain-box{
+    margin-top:24px; padding:18px 20px; background:rgba(180,107,255,.07);
+    border-left:3px solid var(--accent2); border-radius:0 12px 12px 0;
+    font-size:.92rem; line-height:1.6;
+    opacity:0; animation: bullet-in .5s ease forwards;
+  }
+  .explain-box .label{
+    font-family:'Space Mono',monospace; font-size:.68rem; color:var(--accent2);
+    text-transform:uppercase; letter-spacing:.16em; margin-bottom:6px; font-weight:700;
+  }
+
+  .slide-nav{
+    display:flex; justify-content:space-between; align-items:center; margin-top:24px;
+  }
+  .progress{font-family:'Space Mono',monospace; font-size:.78rem; color:var(--ink-soft);}
+  .progress-bar{height:3px; background:var(--line); border-radius:3px; margin-top:18px; overflow:hidden;}
+  .progress-bar-fill{height:100%; background:linear-gradient(90deg, var(--accent), var(--accent2)); transition:width .4s ease;}
+
+  .quiz-q{
+    background:rgba(16,22,58,.55); backdrop-filter: blur(10px);
+    border:1px solid var(--line); border-radius:16px;
+    padding:24px 28px; margin-bottom:18px;
+    opacity:0; animation: slide-in .4s ease forwards;
+  }
+  .quiz-q h3{font-family:'Space Grotesk'; font-size:1.05rem; margin-bottom:14px; font-weight:600;}
+  .quiz-opt{
+    display:block; width:100%; text-align:left; padding:11px 14px; margin-bottom:8px;
+    border:1px solid var(--line); border-radius:10px; background:rgba(255,255,255,.02); cursor:pointer;
+    font-family:'Space Grotesk',sans-serif; font-size:.9rem; color:var(--ink); transition:.15s;
+  }
+  .quiz-opt:hover{border-color:var(--accent); background:rgba(110,231,255,.06);}
+  .quiz-opt.correct{border-color:var(--ok); background:rgba(77,255,176,.1); font-weight:600; color:var(--ok);}
+  .quiz-opt.wrong{border-color:var(--pink); background:rgba(255,110,199,.1); color:var(--pink);}
+
+  /* ---------- Quiz result card ---------- */
+  .quiz-result{
+    background:rgba(16,22,58,.55); backdrop-filter: blur(10px);
+    border:1px solid var(--line); border-radius:18px;
+    padding:36px 40px; text-align:center;
+    opacity:0; animation: slide-in .45s ease forwards;
+  }
+  .quiz-result .score-num{
+    font-family:'Orbitron',sans-serif; font-size:3.2rem; font-weight:900;
+    background:linear-gradient(135deg, var(--accent), var(--accent2));
+    -webkit-background-clip:text; background-clip:text; color:transparent;
+    margin:10px 0;
+  }
+  .quiz-result .score-label{
+    font-family:'Space Mono',monospace; font-size:.8rem; color:var(--ink-soft);
+    text-transform:uppercase; letter-spacing:.16em;
+  }
+  .quiz-result .score-msg{
+    margin-top:16px; font-size:1rem; line-height:1.6;
+  }
+  .quiz-result .score-msg.pass{ color:var(--ok); }
+  .quiz-result .score-msg.fail{ color:var(--pink); }
+  .quiz-result .retry-btn{ margin-top:24px; }
+
+  /* ---------- Full-screen black hole "swallow everything" transition ---------- */
+  /* Biome geçişi — hızlı ama yumuşak */
+  body{
+    transition: background-color 0.4s ease;
+  }
+  #space{
+    transition: background 0.4s ease;
+  }
+  .bh-extra-ring.green, .bh-extra-ring.blue,
+  .galaxy-core, .spiral-glow{
+    transition: opacity 0.4s ease;
+  }
+
+  .loading{
+    display:flex; flex-direction:column; align-items:center; justify-content:center;
+    gap:16px; padding:100px 0; color:var(--ink-soft);
+  }
+  .orbit{
+    width:54px; height:54px; position:relative;
+  }
+  .orbit span{
+    position:absolute; width:10px; height:10px; border-radius:50%;
+    background:var(--accent); top:0; left:22px;
+    box-shadow:0 0 12px var(--accent);
+    animation: orbit-spin 1.1s linear infinite;
+    transform-origin: 27px 27px;
+  }
+  .orbit span:nth-child(2){background:var(--accent2); animation-delay:-.37s; box-shadow:0 0 12px var(--accent2);}
+  .orbit span:nth-child(3){background:var(--pink); animation-delay:-.74s; box-shadow:0 0 12px var(--pink);}
+  @keyframes orbit-spin{
+    from{transform: rotate(0deg) translateY(-27px) rotate(0deg);}
+    to{transform: rotate(360deg) translateY(-27px) rotate(-360deg);}
+  }
+
+  .error{
+    background:rgba(255,110,199,.08); border:1px solid var(--pink); border-radius:12px;
+    padding:14px 18px; color:var(--pink); font-size:.88rem; margin-top:16px;
+  }
+  .hidden{display:none !important;}
+
+  /* ---------- Toast notification (for errors outside the upload screen) ---------- */
+  .toast{
+    position:fixed; bottom:24px; right:24px; z-index:60;
+    background:rgba(16,22,58,.95); backdrop-filter: blur(10px);
+    border:1px solid var(--pink); border-radius:12px;
+    padding:14px 18px; color:var(--pink); font-size:.88rem;
+    max-width:340px; box-shadow:0 8px 30px rgba(0,0,0,.4);
+    animation: toast-in .3s ease, toast-out .3s ease 4.7s forwards;
+  }
+  @keyframes toast-in{ from{ opacity:0; transform:translateY(12px); } to{ opacity:1; transform:translateY(0); } }
+  @keyframes toast-out{ to{ opacity:0; transform:translateY(12px); } }
+
+  /* ---------- Language toggle ---------- */
+  .lang-toggle{
+    display:flex; border:1px solid var(--line); border-radius:8px; overflow:hidden;
+    background:rgba(255,255,255,.03);
+  }
+  .lang-opt{
+    font-family:'Space Mono',monospace; font-size:.72rem; font-weight:700;
+    border:none; background:none; color:var(--ink-soft);
+    padding:8px 12px; cursor:pointer; transition:.15s;
+  }
+  .lang-opt.active{
+    background:linear-gradient(135deg, var(--accent), var(--accent2)); color:#070a18;
+  }
+  .lang-opt:not(.active):hover{color:var(--ink);}
+
+  /* ---------- Mobile menu toggle (hidden on desktop) ---------- */
+  .menu-toggle{display:none;}
+
+  /* =====================================================
+     MOBİL — tamamen yeniden yazıldı
+     ===================================================== */
+  @media (max-width: 860px){
+    html, body{ height:100%; width:100%; overflow:hidden; margin:0; padding:0; }
+    body{ display:flex; flex-direction:column; position:fixed; inset:0; }
+
+    .left-column{
+      width:100%; flex-shrink:0; order:1;
+      border-right:none; border-bottom:1px solid var(--line);
+      background:rgba(7,10,24,.97); backdrop-filter:blur(12px);
+      display:flex; flex-direction:column;
+      position:relative; z-index:20; overflow:visible;
+    }
+    .sidebar{
+      flex-direction:row; align-items:center; padding:10px 14px;
+      flex-wrap:nowrap; border-bottom:none; gap:8px;
+      height:auto; max-height:none;
+    }
+    .brand{ flex:1; padding:0; border-bottom:none; margin:0; }
+    .brand h1{ font-size:.9rem; }
+    .brand .util{ font-size:.6rem; }
+    .brand-mark{ width:26px; height:26px; }
+    .menu-toggle{
+      display:inline-flex; padding:6px 10px; font-size:.65rem;
+      border:1px solid var(--line); background:rgba(255,255,255,.06);
+      color:var(--ink); border-radius:8px; cursor:pointer;
+      touch-action:manipulation; white-space:nowrap; flex-shrink:0;
+    }
+    .tabs{ display:none; width:100%; max-height:180px; overflow-y:auto;
+      background:rgba(7,10,24,.99); border-top:1px solid var(--line); }
+    .tabs.open{ display:block; }
+
+    /* AI paneli mobilde gizle — floating buton olarak gelecek */
+    .ai-panel{ display:none !important; }
+
+    .main{ flex:1; display:flex; flex-direction:column; order:2; overflow:hidden; min-height:0; position:relative; z-index:5; }
+    .topbar{ flex-shrink:0; padding:8px 12px; background:rgba(7,10,24,.92);
+      flex-wrap:wrap; gap:5px; z-index:10; }
+    .topbar h2{ font-size:.75rem; flex:1 1 100%; order:3; }
+    .topbar .btn{ padding:5px 9px; font-size:.65rem; }
+    .lang-toggle button{ padding:5px 8px; font-size:.7rem; }
+
+    .content{ flex:1; overflow-y:auto; overflow-x:hidden;
+      -webkit-overflow-scrolling:touch; padding:12px; min-height:0; }
+    .content-inner{ min-height:100%; padding-bottom:90px; }
+
+    .upload-screen{ padding-top:50px; margin:0 auto; }
+    .upload-screen h1{ font-size:1.25rem; top:10px; left:12px; }
+    .dropzone{ padding:22px 14px; touch-action:manipulation; cursor:pointer;
+      -webkit-tap-highlight-color:transparent; position:relative; z-index:10; }
+
+    .slide-card{ padding:14px 12px; min-height:auto; }
+    .slide-card h2{ font-size:1rem; }
+    .slide-nav{ flex-wrap:wrap; gap:6px; }
+    .slide-nav .progress{ order:3; flex-basis:100%; text-align:center; }
+
+    .quiz-q{ padding:12px 10px; }
+    .quiz-opt{ padding:10px 12px; font-size:.82rem; touch-action:manipulation; }
+    .quiz-result{ padding:16px 12px; }
+    .quiz-result .score-num{ font-size:2rem; }
+
+    #space{ z-index:0 !important; }
+    .sol{ width:30px !important; height:30px !important; }
+    .orbit-container{ z-index:6 !important; }
+  }
+
+  @media (max-width: 480px){
+    .upload-screen h1{ font-size:1.05rem; }
+    .logo-swim{ width:55px; height:55px; }
+    .sol{ width:24px !important; height:24px !important; }
+    .slide-card h2{ font-size:.92rem; }
+  }
+  /* Floating AI button — only shown on mobile via JS */
+  .ai-float-btn{
+    display:none; position:fixed; bottom:20px; right:16px; z-index:200;
+    width:48px; height:48px; border-radius:50%;
+    background:linear-gradient(135deg, var(--accent), var(--accent2));
+    border:none; cursor:pointer; align-items:center; justify-content:center;
+    font-size:1.3rem; box-shadow:0 4px 18px rgba(0,0,0,.5);
+    touch-action:manipulation;
+  }
+  .ai-float-panel{
+    display:none; position:fixed; bottom:78px; right:12px; z-index:199;
+    width:calc(100vw - 24px); max-width:380px;
+    background:rgba(10,14,40,.97); backdrop-filter:blur(16px);
+    border:1px solid var(--line); border-radius:16px;
+    flex-direction:column; overflow:hidden;
+    box-shadow:0 8px 32px rgba(0,0,0,.5);
+  }
+  .ai-float-panel.open{ display:flex; }
+
+</style>
+</head>
+<body>
+
+<div id="space">
+  <!-- Andromeda tarzı galaksi katmanları -->
+  <div id="galaxy">
+  <svg id="galaxySVG" style="position:fixed;inset:0;width:100%;height:100%;pointer-events:none;z-index:0;" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <!-- Çekirdek gradyanı -->
+      <radialGradient id="gCore" cx="50%" cy="50%" r="50%">
+        <stop offset="0%"   stop-color="#fffff8" stop-opacity="1"/>
+        <stop offset="8%"   stop-color="#fff5d0" stop-opacity=".98"/>
+        <stop offset="20%"  stop-color="#ffd080" stop-opacity=".85"/>
+        <stop offset="40%"  stop-color="#e08030" stop-opacity=".55"/>
+        <stop offset="65%"  stop-color="#803818" stop-opacity=".22"/>
+        <stop offset="100%" stop-color="#200800" stop-opacity="0"/>
+      </radialGradient>
+      <!-- Sol spiral kol -->
+      <radialGradient id="gArm1" cx="30%" cy="50%" r="70%">
+        <stop offset="0%"   stop-color="#c0c8ff" stop-opacity=".38"/>
+        <stop offset="35%"  stop-color="#9090e8" stop-opacity=".22"/>
+        <stop offset="70%"  stop-color="#5050c0" stop-opacity=".10"/>
+        <stop offset="100%" stop-color="#202080" stop-opacity="0"/>
+      </radialGradient>
+      <!-- Sağ spiral kol -->
+      <radialGradient id="gArm2" cx="70%" cy="50%" r="70%">
+        <stop offset="0%"   stop-color="#d0b8ff" stop-opacity=".32"/>
+        <stop offset="40%"  stop-color="#9870e0" stop-opacity=".18"/>
+        <stop offset="75%"  stop-color="#5030b0" stop-opacity=".08"/>
+        <stop offset="100%" stop-color="#180060" stop-opacity="0"/>
+      </radialGradient>
+      <!-- Dış hâle -->
+      <radialGradient id="gHalo" cx="50%" cy="50%" r="50%">
+        <stop offset="0%"   stop-color="#3030a0" stop-opacity="0"/>
+        <stop offset="55%"  stop-color="#2828a0" stop-opacity=".04"/>
+        <stop offset="75%"  stop-color="#1818a0" stop-opacity=".08"/>
+        <stop offset="90%"  stop-color="#100860" stop-opacity=".06"/>
+        <stop offset="100%" stop-color="#080430" stop-opacity="0"/>
+      </radialGradient>
+      <!-- HII bölgesi pembe -->
+      <radialGradient id="gHII1" cx="50%" cy="50%" r="50%">
+        <stop offset="0%"  stop-color="#ff90d0" stop-opacity=".55"/>
+        <stop offset="50%" stop-color="#e060b0" stop-opacity=".25"/>
+        <stop offset="100%" stop-color="#a02080" stop-opacity="0"/>
+      </radialGradient>
+      <radialGradient id="gHII2" cx="50%" cy="50%" r="50%">
+        <stop offset="0%"  stop-color="#80c0ff" stop-opacity=".48"/>
+        <stop offset="50%" stop-color="#5090e0" stop-opacity=".22"/>
+        <stop offset="100%" stop-color="#2050b0" stop-opacity="0"/>
+      </radialGradient>
+      <radialGradient id="gHII3" cx="50%" cy="50%" r="50%">
+        <stop offset="0%"  stop-color="#ffc060" stop-opacity=".42"/>
+        <stop offset="50%" stop-color="#e09030" stop-opacity=".20"/>
+        <stop offset="100%" stop-color="#804010" stop-opacity="0"/>
+      </radialGradient>
+      <!-- Toz bandı -->
+      <radialGradient id="gDust" cx="50%" cy="50%" r="50%">
+        <stop offset="0%"  stop-color="#050310" stop-opacity=".55"/>
+        <stop offset="50%" stop-color="#080518" stop-opacity=".35"/>
+        <stop offset="100%" stop-color="#02010a" stop-opacity="0"/>
+      </radialGradient>
+      <!-- Tüm galaksiyi kesen galaktik filtre -->
+      <filter id="gBlur1"><feGaussianBlur stdDeviation="18"/></filter>
+      <filter id="gBlur2"><feGaussianBlur stdDeviation="8"/></filter>
+      <filter id="gBlur3"><feGaussianBlur stdDeviation="4"/></filter>
+      <filter id="gBlur4"><feGaussianBlur stdDeviation="28"/></filter>
+      <filter id="gBlur5"><feGaussianBlur stdDeviation="2"/></filter>
+    </defs>
+
+    <!-- Dış galaktik hâle — çok geniş, çok soluk -->
+    <ellipse id="gHaloEl" cx="50%" cy="50%" rx="46%" ry="18%" fill="url(#gHalo)" filter="url(#gBlur4)"
+      transform="rotate(-28,50%,50%)" opacity=".9">
+      <animate attributeName="opacity" values=".7;1;.7" dur="22s" repeatCount="indefinite"/>
+    </ellipse>
+
+    <!-- Sol spiral kol gövdesi -->
+    <ellipse cx="34%" cy="50%" rx="28%" ry="9%" fill="url(#gArm1)" filter="url(#gBlur1)"
+      transform="rotate(-28,50%,50%)" opacity=".85">
+      <animate attributeName="opacity" values=".7;.95;.7" dur="26s" repeatCount="indefinite"/>
+    </ellipse>
+
+    <!-- Sağ spiral kol gövdesi -->
+    <ellipse cx="66%" cy="50%" rx="26%" ry="8%" fill="url(#gArm2)" filter="url(#gBlur1)"
+      transform="rotate(-28,50%,50%)" opacity=".85">
+      <animate attributeName="opacity" values=".75;1;.75" dur="30s" repeatCount="indefinite"/>
+    </ellipse>
+
+    <!-- İç disk — parlak, turuncu-sarı tonu -->
+    <ellipse cx="50%" cy="50%" rx="20%" ry="7%" fill="url(#gCore)" filter="url(#gBlur2)"
+      transform="rotate(-28,50%,50%)" opacity=".9">
+      <animate attributeName="opacity" values=".8;1;.8" dur="18s" repeatCount="indefinite"/>
+    </ellipse>
+
+    <!-- HII bölgeleri — sol kol -->
+    <ellipse cx="30%" cy="47%" rx="3.5%" ry="2.2%" fill="url(#gHII1)" filter="url(#gBlur3)"
+      transform="rotate(-28,50%,50%)" opacity=".8">
+      <animate attributeName="opacity" values=".5;.9;.5" dur="8s" repeatCount="indefinite"/>
+    </ellipse>
+    <ellipse cx="24%" cy="51%" rx="2.5%" ry="1.6%" fill="url(#gHII2)" filter="url(#gBlur3)"
+      transform="rotate(-28,50%,50%)" opacity=".7">
+      <animate attributeName="opacity" values=".4;.8;.4" dur="11s" repeatCount="indefinite"/>
+    </ellipse>
+    <!-- HII bölgeleri — sağ kol -->
+    <ellipse cx="70%" cy="50%" rx="3%" ry="2%" fill="url(#gHII1)" filter="url(#gBlur3)"
+      transform="rotate(-28,50%,50%)" opacity=".75">
+      <animate attributeName="opacity" values=".45;.85;.45" dur="9s" repeatCount="indefinite"/>
+    </ellipse>
+    <ellipse cx="76%" cy="48%" rx="2.2%" ry="1.5%" fill="url(#gHII2)" filter="url(#gBlur3)"
+      transform="rotate(-28,50%,50%)" opacity=".65">
+      <animate attributeName="opacity" values=".35;.75;.35" dur="13s" repeatCount="indefinite"/>
+    </ellipse>
+    <!-- Sarı HII — iç disk kenarı -->
+    <ellipse cx="42%" cy="49%" rx="2%" ry="1.4%" fill="url(#gHII3)" filter="url(#gBlur3)"
+      transform="rotate(-28,50%,50%)" opacity=".7">
+      <animate attributeName="opacity" values=".4;.8;.4" dur="7s" repeatCount="indefinite"/>
+    </ellipse>
+    <ellipse cx="58%" cy="51%" rx="1.8%" ry="1.2%" fill="url(#gHII3)" filter="url(#gBlur3)"
+      transform="rotate(-28,50%,50%)" opacity=".6">
+      <animate attributeName="opacity" values=".35;.7;.35" dur="10s" repeatCount="indefinite"/>
+    </ellipse>
+
+    <!-- Çekirdek parlak noktası — en üstte -->
+    <ellipse cx="50%" cy="50%" rx="5%" ry="2.8%" fill="url(#gCore)" filter="url(#gBlur5)"
+      transform="rotate(-28,50%,50%)" opacity="1">
+      <animate attributeName="opacity" values=".88;1;.88" dur="5s" repeatCount="indefinite"/>
+    </ellipse>
+    <!-- Çekirdek ultra-parlak merkez -->
+    <ellipse cx="50%" cy="50%" rx="1.2%" ry="0.7%" fill="#fffff8"
+      transform="rotate(-28,50%,50%)" opacity=".95">
+      <animate attributeName="opacity" values=".8;1;.8" dur="3s" repeatCount="indefinite"/>
+    </ellipse>
+  </svg>
+</div>
+  <div class="stars" id="stars"></div>
+
+  <div id="orbitContainer" class="orbit-container"></div>
+  <div id="asteroids"></div>
+  <div class="planets" id="planets"></div>
+  <div id="ships"></div>
+
+
+</div>
+
+<!-- Mobil floating AI butonu -->
+<button class="ai-float-btn" id="aiFloatBtn" style="display:none">💬</button>
+<div class="ai-float-panel" id="aiFloatPanel">
+  <div class="ai-panel-header" style="display:flex;align-items:center;gap:10px">
+    <div class="mark"><div class="mini-disk"></div><div class="mini-core"></div></div>
+    <div>
+      <h3 data-i18n="aiPanelTitle" style="margin:0;font-size:.9rem">Sor & Öğren</h3>
+      <span class="util" style="font-size:.65rem;color:var(--ink-soft)">Thinkle</span>
+    </div>
+    <button onclick="document.getElementById('aiFloatPanel').classList.remove('open')"
+      style="margin-left:auto;background:none;border:none;color:var(--ink-soft);font-size:1.2rem;cursor:pointer;padding:4px">✕</button>
+  </div>
+  <div class="ai-chat" id="aiChatMobile" style="flex:1;overflow-y:auto;padding:10px 12px;min-height:80px;max-height:35vh"></div>
+  <div class="ai-input-row" style="padding:10px 12px;border-top:1px solid var(--line);display:flex;gap:8px">
+    <textarea id="aiInputMobile" placeholder="Bir şey sor…" style="flex:1;resize:none;min-height:40px;max-height:90px;padding:8px 10px;border:1px solid var(--line);border-radius:10px;font-family:'Space Grotesk',sans-serif;font-size:.82rem;background:rgba(255,255,255,.03);color:var(--ink);-webkit-user-select:text;user-select:text"></textarea>
+    <button class="ai-send-btn" id="aiSendBtnMobile" style="padding:0 14px">→</button>
+  </div>
+</div>
+
+<div class="left-column" id="leftColumn">
+  <div class="sidebar" id="sidebar">
+    <div class="brand">
+      <div class="brand-mark"><div class="mini-disk"></div><div class="mini-core"></div><div class="laser-eye"></div></div>
+      <div>
+        <h1>Thinkle</h1>
+        <span class="util" data-i18n="tagline">dosyandan derse, dersten bilgiye ⚡</span>
+      </div>
+    </div>
+    <button class="menu-toggle" id="menuToggle" data-i18n="menuToggle">☰ Slaytlar</button>
+    <div class="tabs" id="tabs"></div>
+  </div>
+
+  <div class="ai-panel" id="aiPanel">
+    <div class="ai-panel-header">
+      <div class="mark"><div class="mini-disk"></div><div class="mini-core"></div></div>
+      <div>
+        <h3 data-i18n="aiPanelTitle">Sor & Öğren</h3>
+        <span class="util" data-i18n="aiPanelTagline">dosyasız da sorabilirsin</span>
+      </div>
+    </div>
+    <div class="ai-chat" id="aiChat">
+      <div class="ai-panel-empty" id="aiEmptyMsg" data-i18n="aiEmptyMsg">Bir konu, fikir veya soru yaz — Thinkle sana anlatmaya başlasın. PDF yüklemen gerekmiyor.</div>
+    </div>
+    <div class="ai-input-row">
+      <textarea id="aiInput" data-i18n-placeholder="aiInputPlaceholder" placeholder="Bir şey sor…"></textarea>
+      <button class="ai-send-btn" id="aiSendBtn">→</button>
+    </div>
+  </div>
+</div>
+
+<div class="main">
+  <div class="topbar">
+    <h2 id="topTitle" data-i18n="topTitleDefault">Başlamak için bir dosya yükle</h2>
+    <div style="display:flex; gap:10px; align-items:center;">
+      <div class="lang-toggle" id="langToggle">
+        <button class="lang-opt active" data-lang="tr">TR</button>
+        <button class="lang-opt" data-lang="en">EN</button>
+      </div>
+      <button class="btn" id="restartBtn" data-i18n="restartBtn">↺ Yeni dosya</button>
+      <button class="btn primary" id="exportBtn" disabled data-i18n="exportBtn">⬇ .pptx indir</button>
+    </div>
+  </div>
+
+  <div class="content">
+    <div class="content-inner" id="contentInner">
+
+      <div class="upload-screen" id="uploadScreen">
+        <div class="logo-intro" id="logoIntro">
+          <div class="logo-swim"><div class="mini-disk"></div><div class="mini-disk d2"></div><div class="mini-core"></div><div class="laser-eye"></div></div>
+        </div>
+        <h1 data-i18n="heroTitle">Bilgiyi yutar,<br>ders olarak kusar.</h1>
+        <p data-i18n="heroDesc">Word, PDF ya da metin dosyası yükle. Konu aynı kalır — Thinkle içeriği net slaytlara dönüştürür, açıklamalar ve önemli noktalar ekler, öğrendiklerini test edecek bir quiz hazırlar.</p>
+
+        <div class="dropzone" id="dropzone">
+          <div class="icon rocket-icon">
+            <svg viewBox="0 0 100 140" xmlns="http://www.w3.org/2000/svg">
+              <defs>
+                <linearGradient id="hullGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+                  <stop offset="0%" stop-color="#3a4368"/>
+                  <stop offset="45%" stop-color="#cdd6f4"/>
+                  <stop offset="55%" stop-color="#eaf0ff"/>
+                  <stop offset="100%" stop-color="#3a4368"/>
+                </linearGradient>
+                <linearGradient id="finGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+                  <stop offset="0%" stop-color="var(--accent2)"/>
+                  <stop offset="100%" stop-color="var(--pink)"/>
+                </linearGradient>
+                <radialGradient id="windowGrad" cx="35%" cy="35%" r="65%">
+                  <stop offset="0%" stop-color="#fff"/>
+                  <stop offset="45%" stop-color="var(--accent)"/>
+                  <stop offset="100%" stop-color="#0a2030"/>
+                </radialGradient>
+                <linearGradient id="flameGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+                  <stop offset="0%" stop-color="#fff"/>
+                  <stop offset="35%" stop-color="var(--accent)"/>
+                  <stop offset="70%" stop-color="var(--accent2)"/>
+                  <stop offset="100%" stop-color="transparent"/>
+                </linearGradient>
+              </defs>
+
+              <!-- exhaust flame -->
+              <g class="rocket-flame">
+                <path d="M38 108 L50 138 L62 108 Z" fill="url(#flameGrad)"/>
+                <path d="M43 108 L50 126 L57 108 Z" fill="#fff" opacity="0.85"/>
+              </g>
+
+              <!-- side fins -->
+              <path d="M30 75 L6 102 L30 100 Z" fill="url(#finGrad)"/>
+              <path d="M70 75 L94 102 L70 100 Z" fill="url(#finGrad)"/>
+              <path d="M30 75 L6 102 L30 100 Z" fill="none" stroke="#1a0b2e" stroke-width="1.5" opacity="0.4"/>
+              <path d="M70 75 L94 102 L70 100 Z" fill="none" stroke="#1a0b2e" stroke-width="1.5" opacity="0.4"/>
+
+              <!-- main hull: sharp angular body -->
+              <path d="M50 2 L72 38 L74 88 L66 108 L34 108 L26 88 L28 38 Z" fill="url(#hullGrad)" stroke="#1a0b2e" stroke-width="2"/>
+
+              <!-- nose accent stripe -->
+              <path d="M50 2 L60 36 L40 36 Z" fill="var(--accent2)" opacity="0.9"/>
+
+              <!-- hull panel lines -->
+              <line x1="29" y1="60" x2="71" y2="60" stroke="#1a0b2e" stroke-width="1" opacity="0.25"/>
+              <line x1="28" y1="80" x2="72" y2="80" stroke="#1a0b2e" stroke-width="1" opacity="0.25"/>
+
+              <!-- cockpit window -->
+              <circle cx="50" cy="48" r="13" fill="url(#windowGrad)" stroke="#1a0b2e" stroke-width="2"/>
+              <circle cx="46" cy="44" r="3.5" fill="#fff" opacity="0.7"/>
+            </svg>
+          </div>
+          <div><strong data-i18n="dzTitle">Dosya seçmek için tıkla</strong> <span data-i18n="dzOr">veya buraya sürükle</span></div>
+          <div class="small">.pdf · .docx · .txt</div>
+          <div class="filename" id="fileName"></div>
+          <input type="file" id="fileInput" accept=".pdf,.docx,.txt">
+        </div>
+
+        <button class="btn primary go-btn" id="goBtn" data-i18n="goBtn">Çalışma kağıdı oluştur →</button>
+
+        <div class="error hidden" id="uploadError"></div>
+      </div>
+
+      <div class="loading hidden" id="loadingScreen">
+        <div class="orbit"><span></span><span></span><span></span></div>
+        <div class="util" id="loadingText" data-i18n="loadingDefault">Dosyan okunuyor…</div>
+      </div>
+
+      <div id="deckScreen" class="hidden"></div>
+
+    </div>
+  </div>
+</div>
+
+<script>
+document.body.classList.add('biome-1');
+
+// Mobil floating AI butonu
+const aiFloatBtn = document.getElementById('aiFloatBtn');
+const aiFloatPanel = document.getElementById('aiFloatPanel');
+function isMobile(){ return window.innerWidth <= 860; }
+function updateFloatBtn(){
+  if(aiFloatBtn) aiFloatBtn.style.display = isMobile() ? 'flex' : 'none';
+}
+updateFloatBtn();
+window.addEventListener('resize', updateFloatBtn);
+if(aiFloatBtn){
+  aiFloatBtn.addEventListener('click', ()=> aiFloatPanel.classList.toggle('open'));
+  aiFloatBtn.addEventListener('touchend', (e)=>{ e.preventDefault(); aiFloatPanel.classList.toggle('open'); }, {passive:false});
+}
+
+// ============================================================
+// GALAKSİ — daha fazla detay: HII bölgeleri, toz bantları, parıltılar
+// ============================================================
+const spaceEl = document.getElementById('space');
+
+// Galaksi çekirdeği
+const coreEl = document.createElement('div');
+coreEl.className = 'galaxy-core';
+spaceEl.appendChild(coreEl);
+
+// Spiral kol yıldız yoğunlukları — HII bölgeleri + düzensiz parlama
+const spiralGlows = [
+  // Ana spiral kollar
+  { w:420, h:130, left:'30%', top:'47%', color:'rgba(200,170,90,.32)',  blur:16, dur:22, dx:'10px', dy:'-5px' },
+  { w:320, h:100, left:'55%', top:'51%', color:'rgba(150,130,210,.26)', blur:14, dur:30, dx:'-7px', dy:'9px'  },
+  { w:240, h:75,  left:'20%', top:'53%', color:'rgba(110,90,190,.20)',  blur:20, dur:38, dx:'12px', dy:'3px'  },
+  { w:180, h:55,  left:'64%', top:'44%', color:'rgba(170,150,230,.18)', blur:12, dur:34, dx:'-9px', dy:'-6px' },
+  // HII bölgeleri — pembemsi yoğun yıldız oluşum bölgeleri
+  { w:80,  h:50,  left:'38%', top:'44%', color:'rgba(255,160,180,.22)', blur:8,  dur:18, dx:'4px',  dy:'-3px' },
+  { w:60,  h:40,  left:'58%', top:'55%', color:'rgba(220,140,200,.18)', blur:6,  dur:24, dx:'-5px', dy:'4px'  },
+  { w:50,  h:35,  left:'27%', top:'49%', color:'rgba(200,120,180,.16)', blur:7,  dur:20, dx:'6px',  dy:'-4px' },
+  { w:70,  h:45,  left:'62%', top:'46%', color:'rgba(230,160,210,.15)', blur:9,  dur:26, dx:'-4px', dy:'5px'  },
+  // Uzak galaksi kenar parıltıları
+  { w:500, h:60,  left:'15%', top:'57%', color:'rgba(80,70,180,.12)',   blur:24, dur:44, dx:'8px',  dy:'2px'  },
+  { w:400, h:50,  left:'50%', top:'42%', color:'rgba(70,60,170,.10)',   blur:22, dur:48, dx:'-6px', dy:'-3px' },
+];
+spiralGlows.forEach(g => {
+  const el = document.createElement('div');
+  el.className = 'spiral-glow';
+  el.style.width = g.w+'px'; el.style.height = g.h+'px';
+  el.style.left = g.left; el.style.top = g.top;
+  el.style.background = `radial-gradient(ellipse, ${g.color} 0%, transparent 72%)`;
+  el.style.filter = `blur(${g.blur}px)`;
+  el.style.setProperty('--sg-dur', g.dur+'s');
+  el.style.setProperty('--sg-op', '1');
+  el.style.setProperty('--sg-dx', g.dx);
+  el.style.setProperty('--sg-dy', g.dy);
+  el.style.animationDelay = (-Math.random()*g.dur)+'s';
+  spaceEl.appendChild(el);
+});
+
+// Toz bandı — galaksiyi ortadan kesen koyu şerit
+// dustLane kaldırıldı
+
+// Yıldızlar — galaksi bölgesinde daha yoğun
+const starsEl = document.getElementById('stars');
+for(let i=0;i<220;i++){
+  const s = document.createElement('div');
+  s.className = 'star';
+  const size = Math.random()*2.4 + 0.3;
+  s.style.width = size+'px'; s.style.height = size+'px';
+  s.style.left = (Math.random()*100)+'%';
+  s.style.top = (Math.random()*100)+'%';
+  s.style.setProperty('--d', (Math.random()*5+1.5)+'s');
+  // Galaksi merkezi yakınındaki yıldızlar daha sıcak renk
+  const cx = parseFloat(s.style.left), cy = parseFloat(s.style.top);
+  const distFromCenter = Math.sqrt((cx-50)**2 + (cy-50)**2);
+  if(distFromCenter < 25) s.style.boxShadow = `0 0 ${Math.random()*4+1}px 1px rgba(255,220,130,.6)`;
+  else if(Math.random() < 0.2) s.style.boxShadow = '0 0 2px 1px rgba(180,200,255,.4)';
+  starsEl.appendChild(s);
+}
+
+// ============================================================
+// GÜNEŞ SİSTEMİ — sağ alt köşede sabit
+// ============================================================
+const orbitContainer = document.getElementById('orbitContainer');
+
+// ============================================================
+// GÜNEŞ YÜZÜ — önce oluştur ki positionSolarSystem kullanabilsin
+// ============================================================
+const solEl = document.createElement('div');
+solEl.className = 'sol';
+solEl.style.width = '44px';
+solEl.style.height = '44px';
+solEl.style.position = 'fixed';
+solEl.style.zIndex = '9999';
+solEl.style.cursor = 'pointer';
+solEl.style.transform = 'translate(-50%, -50%)';
+solEl.innerHTML = `
+  <div class="sol-face">
+    <div class="sol-brow left"></div>
+    <div class="sol-brow right"></div>
+    <div class="sol-eye left blinking"><div class="sol-pupil" id="pupilL"></div></div>
+    <div class="sol-eye right"><div class="sol-pupil" id="pupilR"></div></div>
+    <div class="sol-mouth"></div>
+  </div>
+`;
+document.body.appendChild(solEl);
+
+function positionSolarSystem(){
+  if(!orbitContainer) return;
+  const desc = document.querySelector('[data-i18n="heroDesc"]');
+  const uploadScreen = document.getElementById('uploadScreen');
+  const isQuizActive = !!document.querySelector('.quiz-q');
+  const isSlideActive = !!document.querySelector('.slide-card');
+  const topTitleEl = document.getElementById('topTitle');
+
+  if(isQuizActive && topTitleEl){
+    // Quiz: başlığın hemen sağına
+    const r = topTitleEl.getBoundingClientRect();
+    const size = window.innerWidth <= 480 ? 28 : 36;
+    solEl.classList.add('quiz-mode');
+    solEl.style.left = (r.right + size/2 + 8) + 'px';
+    solEl.style.top  = (r.top + r.height/2) + 'px';
+    orbitContainer.style.left = '-9999px';
+    orbitContainer.style.top  = '-9999px';
+  } else if(isSlideActive){
+    // Slayt: sağ alt köşe
+    const size = window.innerWidth <= 480 ? 28 : 40;
+    solEl.classList.remove('quiz-mode');
+    solEl.style.left = (window.innerWidth - size/2 - 20) + 'px';
+    solEl.style.top  = (window.innerHeight - size/2 - 20) + 'px';
+    orbitContainer.style.left = '-9999px';
+    orbitContainer.style.top  = '-9999px';
+  } else {
+    // Upload ekranı: yazının üstünde, gezegen sistemiyle birlikte
+    solEl.classList.remove('quiz-mode');
+    let cx, cy;
+    if(desc && uploadScreen && !uploadScreen.classList.contains('hidden')){
+      const r = desc.getBoundingClientRect();
+      const isMobile = window.innerWidth <= 860;
+      const offset = isMobile ? 100 : 160;
+      cx = r.left + r.width / 2;
+      cy = r.top - offset;
+    } else {
+      cx = window.innerWidth * 0.72;
+      cy = window.innerHeight * 0.68;
+    }
+    orbitContainer.style.left = cx + 'px';
+    orbitContainer.style.top  = cy + 'px';
+    solEl.style.left = cx + 'px';
+    solEl.style.top  = cy + 'px';
+  }
+}
+positionSolarSystem();
+window.addEventListener('resize', positionSolarSystem);
+window.addEventListener('scroll', positionSolarSystem, true);
+setTimeout(positionSolarSystem, 60);
+setTimeout(positionSolarSystem, 500);
+
+// Mevcut ifadeyi temizle
+let solMoodTimer = null;
+function setSolMood(mood, duration){
+  clearTimeout(solMoodTimer);
+  solEl.classList.remove('angry','crying','crazy','surprised');
+  // Gözyaşlarını temizle
+  solEl.querySelectorAll('.sol-tear').forEach(t=>t.remove());
+
+  if(mood === 'crying'){
+    solEl.classList.add('crying');
+    // Gözyaşı damlaları
+    const makeTeard = (cls) => {
+      const t = document.createElement('div');
+      t.className = 'sol-tear '+cls;
+      t.style.height = '0';
+      solEl.querySelector('.sol-face').appendChild(t);
+      setTimeout(()=>{
+        t.style.height = (solEl.offsetHeight*0.5)+'px';
+      }, 50);
+      setTimeout(()=>t.remove(), 900);
+    };
+    const tearLoop = setInterval(()=>{
+      if(!solEl.classList.contains('crying')){ clearInterval(tearLoop); return; }
+      makeTeard('left-tear'); makeTeard('right-tear');
+    }, 700);
+    solMoodTimer = setTimeout(()=>{ solEl.classList.remove('crying'); clearInterval(tearLoop); }, duration||4000);
+  } else if(mood === 'crazy'){
+    solEl.classList.add('crazy');
+    solMoodTimer = setTimeout(()=>solEl.classList.remove('crazy'), duration||3000);
+  } else if(mood === 'surprised'){
+    solEl.classList.add('surprised');
+    solMoodTimer = setTimeout(()=>solEl.classList.remove('surprised'), duration||1200);
+  } else if(mood === 'angry'){
+    solEl.classList.add('angry');
+    solMoodTimer = setTimeout(()=>solEl.classList.remove('angry'), duration||5000);
+  }
+}
+
+// Tıklama + dokunma — hem PC hem mobil
+let solClickCount = 0;
+function handleSolTap(e){
+  e.stopPropagation();
+  e.preventDefault();
+  solClickCount++;
+  if(solClickCount === 1){
+    setSolMood('surprised', 1400);
+  } else if(solClickCount === 2){
+    setSolMood('crying', 3500);
+  } else if(solClickCount === 3){
+    setSolMood('angry', 3000);
+  } else if(solClickCount >= 4){
+    setSolMood('crazy', 2500);
+    solClickCount = 0;
+  }
+  setTimeout(()=>{ solClickCount = Math.max(0, solClickCount-1); }, 6000);
+}
+solEl.addEventListener('click', handleSolTap);
+solEl.addEventListener('touchend', handleSolTap, { passive: false });
+
+// Göz takibi
+function updateSolEyes(){
+  if(solEl.classList.contains('crazy')) return; // Çıldırınca göz takibi durur
+  const rect = solEl.getBoundingClientRect();
+  const cx = rect.left + rect.width/2, cy = rect.top + rect.height/2;
+  let closest = null, minDist = 9999;
+  document.querySelectorAll('.space-ship.transiting, .asteroid').forEach(el => {
+    const r = el.getBoundingClientRect();
+    const ex = r.left+r.width/2, ey = r.top+r.height/2;
+    const d = Math.sqrt((ex-cx)**2+(ey-cy)**2);
+    if(d < minDist){ minDist=d; closest={x:ex,y:ey}; }
+  });
+  const tx = closest?closest.x:cx, ty = closest?closest.y:cy;
+  const angle = Math.atan2(ty-cy, tx-cx);
+  const maxOff = 3, dist = Math.min(minDist/80,1);
+  const ox = Math.cos(angle)*maxOff*dist, oy = Math.sin(angle)*maxOff*dist;
+  ['pupilL','pupilR'].forEach(id=>{
+    const p = document.getElementById(id);
+    if(p) p.style.transform=`translate(calc(-50% + ${ox.toFixed(1)}px), calc(-50% + ${oy.toFixed(1)}px))`;
+  });
+}
+setInterval(updateSolEyes, 120);
+
+// Öfke sistemi — 3 dosyadan sonra sinirlensin
+let solAngerLevel = 0;
+function solGetAngry(){
+  solAngerLevel++;
+  if(solAngerLevel >= 3){
+    setSolMood('angry', 5000);
+    solAngerLevel = Math.max(0, solAngerLevel-2);
+  }
+}
+
+const BASE_R = 66, STEP_R = 36;
+const orbitDefs = [
+  { size:9,  color:'radial-gradient(circle at 32% 28%, #d4a96a 0%, #7a3d10 60%, #3a1800 100%)', dur:16 },
+  { size:13, color:'radial-gradient(circle at 28% 25%, #e8c890 0%, #c09040 55%, #7a5010 100%)', atmo:'rgba(200,160,80,.22)', dur:28 },
+  { size:16, color:'radial-gradient(circle at 30% 28%, #6abaee 0%, #2a6898 50%, #0a2848 100%)', atmo:'rgba(100,180,255,.25)', dur:42 },
+  { size:10, color:'radial-gradient(circle at 32% 30%, #e8886a 0%, #a03820 55%, #501808 100%)', atmo:'rgba(220,100,60,.15)', dur:66 },
+  { size:26, color:'radial-gradient(circle at 28% 25%, #f0d89a 0%, #c89840 45%, #986820 80%, #5a3a08 100%)', ring:true, atmo:'rgba(240,200,130,.12)', dur:105 },
+  { size:19, color:'radial-gradient(circle at 30% 28%, #a0d4e8 0%, #4888b8 50%, #183858 100%)', atmo:'rgba(120,200,240,.18)', dur:152 },
+];
+
+orbitDefs.forEach((def, i) => {
+  const orbitR = BASE_R + i * STEP_R;
+  const delay = -(Math.random() * def.dur);
+  const orbiter = document.createElement('div');
+  orbiter.className = 'orbiter';
+  orbiter.style.setProperty('--orbit-dur', def.dur+'s');
+  orbiter.style.setProperty('--orbit-delay', delay+'s');
+  const planet = document.createElement('div');
+  planet.className = 'planet';
+  planet.style.width = def.size+'px'; planet.style.height = def.size+'px';
+  planet.style.setProperty('--orbit-r', orbitR+'px');
+  planet.style.setProperty('--planet-size', def.size+'px');
+  planet.style.setProperty('--orbit-dur', def.dur+'s');
+  planet.style.setProperty('--orbit-delay', delay+'s');
+  const body = document.createElement('div');
+  body.className = 'body'; body.style.background = def.color;
+  planet.appendChild(body);
+  if(def.atmo){
+    const atmo = document.createElement('div');
+    atmo.className = 'atmo';
+    atmo.style.background = `radial-gradient(circle, transparent 56%, ${def.atmo} 73%, transparent 88%)`;
+    planet.appendChild(atmo);
+  }
+  if(def.ring){
+    const ring = document.createElement('div');
+    ring.className = 'ring';
+    ring.style.width = (def.size*2.6)+'px'; ring.style.height = (def.size*2.6)+'px';
+    planet.appendChild(ring);
+  }
+  orbiter.appendChild(planet);
+  orbitContainer.appendChild(orbiter);
+});
+
+// ============================================================
+// UZAY GEMİLERİ — soldan sağa geçiş, karadeliğe yaklaşınca yutulur
+// ============================================================
+const shipSVGs = [
+  // Klasik roket
+  `<svg viewBox="0 0 32 48" xmlns="http://www.w3.org/2000/svg"><ellipse cx="16" cy="26" rx="5" ry="14" fill="#eaf0ff"/><path d="M16 6C12 12 12 20 16 20C20 20 20 12 16 6Z" fill="#6ee7ff"/><circle cx="16" cy="17" r="3" fill="#10163a"/><path d="M11 28L6 36L11 35Z" fill="#b46bff"/><path d="M21 28L26 36L21 35Z" fill="#b46bff"/><path d="M13 38C13 42 19 42 19 38L16 44Z" fill="#ff6ec7" opacity=".9"/></svg>`,
+  // Kanat açıklı savaş gemisi
+  `<svg viewBox="0 0 40 32" xmlns="http://www.w3.org/2000/svg"><path d="M20 4L28 22L20 18L12 22Z" fill="#c8d8f0"/><path d="M12 22L2 30L10 24L12 22Z" fill="#7890c0"/><path d="M28 22L38 30L30 24L28 22Z" fill="#7890c0"/><ellipse cx="20" cy="16" rx="4" ry="7" fill="#6ee7ff" opacity=".8"/><rect x="18" y="22" width="4" height="7" fill="#b46bff" opacity=".7"/></svg>`,
+  // Uydu
+  `<svg viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg"><rect x="18" y="18" width="12" height="12" rx="3" fill="#eaf0ff"/><circle cx="24" cy="24" r="4" fill="#6ee7ff"/><rect x="2" y="10" width="12" height="8" rx="2" fill="#b46bff" transform="rotate(-20 8 14)"/><rect x="34" y="30" width="12" height="8" rx="2" fill="#b46bff" transform="rotate(-20 40 34)"/><line x1="18" y1="20" x2="10" y2="15" stroke="#8a93c7" stroke-width="1.5"/><line x1="30" y1="28" x2="38" y2="33" stroke="#8a93c7" stroke-width="1.5"/></svg>`,
+  // UFO
+  `<svg viewBox="0 0 40 28" xmlns="http://www.w3.org/2000/svg"><ellipse cx="20" cy="20" rx="18" ry="6" fill="#b46bff"/><path d="M6 18C6 10 34 10 34 18Z" fill="#eaf0ff"/><circle cx="14" cy="14" r="2.5" fill="#ff6ec7"/><circle cx="20" cy="11" r="2.5" fill="#6ee7ff"/><circle cx="26" cy="14" r="2.5" fill="#ff6ec7"/></svg>`,
+  // Kargo gemisi
+  `<svg viewBox="0 0 48 28" xmlns="http://www.w3.org/2000/svg"><rect x="6" y="9" width="30" height="12" rx="5" fill="#d0d8f0"/><path d="M36 9L46 15L36 21Z" fill="#6ee7ff" opacity=".9"/><path d="M6 9L2 15L6 21Z" fill="#8a93c7"/><rect x="10" y="5" width="5" height="4" rx="1" fill="#b46bff"/><rect x="18" y="5" width="5" height="4" rx="1" fill="#b46bff"/><rect x="26" y="5" width="5" height="4" rx="1" fill="#b46bff"/></svg>`,
+  // Keşif sondası
+  `<svg viewBox="0 0 20 44" xmlns="http://www.w3.org/2000/svg"><rect x="8" y="10" width="4" height="24" rx="2" fill="#e0e8ff"/><circle cx="10" cy="8" r="5" fill="#6ee7ff"/><rect x="1" y="16" width="7" height="3" rx="1" fill="#b46bff"/><rect x="12" y="16" width="7" height="3" rx="1" fill="#b46bff"/><path d="M7 34L10 42L13 34Z" fill="#ff6ec7" opacity=".8"/></svg>`,
+  // Çift motorlu shuttle
+  `<svg viewBox="0 0 44 36" xmlns="http://www.w3.org/2000/svg"><path d="M22 4L30 24L22 20L14 24Z" fill="#eaf0ff"/><ellipse cx="22" cy="18" rx="6" ry="10" fill="#c8d8f0"/><circle cx="22" cy="13" r="4" fill="#6ee7ff" opacity=".9"/><rect x="8" y="22" width="5" height="9" rx="3" fill="#8a93c7"/><rect x="31" y="22" width="5" height="9" rx="3" fill="#8a93c7"/><path d="M8 31L11 36L14 31Z" fill="#ff6ec7" opacity=".7"/><path d="M30 31L33 36L36 31Z" fill="#ff6ec7" opacity=".7"/></svg>`,
+  // ISS benzeri istasyon
+  `<svg viewBox="0 0 56 20" xmlns="http://www.w3.org/2000/svg"><rect x="18" y="6" width="20" height="8" rx="2" fill="#d8e0f0"/><rect x="26" y="4" width="4" height="12" rx="1" fill="#c0c8e0"/><rect x="2" y="8" width="16" height="3" rx="1" fill="#7080a0"/><rect x="2" y="4" width="7" height="8" rx="1" fill="#4d7bff" opacity=".9"/><rect x="11" y="4" width="7" height="8" rx="1" fill="#4d7bff" opacity=".85"/><rect x="38" y="8" width="16" height="3" rx="1" fill="#7080a0"/><rect x="38" y="4" width="7" height="8" rx="1" fill="#4d7bff" opacity=".9"/><rect x="47" y="4" width="7" height="8" rx="1" fill="#4d7bff" opacity=".85"/><circle cx="28" cy="10" r="1.5" fill="#fff" opacity=".8"/></svg>`,
+  // Elmas şekilli savaş aracı
+  `<svg viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg"><polygon points="16,2 28,16 16,26 4,16" fill="#c0d0e8"/><ellipse cx="16" cy="14" rx="5" ry="5" fill="#6ee7ff" opacity=".9"/><line x1="0" y1="16" x2="32" y2="16" stroke="#8a93c7" stroke-width="1" opacity=".5"/><path d="M12 26L16 34L20 26Z" fill="#ff6ec7" opacity=".7"/></svg>`,
+  // Küçük interceptor
+  `<svg viewBox="0 0 24 36" xmlns="http://www.w3.org/2000/svg"><path d="M12 2L18 20L12 16L6 20Z" fill="#e0e8ff"/><path d="M6 20L0 28L6 24Z" fill="#b46bff"/><path d="M18 20L24 28L18 24Z" fill="#b46bff"/><circle cx="12" cy="13" r="3" fill="#6ee7ff"/><path d="M9 28L12 36L15 28Z" fill="#ff6ec7" opacity=".8"/></svg>`,
+];
+
+const shipsEl = document.getElementById('ships');
+
+function spawnShip(svgStr, initDelay){
+  const el = document.createElement('div');
+  el.className = 'space-ship transiting';
+  el.innerHTML = svgStr;
+  const shipSize = 7 + Math.random()*7; // 7-14px arası
+  el.style.width = shipSize+'px';
+  el.style.left = '-20px';
+  el.style.top = (5 + Math.random()*90)+'%';
+  const dur = 16 + Math.random()*20;
+  const dy = Math.random()*60 - 30;
+  el.style.setProperty('--transit-dur', dur+'s');
+  el.style.setProperty('--transit-dx', (window.innerWidth+40)+'px');
+  el.style.setProperty('--transit-dy', dy+'px');
+  if(initDelay) el.style.animationDelay = initDelay+'s';
+  shipsEl.appendChild(el);
+
+  let swallowed = false;
+  // Karadelik artık yok — basit soldan sağa geçiş, yutulma yok
+
+  const endT = setTimeout(() => {
+    el.remove();
+    setTimeout(()=>spawnShip(svgStr,0), 1500+Math.random()*7000);
+  }, (dur+(initDelay||0))*1000+600);
+}
+
+// 5 gemi başlat (az ama çeşitli)
+const activeShipSVGs = shipSVGs.sort(()=>Math.random()-.5).slice(0,5);
+activeShipSVGs.forEach((svg,i) => spawnShip(svg, i*4));
+// Periyodik yeni gemi
+setInterval(()=>{ spawnShip(shipSVGs[Math.floor(Math.random()*shipSVGs.length)],0); }, 10000);
+
+// ============================================================
+// ASTEROİDLER — gerçekçi taşlı, pütürlü, boyutu çok değişken
+// ============================================================
+const asteroidsEl = document.getElementById('asteroids');
+
+function makeAsteroidSVG(size, isBig){
+  const seed = Math.random();
+  // Gerçekçi şekil: çok kenarlı, düzensiz polygon
+  const pts = 9 + Math.floor(Math.random()*5); // 9-13 köşe
+  const cx = size/2, cy = size/2;
+  let points = '';
+  for(let i=0;i<pts;i++){
+    const angle = (i/pts)*Math.PI*2 - Math.PI/2;
+    const r = (size/2) * (0.55 + Math.random()*0.42);
+    points += `${(cx+Math.cos(angle)*r).toFixed(1)},${(cy+Math.sin(angle)*r).toFixed(1)} `;
+  }
+  const base = Math.floor(60+Math.random()*60);
+  const col1 = `rgb(${base+10},${base-5},${base-15})`;
+  const col2 = `rgb(${base+40},${base+30},${base+18})`;
+  const col3 = `rgb(${base-10},${base-18},${base-22})`;
+  const op = isBig ? '.88' : (0.6+Math.random()*0.28).toFixed(2);
+
+  let svg = `<svg viewBox="0 0 ${size} ${size}" xmlns="http://www.w3.org/2000/svg" style="width:${size}px;height:${size}px;overflow:visible">
+    <defs>
+      <radialGradient id="ag${Math.floor(seed*9999)}" cx="35%" cy="32%" r="65%">
+        <stop offset="0%" stop-color="${col2}"/>
+        <stop offset="45%" stop-color="${col1}"/>
+        <stop offset="100%" stop-color="${col3}"/>
+      </radialGradient>
+    </defs>
+    <polygon points="${points.trim()}" fill="url(#ag${Math.floor(seed*9999)})" opacity="${op}"/>`;
+
+  if(isBig){
+    // Yüzeyde kraterler
+    const craters = 3 + Math.floor(Math.random()*3);
+    for(let c=0;c<craters;c++){
+      const cr = size*(0.06+Math.random()*0.1);
+      const cx2 = size*(0.2+Math.random()*0.6);
+      const cy2 = size*(0.2+Math.random()*0.6);
+      svg += `<ellipse cx="${cx2}" cy="${cy2}" rx="${cr}" ry="${cr*.7}" fill="${col3}" opacity=".45"/>`;
+      svg += `<ellipse cx="${cx2-cr*.2}" cy="${cy2-cr*.2}" rx="${cr*.5}" ry="${cr*.35}" fill="${col2}" opacity=".2"/>`;
+    }
+    // Yüzey çatlakları
+    svg += `<line x1="${size*.25}" y1="${size*.4}" x2="${size*.45}" y2="${size*.6}" stroke="${col3}" stroke-width="${size*.025}" opacity=".35" stroke-linecap="round"/>`;
+    svg += `<line x1="${size*.55}" y1="${size*.3}" x2="${size*.7}" y2="${size*.55}" stroke="${col3}" stroke-width="${size*.018}" opacity=".28" stroke-linecap="round"/>`;
+    // Parlak kenar notu
+    svg += `<polygon points="${points.trim()}" fill="none" stroke="${col2}" stroke-width="${size*.018}" opacity=".3"/>`;
+  }
+
+  svg += `</svg>`;
+  return svg;
+}
+
+function spawnAsteroid(){
+  const el = document.createElement('div');
+  el.className = 'asteroid';
+  const isBig = Math.random() < 0.18;
+  const isTiny = Math.random() < 0.35;
+  const size = isBig
+    ? Math.round(35 + Math.random()*55)   // 35-90px ihtişamlı
+    : isTiny
+      ? Math.round(2 + Math.random()*4)   // 2-6px neredeyse görünmez
+      : Math.round(6 + Math.random()*14); // 6-20px normal
+
+  el.innerHTML = makeAsteroidSVG(size, isBig);
+  el.style.left = '-80px';
+  el.style.top = (Math.random()*window.innerHeight)+'px';
+
+  const dur = isBig ? (22+Math.random()*18) : (8+Math.random()*20);
+  const dy = Math.random()*240 - 120;
+  const rot = Math.random()*720 - 360;
+  const op = isBig ? '.88' : isTiny ? '.45' : '.75';
+
+  el.style.setProperty('--ast-dur', dur+'s');
+  el.style.setProperty('--ast-dx', (window.innerWidth+100)+'px');
+  el.style.setProperty('--ast-dy', dy+'px');
+  el.style.setProperty('--ast-rot', rot+'deg');
+  el.style.setProperty('--ast-op', op);
+  asteroidsEl.appendChild(el);
+  setTimeout(()=>el.remove(), dur*1000+600);
+}
+
+for(let i=0;i<8;i++) setTimeout(()=>spawnAsteroid(), i*2200);
+setInterval(spawnAsteroid, 3800);
+
+// Requests go through a small backend proxy that keeps the real Anthropic
+// API key secret. Replace this with your deployed proxy's URL.
+const PROXY_URL = "https://thinkle-proxy-518x.onrender.com/api/messages";
+let deck = null;
+let currentSlide = 0;
+let pendingFile = null;
+let currentLang = 'tr';
+let quizAnswers = {}; // qi -> selected option index
+let currentBiome = 1; // 1, 2, or 3
+
+const uploadScreen = document.getElementById('uploadScreen');
+const loadingScreen = document.getElementById('loadingScreen');
+const loadingText = document.getElementById('loadingText');
+const deckScreen = document.getElementById('deckScreen');
+const dropzone = document.getElementById('dropzone');
+const fileInput = document.getElementById('fileInput');
+const fileNameEl = document.getElementById('fileName');
+const uploadError = document.getElementById('uploadError');
+const tabsEl = document.getElementById('tabs');
+const topTitle = document.getElementById('topTitle');
+const exportBtn = document.getElementById('exportBtn');
+const restartBtn = document.getElementById('restartBtn');
+const goBtn = document.getElementById('goBtn');
+
+const i18n = {
+  tr: {
+    tagline: 'dosyandan derse, dersten bilgiye ⚡',
+    topTitleDefault: 'Başlamak için bir dosya yükle',
+    restartBtn: '↺ Yeni dosya',
+    exportBtn: '⬇ .pptx indir',
+    heroTitle: 'Bilgiyi yutar,<br>ders olarak kusar.',
+    heroDesc: 'Word, PDF ya da metin dosyası yükle. Konu aynı kalır — Thinkle içeriği net slaytlara dönüştürür, açıklamalar ve önemli noktalar ekler, öğrendiklerini test edecek bir quiz hazırlar.',
+    dzTitle: 'Dosya seçmek için tıkla',
+    dzOr: 'veya buraya sürükle',
+    goBtn: 'Çalışma kağıdı oluştur →',
+    loadingDefault: 'Dosyan okunuyor…',
+    loadingDesign: 'Çalışma kağıdın tasarlanıyor…',
+    menuToggle: '☰ Slaytlar',
+    quizTab: 'Quiz',
+    slideOf: (a,b) => `Slayt ${a} / ${b}`,
+    prevBtn: '← Önceki',
+    nextBtn: '→ Sonraki',
+    nextToQuiz: 'Quize geç →',
+    progressOf: (a,b) => `${a} / ${b}`,
+    whyMatters: 'Neden önemli',
+    quizTitle: (t) => `${t} — Quiz`,
+    chooseFile: 'Lütfen önce bir dosya seç.',
+    unsupportedFile: 'Desteklenmeyen dosya türü. .pdf, .docx veya .txt deneyin.',
+    notEnoughText: 'Bu dosyada yeterli okunabilir metin bulunamadı.',
+    apiError: (s,t) => `API hatası (${s}): ${t}`,
+    noResponse: 'Modelden yanıt alınamadı.',
+    parseError: 'Çalışma kağıdı oluşturulamadı. Tekrar dene.',
+    noSlides: 'Model herhangi bir slayt döndürmedi.',
+    genericError: 'Bir şeyler ters gitti.',
+    aiPanelTitle: 'Sor & Öğren',
+    aiPanelTagline: 'dosyasız da sorabilirsin',
+    aiEmptyMsg: 'Bir konu, fikir veya soru yaz — Thinkle sana anlatmaya başlasın. PDF yüklemen gerekmiyor.',
+    aiInputPlaceholder: 'Bir şey sor…',
+    aiThinking: 'Düşünüyor…',
+    aiError: 'Bir hata oluştu, tekrar dener misin?',
+    scoreLabel: 'Sonuç',
+    scorePass: (pct) => `%${pct} — harika gidiyorsun! Bu konuyu iyi öğrendin.`,
+    scoreFail: (pct) => `%${pct} — %70'in altında kaldın. Karadelik her şeyi yutuyor… tekrar deneyelim mi?`,
+    retryBtn: 'Tekrar dene →',
+    pptxLibError: 'PowerPoint kütüphanesi yüklenemedi. İnternet bağlantını kontrol edip sayfayı yenile.',
+    pptxExportError: '.pptx dosyası oluşturulamadı.'
+  },
+  en: {
+    tagline: 'file in, lesson out ⚡',
+    topTitleDefault: 'Upload a file to begin',
+    restartBtn: '↺ New file',
+    exportBtn: '⬇ Export .pptx',
+    heroTitle: 'Swallows knowledge,<br>spits out a lesson.',
+    heroDesc: 'Upload a Word doc, PDF, or text file. The topic stays the same — Thinkle restructures it into clear slides, adds explanations and key points, and builds a quiz to check what stuck.',
+    dzTitle: 'Click to choose a file',
+    dzOr: 'or drag it here',
+    goBtn: 'Generate study deck →',
+    loadingDefault: 'Reading your file…',
+    loadingDesign: 'Designing your study deck…',
+    menuToggle: '☰ Slides',
+    quizTab: 'Quiz',
+    slideOf: (a,b) => `Slide ${a} of ${b}`,
+    prevBtn: '← Previous',
+    nextBtn: 'Next →',
+    nextToQuiz: 'Go to quiz →',
+    progressOf: (a,b) => `${a} / ${b}`,
+    whyMatters: 'Why it matters',
+    quizTitle: (t) => `${t} — Quiz`,
+    chooseFile: 'Please choose a file first.',
+    unsupportedFile: 'Unsupported file type. Try .pdf, .docx, or .txt.',
+    notEnoughText: 'Could not find enough readable text in this file.',
+    apiError: (s,t) => `API error (${s}): ${t}`,
+    noResponse: 'No response from model.',
+    parseError: 'Could not generate the deck. Try again.',
+    noSlides: 'The model did not return any slides.',
+    genericError: 'Something went wrong.',
+    aiPanelTitle: 'Ask & Learn',
+    aiPanelTagline: 'no file needed',
+    aiEmptyMsg: 'Type a topic, idea, or question — Thinkle will start explaining. No PDF required.',
+    aiInputPlaceholder: 'Ask something…',
+    aiThinking: 'Thinking…',
+    aiError: 'Something went wrong, try again?',
+    scoreLabel: 'Result',
+    scorePass: (pct) => `${pct}% — great job! You've got a good grasp of this.`,
+    scoreFail: (pct) => `${pct}% — that's below 70%. The black hole is swallowing everything… want to try again?`,
+    retryBtn: 'Try again →',
+    pptxLibError: 'The PowerPoint library failed to load. Check your connection and refresh the page.',
+    pptxExportError: 'Could not generate the .pptx file.'
+  }
+};
+
+function t(key, ...args){
+  const val = i18n[currentLang][key];
+  return typeof val === 'function' ? val(...args) : val;
+}
+
+function applyLanguage(lang){
+  currentLang = lang;
+  document.documentElement.lang = lang;
+  document.querySelectorAll('[data-i18n]').forEach(el => {
+    const key = el.dataset.i18n;
+    const val = i18n[lang][key];
+    if(typeof val === 'string') el.innerHTML = val;
+  });
+  document.querySelectorAll('[data-i18n-placeholder]').forEach(el => {
+    const key = el.dataset.i18nPlaceholder;
+    const val = i18n[lang][key];
+    if(typeof val === 'string') el.placeholder = val;
+  });
+  document.querySelectorAll('.lang-opt').forEach(b => {
+    b.classList.toggle('active', b.dataset.lang === lang);
+  });
+  // re-render dynamic views if a deck is loaded
+  if(deck){
+    const wasQuiz = !!deckScreen.querySelector('.quiz-q');
+    buildTabs();
+    if(wasQuiz){ renderQuiz(); markActiveTab(tabsEl.lastChild); }
+    else renderSlide();
+  } else {
+    topTitle.textContent = t('topTitleDefault');
+  }
+}
+
+document.querySelectorAll('.lang-opt').forEach(btn => {
+  btn.addEventListener('click', () => applyLanguage(btn.dataset.lang));
+});
+
+const menuToggle = document.getElementById('menuToggle');
+if(menuToggle){
+  menuToggle.addEventListener('click', () => {
+    tabsEl.classList.toggle('open');
+  });
+}
+
+dropzone.addEventListener('click', () => fileInput.click());
+dropzone.addEventListener('touchend', (e) => { e.preventDefault(); fileInput.click(); }, { passive: false });
+
+['dragenter','dragover','dragleave','drop'].forEach(ev => {
+  dropzone.addEventListener(ev, e => {
+    e.preventDefault();
+    e.stopPropagation();
+    if(ev==='dragenter' || ev==='dragover') dropzone.classList.add('drag');
+    if(ev==='dragleave' || ev==='drop') dropzone.classList.remove('drag');
+  });
+});
+['dragover','drop'].forEach(ev => {
+  window.addEventListener(ev, e => e.preventDefault());
+});
+
+dropzone.addEventListener('drop', e => {
+  const files = e.dataTransfer.files;
+  if(files && files.length) selectFile(files[0]);
+});
+fileInput.addEventListener('change', e => {
+  if(e.target.files.length) selectFile(e.target.files[0]);
+});
+
+function selectFile(file){
+  pendingFile = file;
+  fileNameEl.classList.remove('file-eaten');
+  fileNameEl.textContent = '✓ ' + file.name;
+  // restart animation
+  void fileNameEl.offsetWidth;
+  fileNameEl.classList.add('file-eaten');
+  growBlackHole();
+  if(typeof solGetAngry === 'function') solGetAngry();
+}
+
+let bhLevel = 0;
+function growBlackHole(){
+  // Karadelik kaldırıldı — dropzone distort animasyonu devam eder
+  bhLevel = Math.min(bhLevel + 1, 3);
+  dropzone.classList.remove('distort1','distort2','distort3');
+  if(bhLevel>0) dropzone.classList.add('distort'+bhLevel);
+}
+
+restartBtn.addEventListener('click', () => location.reload());
+goBtn.addEventListener('click', () => {
+  if(!pendingFile){ showError(t('chooseFile')); return; }
+  handleFile(pendingFile);
+});
+
+function showError(msg){
+  uploadError.textContent = msg;
+  uploadError.classList.remove('hidden');
+}
+
+function showToast(msg){
+  const toast = document.createElement('div');
+  toast.className = 'toast';
+  toast.textContent = msg;
+  document.body.appendChild(toast);
+  setTimeout(() => toast.remove(), 5200);
+}
+
+async function handleFile(file){
+  uploadError.classList.add('hidden');
+
+  uploadScreen.classList.add('hidden');
+  loadingScreen.classList.remove('hidden');
+  loadingText.textContent = t('loadingDefault');
+
+  try{
+    const text = await extractText(file);
+    if(!text || text.trim().length < 20){
+      throw new Error(t('notEnoughText'));
+    }
+    loadingText.textContent = t('loadingDesign');
+    deck = await generateDeck(text);
+    loadingScreen.classList.add('hidden');
+    renderDeck();
+  }catch(err){
+    loadingScreen.classList.add('hidden');
+    uploadScreen.classList.remove('hidden');
+    showError(err.message || t('genericError'));
+    setTimeout(positionSolarSystem, 60);
+  }
+}
+
+async function extractText(file){
+  const name = file.name.toLowerCase();
+  if(name.endsWith('.txt')){
+    return await file.text();
+  }
+  if(name.endsWith('.pdf')){
+    pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+    const buf = await file.arrayBuffer();
+    const pdf = await pdfjsLib.getDocument({data: buf}).promise;
+    let text = '';
+    for(let i=1; i<=pdf.numPages; i++){
+      const page = await pdf.getPage(i);
+      const content = await page.getTextContent();
+      text += content.items.map(it => it.str).join(' ') + '\n';
+    }
+    return text;
+  }
+  if(name.endsWith('.docx')){
+    const buf = await file.arrayBuffer();
+    const result = await mammoth.extractRawText({arrayBuffer: buf});
+    return result.value;
+  }
+  throw new Error(t('unsupportedFile'));
+}
+
+// Attempts to parse the model's JSON output. If the response was cut off
+// (hit max_tokens mid-object), tries to salvage as many complete slides and
+// quiz questions as possible instead of failing outright.
+function tryParseDeck(text){
+  try{
+    return JSON.parse(text);
+  }catch(e){
+    // fall through to repair attempt
+  }
+
+  // Try to salvage a title
+  let title = 'Study Deck';
+  const titleMatch = text.match(/"title"\s*:\s*"((?:[^"\\]|\\.)*)"/);
+  if(titleMatch) title = titleMatch[1].replace(/\\"/g, '"');
+
+  // Extract the slides array region and pull out complete {...} objects
+  const slides = extractCompleteObjects(text, '"slides"');
+  const quiz = extractCompleteObjects(text, '"quiz"');
+
+  if(slides.length === 0) return null;
+
+  return { title, slides, quiz };
+}
+
+// Given raw text and the key name (e.g. '"slides"'), finds that array and
+// extracts every syntactically-complete top-level {...} object inside it,
+// ignoring a final dangling/incomplete object.
+function extractCompleteObjects(text, keyName){
+  const keyIdx = text.indexOf(keyName);
+  if(keyIdx === -1) return [];
+  const arrStart = text.indexOf('[', keyIdx);
+  if(arrStart === -1) return [];
+
+  const results = [];
+  let i = arrStart + 1;
+  while(i < text.length){
+    while(i < text.length && /[\s,]/.test(text[i])) i++;
+    if(text[i] === ']' || i >= text.length) break;
+    if(text[i] !== '{') break;
+
+    // walk forward tracking brace depth and string state to find the matching '}'
+    let depth = 0, inStr = false, esc = false, j = i;
+    for(; j < text.length; j++){
+      const ch = text[j];
+      if(inStr){
+        if(esc) esc = false;
+        else if(ch === '\\') esc = true;
+        else if(ch === '"') inStr = false;
+      } else {
+        if(ch === '"') inStr = true;
+        else if(ch === '{') depth++;
+        else if(ch === '}'){
+          depth--;
+          if(depth === 0){ j++; break; }
+        }
+      }
+    }
+    if(depth !== 0) break; // unterminated object — stop here
+    const objStr = text.slice(i, j);
+    try{
+      results.push(JSON.parse(objStr));
+    }catch(e){
+      break;
+    }
+    i = j;
+  }
+  return results;
+}
+
+async function generateDeck(sourceText){
+  const trimmed = sourceText.slice(0, 14000);
+
+  const langInstruction = currentLang === 'tr'
+    ? 'CRITICAL LANGUAGE REQUIREMENT: Write ALL output content (title, every heading, every bullet, every explanation, every quiz question, and every quiz option) ENTIRELY IN TURKISH, regardless of the language of the source text. Do not mix languages. Translate/adapt the source material into natural, fluent Turkish.'
+    : 'CRITICAL LANGUAGE REQUIREMENT: Write ALL output content (title, every heading, every bullet, every explanation, every quiz question, and every quiz option) ENTIRELY IN ENGLISH, regardless of the language of the source text. Do not mix languages. Translate/adapt the source material into natural, fluent English.';
+
+  // Scale down the requested slide count for longer source documents so the
+  // response comfortably fits inside the token budget and doesn't get cut off.
+  // The quiz is always exactly 10 questions.
+  let slideRange = '6-10';
+  if(trimmed.length > 9000){
+    slideRange = '5-7';
+  } else if(trimmed.length > 5000){
+    slideRange = '6-8';
+  }
+
+  const systemPrompt = `You are an expert instructional designer and educator. You transform raw document text into a rich, detailed study deck that deeply tests and explains the material.
+
+${langInstruction}
+
+Return ONLY valid JSON, no markdown fences, no commentary, matching exactly this shape:
+{
+  "title": "string",
+  "slides": [
+    {
+      "heading": "string",
+      "bullets": ["string", "..."],
+      "explanation": "2-3 sentence plain-language explanation adding real insight and context"
+    }
+  ],
+  "quiz": [
+    {
+      "question": "string",
+      "options": ["string","string","string","string"],
+      "answerIndex": 0
+    }
+  ]
+}
+
+Rules:
+- Keep the same overall topic and key facts as the source — do not invent unrelated content.
+- Produce ${slideRange} slides covering the material in a logical learning sequence (intro/overview, core concepts, details, application, summary).
+- Each slide: a clear heading, 4-5 concise bullets (each under 20 words), and a rich explanation (2-3 sentences) that adds real insight, examples, or context not obvious from bullets alone.
+- Produce EXACTLY 10 quiz questions. Use VARIED question types: some factual recall, some "why/how" reasoning, some application ("what would happen if..."), some cause-effect, some compare-contrast. Make wrong options plausible — not obviously wrong. Questions must be specific and meaningful, not generic.
+- Each question must test a DIFFERENT concept from the material. No two questions should test the same fact.
+- Make distractors (wrong answers) realistic and educational — a student who almost understands might pick them.
+- ${langInstruction}`;
+
+  if(!PROXY_URL || PROXY_URL.includes('YOUR-PROXY-URL')){
+    throw new Error(currentLang === 'tr'
+      ? 'Proxy URL ayarlanmamış. index.html içinde PROXY_URL değerini Render URL\'inle güncelle.'
+      : 'Proxy URL not configured. Update PROXY_URL in index.html with your Render URL.');
+  }
+
+  let response;
+  try{
+    response = await fetch(PROXY_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        model: "gemini-2.5-flash",
+        max_tokens: 8000,
+        system: systemPrompt,
+        expectJson: true,
+        messages: [{ role: "user", content: "Source document text:\n\n" + trimmed }]
+      })
+    });
+  }catch(netErr){
+    throw new Error(currentLang === 'tr'
+      ? 'Sunucuya bağlanılamadı. Proxy\'nin çalıştığından emin ol (Render\'da "Live" görmeli). Hata: ' + netErr.message
+      : 'Could not reach the proxy server. Make sure it is deployed and "Live" on Render. Error: ' + netErr.message);
+  }
+
+  if(!response.ok){
+    const errText = await response.text();
+    throw new Error(t('apiError', response.status, errText.slice(0,200)));
+  }
+
+  const data = await response.json();
+  const textBlock = data.content.find(b => b.type === 'text');
+  if(!textBlock) throw new Error(t('noResponse'));
+
+  let clean = textBlock.text.trim();
+  clean = clean.replace(/^```json/,'').replace(/^```/,'').replace(/```$/,'').trim();
+
+  let parsed = tryParseDeck(clean);
+  if(!parsed){
+    throw new Error(t('parseError'));
+  }
+  if(!parsed.slides || !parsed.slides.length){
+    throw new Error(t('noSlides'));
+  }
+  return parsed;
+}
+
+function renderDeck(){
+  deckScreen.classList.remove('hidden');
+  exportBtn.disabled = false;
+  exportBtn.onclick = exportPptx;
+  currentSlide = 0;
+  quizAnswers = {};
+  buildTabs();
+  renderSlide();
+  setTimeout(positionSolarSystem, 50);
+}
+
+function buildTabs(){
+  tabsEl.innerHTML = '';
+  deck.slides.forEach((s,i) => {
+    const tabEl = document.createElement('div');
+    tabEl.className = 'tab' + (i===currentSlide ? ' active':'');
+    tabEl.innerHTML = `<span class="num">${String(i+1).padStart(2,'0')}</span> ${escapeHtml(s.heading)}`;
+    tabEl.onclick = () => { currentSlide = i; renderSlide(); };
+    tabsEl.appendChild(tabEl);
+  });
+  const qt = document.createElement('div');
+  qt.className = 'tab quiz-tab';
+  qt.innerHTML = `<span class="num">Q</span> ${t('quizTab')}`;
+  qt.onclick = () => { renderQuiz(); markActiveTab(qt); };
+  tabsEl.appendChild(qt);
+}
+
+function markActiveTab(activeEl){
+  [...tabsEl.children].forEach(c => c.classList.remove('active'));
+  activeEl.classList.add('active');
+}
+
+function renderSlide(){
+  [...tabsEl.children].forEach((c,i) => c.classList.toggle('active', i===currentSlide));
+  const s = deck.slides[currentSlide];
+  topTitle.textContent = deck.title;
+  setTimeout(positionSolarSystem, 50);
+  const pct = Math.round(((currentSlide+1)/deck.slides.length)*100);
+  deckScreen.innerHTML = `
+    <div class="slide-card">
+      <div class="slide-eyebrow">${t('slideOf', currentSlide+1, deck.slides.length)}</div>
+      <h2>${escapeHtml(s.heading)}</h2>
+      <ul class="bullets">${s.bullets.map((b,i)=>`<li style="animation-delay:${i*0.08}s">${escapeHtml(b)}</li>`).join('')}</ul>
+      ${s.explanation ? `<div class="explain-box" style="animation-delay:${s.bullets.length*0.08+0.1}s"><div class="label">${t('whyMatters')}</div>${escapeHtml(s.explanation)}</div>` : ''}
+      <div class="progress-bar"><div class="progress-bar-fill" style="width:${pct}%"></div></div>
+    </div>
+    <div class="slide-nav">
+      <button class="btn" id="prevBtn" ${currentSlide===0?'disabled':''}>${t('prevBtn')}</button>
+      <span class="progress">${t('progressOf', currentSlide+1, deck.slides.length)}</span>
+      <button class="btn" id="nextBtn">${currentSlide===deck.slides.length-1?t('nextToQuiz'):t('nextBtn')}</button>
+    </div>
+  `;
+  document.getElementById('prevBtn').onclick = () => { currentSlide--; renderSlide(); };
+  document.getElementById('nextBtn').onclick = () => {
+    if(currentSlide < deck.slides.length-1){ currentSlide++; renderSlide(); }
+    else { renderQuiz(); markActiveTab(tabsEl.lastChild); }
+  };
+}
+
+function renderQuiz(){
+  topTitle.textContent = t('quizTitle', deck.title);
+  let html = '';
+  deck.quiz.forEach((q,qi) => {
+    html += `<div class="quiz-q" style="animation-delay:${qi*0.06}s" data-qi="${qi}">
+      <h3>${qi+1}. ${escapeHtml(q.question)}</h3>
+      ${q.options.map((opt,oi)=>`<button class="quiz-opt" data-oi="${oi}">${escapeHtml(opt)}</button>`).join('')}
+    </div>`;
+  });
+  html += `<div id="quizResultSlot"></div>`;
+  deckScreen.innerHTML = html;
+  setTimeout(positionSolarSystem, 50); // güneşi köşeye taşı
+  deckScreen.querySelectorAll('.quiz-q').forEach(qEl => {
+    const qi = +qEl.dataset.qi;
+    const correct = deck.quiz[qi].answerIndex;
+
+    // restore a previously selected answer (e.g. after a language switch)
+    if(quizAnswers[qi] !== undefined){
+      qEl.querySelectorAll('.quiz-opt').forEach((b,i) => {
+        b.disabled = true;
+        if(i===correct) b.classList.add('correct');
+        else if(i===quizAnswers[qi]) b.classList.add('wrong');
+      });
+    }
+
+    qEl.querySelectorAll('.quiz-opt').forEach(btn => {
+      btn.onclick = () => {
+        const oi = +btn.dataset.oi;
+        const isCorrect = oi === correct;
+        qEl.querySelectorAll('.quiz-opt').forEach((b,i) => {
+          b.disabled = true;
+          if(i===correct) b.classList.add('correct');
+          else if(i===oi) b.classList.add('wrong');
+        });
+        quizAnswers[qi] = oi;
+
+        // Güneş tepkisi
+        if(isCorrect){
+          setSolMood('surprised', 1000); // sevinç
+        } else {
+          setSolMood('angry', 1200); // yanlış
+        }
+
+        checkQuizCompletion();
+      };
+    });
+  });
+
+  // if every question was already answered (e.g. returning to the quiz tab), show the result immediately
+  if(Object.keys(quizAnswers).length === deck.quiz.length && deck.quiz.length > 0){
+    showQuizResult();
+  }
+}
+
+function checkQuizCompletion(){
+  if(Object.keys(quizAnswers).length === deck.quiz.length){
+    showQuizResult();
+  }
+}
+
+function showQuizResult(){
+  const total = deck.quiz.length;
+  if(total === 0) return;
+  let correctCount = 0;
+  deck.quiz.forEach((q,qi) => {
+    if(quizAnswers[qi] === q.answerIndex) correctCount++;
+  });
+  const pct = Math.round((correctCount/total)*100);
+  const passed = pct >= 70;
+
+  const slot = document.getElementById('quizResultSlot');
+  if(!slot) return;
+
+  slot.innerHTML = `
+    <div class="quiz-result">
+      <div class="score-label">${t('scoreLabel')}</div>
+      <div class="score-num">${pct}%</div>
+      <div class="score-msg ${passed ? 'pass' : 'fail'}">${passed ? t('scorePass', pct) : t('scoreFail', pct)}</div>
+      ${!passed ? `<button class="btn primary retry-btn" id="retryBtn">${t('retryBtn')}</button>` : ''}
+    </div>
+  `;
+
+  if(!passed){
+    const retryBtn = document.getElementById('retryBtn');
+    if(retryBtn){
+      retryBtn.onclick = () => triggerSwallowAndRetry();
+    }
+    // automatically begin the swallow sequence shortly after the failing score appears
+    setTimeout(() => triggerSwallowAndRetry(), 1800);
+  }
+}
+
+function triggerSwallowAndRetry(){
+  if(document.body.classList.contains('swallowing')) return;
+  document.body.classList.add('swallowing');
+
+  // Yumuşak biome geçişi — kararma yok, sadece renk değişimi
+  document.body.classList.remove('biome-1','biome-2','biome-3');
+  currentBiome = (currentBiome % 3) + 1;
+  document.body.classList.add('biome-' + currentBiome);
+
+  setTimeout(() => {
+    quizAnswers = {};
+    renderQuiz();
+    document.body.classList.remove('swallowing');
+  }, 600);
+}
+
+function escapeHtml(str){
+  const d = document.createElement('div');
+  d.textContent = str;
+  return d.innerHTML;
+}
+
+function exportPptx(){
+  if(typeof PptxGenJS === 'undefined'){
+    showToast(t('pptxLibError'));
+    return;
+  }
+
+  try{
+    const pptx = new PptxGenJS();
+    pptx.defineLayout({ name: 'CUSTOM', width: 10, height: 5.63 });
+    pptx.layout = 'CUSTOM';
+
+    let slide = pptx.addSlide();
+    slide.background = { color: '0D1230' };
+    slide.addText(deck.title, {
+      x:0.6, y:1.8, w:8.8, h:1.5, fontFace:'Arial', fontSize:36, bold:true, color:'EAF0FF'
+    });
+    slide.addText('THINKLE STUDY DECK', {
+      x:0.6, y:3.2, w:8.8, h:0.5, fontFace:'Courier New', fontSize:14, color:'6EE7FF'
+    });
+
+    deck.slides.forEach((s,i) => {
+      const sl = pptx.addSlide();
+      sl.background = { color: '10163A' };
+      sl.addText('SLIDE ' + (i+1), {x:0.5,y:0.3,w:4,h:0.3,fontFace:'Courier New',fontSize:10,color:'6EE7FF'});
+      sl.addText(s.heading, {x:0.5,y:0.6,w:9,h:0.8,fontFace:'Arial',fontSize:24,bold:true,color:'EAF0FF'});
+      sl.addText(s.bullets.map(b=>({text:b, options:{bullet:true, breakLine:true}})), {
+        x:0.5, y:1.5, w:9, h:2.6, fontFace:'Arial', fontSize:14, color:'EAF0FF'
+      });
+      if(s.explanation){
+        sl.addText('WHY IT MATTERS: ' + s.explanation, {
+          x:0.5, y:4.3, w:9, h:1, fontFace:'Arial', fontSize:11, italic:true, color:'B46BFF'
+        });
+      }
+    });
+
+    deck.quiz.forEach((q,i) => {
+      const sl = pptx.addSlide();
+      sl.background = { color: '0D1230' };
+      sl.addText('QUIZ ' + (i+1), {x:0.5,y:0.3,w:4,h:0.3,fontFace:'Courier New',fontSize:10,color:'6EE7FF'});
+      sl.addText(q.question, {x:0.5,y:0.6,w:9,h:1,fontFace:'Arial',fontSize:20,bold:true,color:'EAF0FF'});
+      sl.addText(q.options.map((o,oi)=>({text:(oi===q.answerIndex? '✓ ':'') + o, options:{bullet:true, breakLine:true, color: oi===q.answerIndex?'4DFFB0':'EAF0FF', bold: oi===q.answerIndex}})), {
+        x:0.5, y:1.8, w:9, h:3, fontFace:'Arial', fontSize:14
+      });
+    });
+
+    pptx.writeFile({ fileName: (deck.title || 'study-deck').replace(/[^a-z0-9]+/gi,'-').toLowerCase() + '.pptx' });
+  }catch(err){
+    console.error('PPTX export failed:', err);
+    showToast(t('pptxExportError') + (err && err.message ? ' (' + err.message + ')' : ''));
+  }
+}
+
+// ---------- AI Q&A side panel ----------
+const aiChat = document.getElementById('aiChat');
+const aiInput = document.getElementById('aiInput');
+const aiSendBtn = document.getElementById('aiSendBtn');
+const aiInputMobile = document.getElementById('aiInputMobile');
+const aiSendBtnMobile = document.getElementById('aiSendBtnMobile');
+const aiEmptyMsg = document.getElementById('aiEmptyMsg');
+let aiHistory = [];
+
+function getActiveAiInput(){
+  return isMobile() ? aiInputMobile : aiInput;
+}
+function getActiveAiChat(){
+  return isMobile()
+    ? document.getElementById('aiChatMobile')
+    : document.getElementById('aiChat');
+}
+function getActiveSendBtn(){
+  return isMobile() ? aiSendBtnMobile : aiSendBtn;
+}
+
+function addAiMessage(role, text, thinking){
+  if(aiEmptyMsg) aiEmptyMsg.remove();
+  const chat = getActiveAiChat();
+  const el = document.createElement('div');
+  el.className = 'ai-msg ' + (role === 'user' ? 'user' : 'ai') + (thinking ? ' thinking' : '');
+  el.textContent = text;
+  chat.appendChild(el);
+  chat.scrollTop = chat.scrollHeight;
+  return el;
+}
+
+async function sendAiQuestion(){
+  const inp = getActiveAiInput();
+  const btn = getActiveSendBtn();
+  const question = inp.value.trim();
+  if(!question) return;
+  inp.value = '';
+  if(btn) btn.disabled = true;
+  addAiMessage('user', question);
+  const thinkingEl = addAiMessage('ai', t('aiThinking'), true);
+
+  const langInstruction = currentLang === 'tr'
+    ? 'Respond in natural, fluent TURKISH.'
+    : 'Respond in natural, fluent ENGLISH.';
+
+  try{
+    let aiResponse;
+    try{
+      aiResponse = await fetch(PROXY_URL, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          model: "gemini-2.5-flash",
+          max_tokens: 1000,
+          system: `You are Thinkle, a friendly, encouraging AI tutor built into a learning app called Thinkle. Explain things clearly and simply, like a good teacher. Keep responses concise (a few short paragraphs max) unless the user asks for more depth. If the user asks who you are, what your name is, or what model/AI you're based on, simply say your name is Thinkle — do not mention Gemini, Google, Claude, Anthropic, or any underlying model/provider names. ${langInstruction}`,
+          messages: [ ...aiHistory, { role: "user", content: question } ]
+        })
+      });
+    }catch(netErr){
+      thinkingEl.classList.remove('thinking');
+      thinkingEl.textContent = currentLang === 'tr'
+        ? 'Sunucuya bağlanılamadı.'
+        : 'Could not reach the server.';
+      if(btn) btn.disabled = false;
+      return;
+    }
+
+    if(!aiResponse.ok) throw new Error('API error: ' + aiResponse.status);
+
+    const data = await aiResponse.json();
+    const textBlock = data.content.find(b => b.type === 'text');
+    const answer = textBlock ? textBlock.text : t('aiError');
+
+    thinkingEl.classList.remove('thinking');
+    thinkingEl.textContent = answer;
+    aiHistory.push({ role: 'user', content: question });
+    aiHistory.push({ role: 'assistant', content: answer });
+    if(aiHistory.length > 16) aiHistory = aiHistory.slice(-16);
+  }catch(err){
+    thinkingEl.classList.remove('thinking');
+    thinkingEl.textContent = t('aiError');
+  }finally{
+    if(btn) btn.disabled = false;
+    getActiveAiChat().scrollTop = getActiveAiChat().scrollHeight;
+  }
+}
+
+// PC send button + Enter
+if(aiSendBtn){
+  aiSendBtn.addEventListener('click', sendAiQuestion);
+  aiSendBtn.addEventListener('touchend', (e)=>{ e.preventDefault(); sendAiQuestion(); }, {passive:false});
+}
+if(aiInput){
+  aiInput.addEventListener('keydown', (e) => {
+    if(e.key === 'Enter' && !e.shiftKey){ e.preventDefault(); sendAiQuestion(); }
+  });
+}
+
+// Mobil send button + Enter
+if(aiSendBtnMobile){
+  aiSendBtnMobile.addEventListener('click', sendAiQuestion);
+  aiSendBtnMobile.addEventListener('touchend', (e)=>{ e.preventDefault(); sendAiQuestion(); }, {passive:false});
+}
+if(aiInputMobile){
+  aiInputMobile.addEventListener('keydown', (e) => {
+    if(e.key === 'Enter' && !e.shiftKey){ e.preventDefault(); sendAiQuestion(); }
+  });
+}
+
+</script>
+</body>
+</html>
