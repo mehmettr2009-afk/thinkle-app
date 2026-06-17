@@ -3,7 +3,9 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>Thinkle — Dosyandan derse, dersten bilgiye</title>
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><defs><linearGradient id='g' x1='0%25' y1='0%25' x2='100%25' y2='100%25'><stop offset='0%25' stop-color='%23b46bff'/><stop offset='50%25' stop-color='%238855cc'/><stop offset='100%25' stop-color='%23ff6ec7'/></linearGradient></defs><rect width='32' height='32' rx='8' fill='url(%23g)'/><circle cx='16' cy='16' r='9' fill='%23080410'/></svg>">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;900&family=Space+Grotesk:wght@400;500;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
@@ -2680,10 +2682,10 @@ function positionSolarSystem(){
     orbitContainer.style.top  = '-9999px';
   } else if(isSlideActive){
     solEl.classList.remove('upload-fixed', 'quiz-mode');
-    const size = window.innerWidth <= 480 ? 28 : 40;
-    solEl.style.left = (window.innerWidth - size/2 - 20) + 'px';
-    solEl.style.top  = (window.innerHeight - size/2 - 20) + 'px';
-    solEl.style.removeProperty('transform');
+    // Sabit konum — sol üst, header altı
+    solEl.style.left = '52px';
+    solEl.style.top  = '52px';
+    solEl.style.transform = 'translate(-50%,-50%)';
     orbitContainer.style.left = '-9999px';
     orbitContainer.style.top  = '-9999px';
   } else {
