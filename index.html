@@ -10,6 +10,37 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js"></script>
 <script src="https://cdn.jsdelivr.net/gh/gitbrent/pptxgenjs@3.12.0/dist/pptxgen.bundle.js"></script>
+<!-- Firebase -->
+<script type="module">
+  import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
+  import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged }
+    from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js';
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyBfq73MikECswm01iEAB8X-_vgxaHrEAvQ",
+    authDomain: "thinkle-space.firebaseapp.com",
+    projectId: "thinkle-space",
+    storageBucket: "thinkle-space.firebasestorage.app",
+    messagingSenderId: "116189378023",
+    appId: "1:116189378023:web:4c16d2bac82e192455b942"
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const auth = getAuth(app);
+  const provider = new GoogleAuthProvider();
+
+  // Global auth fonksiyonları
+  window.fbSignIn = () => signInWithPopup(auth, provider)
+    .catch(err => console.error('Sign in error:', err));
+
+  window.fbSignOut = () => signOut(auth);
+
+  // Auth state değişince siteyi güncelle
+  onAuthStateChanged(auth, user => {
+    window.currentUser = user;
+    document.dispatchEvent(new CustomEvent('authChanged', { detail: user }));
+  });
+</script>
 <style>
   :root{
     --bg:#070a18;
@@ -205,22 +236,27 @@
     100%{ opacity:0;   transform:translate(var(--ast-dx,400px),var(--ast-dy,60px)) rotate(var(--ast-rot,360deg)); }
   }
 
-  /* ---------- Solar system orbital ---------- */
+  /* ===== ARKA PLAN GEZEGENLERİ — büyük, şeffaf, uzak perspektif ===== */
+  .bg-planet{
+    position:fixed; border-radius:50%; pointer-events:none; z-index:0;
+    animation: bg-planet-rot var(--rot-dur,40s) linear infinite,
+               bg-planet-drift var(--drift-dur,60s) ease-in-out infinite alternate;
+  }
+  @keyframes bg-planet-rot{
+    from{ transform:rotate(0deg); }
+    to{   transform:rotate(360deg); }
+  }
+  @keyframes bg-planet-drift{
+    0%{   translate:0 0; }
+    100%{ translate:var(--dx,20px) var(--dy,15px); }
+  }
+  /* Orbit container — güneşle birlikte fixed */
   .orbit-container{
-    position:fixed; pointer-events:none; z-index:6; width:0; height:0;
-    /* JS ile konumlandırılacak */
+    position:fixed; z-index:499;
+    pointer-events:none;
+    transform:translate(-50%,-50%);
   }
-  .sol{
-    position:fixed;
-    border-radius:50%;
-    background: radial-gradient(circle at 38% 35%, #fff8e0 0%, #ffe060 18%, #ffaa00 40%, #ff6600 65%, #cc2200 100%);
-    box-shadow: 0 0 28px 10px rgba(255,180,0,.55), 0 0 70px 28px rgba(255,100,0,.3), 0 0 130px 55px rgba(255,60,0,.12);
-    animation: sol-pulse 4s ease-in-out infinite alternate;
-    z-index:9999;
-    overflow: visible;
-    pointer-events: all !important;
-    cursor: pointer;
-  }
+
   @keyframes sol-pulse{
     0%{ box-shadow:0 0 28px 10px rgba(255,180,0,.55), 0 0 70px 28px rgba(255,100,0,.3); }
     100%{ box-shadow:0 0 38px 16px rgba(255,200,0,.7), 0 0 90px 38px rgba(255,120,0,.4); }
@@ -345,6 +381,23 @@
     93%{ height:4%; }
   }
   .sol-eye.blinking{ animation: sol-blink 3.8s ease-in-out infinite; }
+
+  /* Güneş upload ekranında TAMAMEN SABİT — hiçbir JS değiştiremez */
+  .sol.upload-fixed{
+    position: fixed !important;
+    left: 50% !important;
+    top: 36vh !important;
+    transform: translate(-50%, -50%) !important;
+    right: auto !important;
+    bottom: auto !important;
+    margin: 0 !important;
+  }
+  @media(min-width:861px){
+    .sol.upload-fixed{
+      left: calc(300px + (100vw - 300px) / 2) !important;
+      top: 36vh !important;
+    }
+  }
 
   /* Quiz modunda güneş küçük, sağ alt köşede */
   .sol.quiz-mode{
@@ -502,9 +555,10 @@
 
   /* ---------- AI question/answer side panel ---------- */
   .ai-panel{
-    flex:1; min-height:320px; position:relative;
+    flex:1; min-height:280px; position:relative;
     display:flex; flex-direction:column;
-    padding:20px;
+    padding:16px 20px;
+    border-top:1px solid var(--line);
   }
   .ai-panel-header{
     display:flex; align-items:center; gap:10px; margin-bottom:14px;
@@ -565,6 +619,7 @@
   .brand{
     padding:0 20px 20px; border-bottom:1px solid var(--line); margin-bottom:8px;
     display:flex; align-items:center; gap:12px;
+    position:relative; overflow:visible;
   }
   .brand-mark{
     width:38px; height:38px; border-radius:12px; flex-shrink:0;
@@ -1356,7 +1411,33 @@
   @keyframes intro-mouth-smile{
     to{ width:46%; height:22%; border-radius:0 0 50px 50px; }
   }
-  /* ============ FOOTER ============ */
+  /* ============ MOBİL PERFORMANS — tüm ağır animasyonlar kapalı ============ */
+  @media (max-width: 860px){
+    /* Tüm CSS animasyonlarını yavaşlat veya durdur */
+    .orbiter, .planet, .space-ship, .asteroid, .lg-ring,
+    .dropzone-ring, .loading-galaxy *, .intro-ring,
+    #introRing1, #introRing2 {
+      animation-duration: 20s !important;
+    }
+    .spiral-glow, .galaxy-core, #galaxySVG animate {
+      animation: none !important;
+    }
+    /* Dropzone animasyonları kapat */
+    .dropzone::before { display: none !important; }
+    .dropzone-rings { display: none !important; }
+    /* Yıldız titreme yavaşlat */
+    .star { animation-duration: 8s !important; }
+    /* Sol animasyonları yavaşlat */
+    .sol { animation-duration: 8s !important; }
+    .sol.angry { animation: none !important; }
+    .sol.crazy { animation: none !important; }
+    /* Intro yavaşlat */
+    #introRing1, #introRing2 { animation-duration: 8s !important; }
+    /* Loading ring */
+    .lg-ring { animation-duration: 12s !important; }
+    /* Genel transform azalt */
+    * { will-change: auto !important; }
+  }
   #siteFooter{
     margin-top: 80px;
     position: relative;
@@ -1581,6 +1662,36 @@
   }
   .qr-btns{ display:flex; flex-direction:column; gap:12px; width:100%; max-width:320px; }
   .qr-btns .btn{ width:100%; padding:14px; font-size:.9rem; border-radius:12px; }
+  /* Footer accordion */
+  .footer-accordions{ display:flex; flex-direction:column; gap:6px; margin-bottom:20px; }
+  .footer-acc{ border:1px solid rgba(180,107,255,.18); border-radius:12px; overflow:hidden; }
+  .footer-acc-btn{
+    width:100%; display:flex; justify-content:space-between; align-items:center;
+    padding:14px 18px; background:rgba(255,255,255,.03); border:none; cursor:pointer;
+    color:var(--ink); font-family:'Space Grotesk',sans-serif; font-size:.88rem;
+    font-weight:600; text-align:left; transition:background .2s;
+    touch-action:manipulation;
+  }
+  .footer-acc-btn:hover{ background:rgba(180,107,255,.08); }
+  .footer-acc-btn .acc-arrow{ transition:transform .25s ease; font-size:.8rem; opacity:.6; }
+  .footer-acc.open .acc-arrow{ transform:rotate(180deg); }
+  .footer-acc-body{
+    max-height:0; overflow:hidden;
+    transition:max-height .35s ease, padding .25s ease;
+    padding:0 18px;
+  }
+  .footer-acc.open .footer-acc-body{
+    max-height:300px; padding:12px 18px 16px;
+  }
+  .footer-acc-body p{
+    font-size:.8rem; line-height:1.65; color:rgba(200,190,220,.75); margin:0;
+  }
+
+  /* Dil gösterimi */
+  body.lang-tr .en-text{ display:none; }
+  body.lang-en .tr-text{ display:none; }
+  body:not(.lang-en) .en-text{ display:none; }
+  body:not(.lang-tr) .tr-text{ }
 
 </style>
 </head>
@@ -1751,6 +1862,13 @@
   <div class="planets" id="planets"></div>
   <div id="ships"></div>
 
+  <!-- Büyük arka plan gezegenleri -->
+  <div class="bg-planet" style="width:420px;height:420px;left:-80px;top:15%;--rot-dur:90s;--drift-dur:70s;--dx:30px;--dy:20px;background:radial-gradient(circle at 35% 32%, rgba(100,140,255,.18) 0%, rgba(60,80,200,.12) 40%, rgba(20,30,120,.06) 70%, transparent 100%);box-shadow:inset -30px -20px 60px rgba(0,0,0,.3),0 0 80px rgba(80,100,255,.08);border:1px solid rgba(100,130,255,.08)"></div>
+  <div class="bg-planet" style="width:320px;height:320px;right:-60px;top:5%;--rot-dur:70s;--drift-dur:55s;--dx:-20px;--dy:25px;background:radial-gradient(circle at 38% 30%, rgba(180,100,255,.16) 0%, rgba(120,60,200,.10) 40%, rgba(60,20,140,.05) 70%, transparent 100%);box-shadow:inset -25px -15px 50px rgba(0,0,0,.3),0 0 60px rgba(150,80,255,.07);border:1px solid rgba(150,80,255,.08)"></div>
+  <div class="bg-planet" style="width:500px;height:500px;right:-120px;bottom:10%;--rot-dur:110s;--drift-dur:80s;--dx:-25px;--dy:-30px;background:radial-gradient(circle at 32% 28%, rgba(80,180,180,.14) 0%, rgba(40,120,140,.09) 40%, rgba(15,60,80,.05) 70%, transparent 100%);box-shadow:inset -40px -25px 70px rgba(0,0,0,.3),0 0 100px rgba(60,160,180,.06);border:1px solid rgba(60,160,180,.07)"></div>
+  <div class="bg-planet" style="width:260px;height:260px;left:20%;bottom:-40px;--rot-dur:60s;--drift-dur:50s;--dx:15px;--dy:-20px;background:radial-gradient(circle at 40% 35%, rgba(255,140,80,.12) 0%, rgba(200,90,40,.08) 40%, rgba(120,40,10,.04) 70%, transparent 100%);box-shadow:inset -20px -15px 40px rgba(0,0,0,.3),0 0 50px rgba(220,120,60,.06);border:1px solid rgba(220,120,60,.07)"></div>
+  <div class="bg-planet" style="width:180px;height:180px;left:55%;top:8%;--rot-dur:50s;--drift-dur:45s;--dx:10px;--dy:18px;background:radial-gradient(circle at 36% 30%, rgba(255,200,100,.13) 0%, rgba(200,150,50,.08) 40%, rgba(120,80,10,.04) 70%, transparent 100%);box-shadow:inset -15px -10px 30px rgba(0,0,0,.3),0 0 40px rgba(220,180,80,.06);border:1px solid rgba(220,180,80,.07)"></div>
+
 
 </div>
 
@@ -1776,7 +1894,7 @@
 <div class="left-column" id="leftColumn">
   <div class="sidebar" id="sidebar">
     <div class="brand">
-      <div class="brand-mark"><div class="mini-disk"></div><div class="mini-core"></div><div class="laser-eye"></div></div>
+      <div class="brand-mark" id="brandMark"><div class="mini-disk"></div><div class="mini-core"></div><div class="laser-eye"></div></div>
       <div>
         <h1>Thinkle</h1>
         <span class="util" data-i18n="tagline">dosyandan derse, dersten bilgiye</span>
@@ -1784,11 +1902,11 @@
     </div>
     <button class="menu-toggle" id="menuToggle" data-i18n="menuToggle">☰ Slaytlar</button>
     <div class="tabs" id="tabs"></div>
+    <div id="userArea"></div>
   </div>
 
   <div class="ai-panel" id="aiPanel">
     <div class="ai-panel-header">
-      <div class="mark"><div class="mini-disk"></div><div class="mini-core"></div></div>
       <div>
         <h3 data-i18n="aiPanelTitle">Sor & Öğren</h3>
         <span class="util" data-i18n="aiPanelTagline">dosyasız da sorabilirsin</span>
@@ -1960,51 +2078,169 @@
               </div>
             </div>
             <nav class="footer-nav">
-              <a href="#nasil-calisir">Nasıl Çalışır?</a>
-              <a href="#gizlilik">Gizlilik</a>
-              <a href="#kvkk">KVKK</a>
-              <a href="#iletisim">İletişim</a>
+              <a href="#" class="footer-acc-trigger" data-target="acc-how">
+                <span class="tr-text">Nasıl Çalışır?</span><span class="en-text">How It Works</span>
+              </a>
+              <a href="#" class="footer-acc-trigger" data-target="acc-privacy">
+                <span class="tr-text">Gizlilik</span><span class="en-text">Privacy</span>
+              </a>
+              <a href="#" class="footer-acc-trigger" data-target="acc-kvkk">KVKK</a>
+              <a href="#" class="footer-acc-trigger" data-target="acc-contact">
+                <span class="tr-text">İletişim</span><span class="en-text">Contact</span>
+              </a>
             </nav>
           </div>
 
-          <!-- Orta bölüm: 3 sütun -->
-          <div class="footer-cols">
-            <div class="footer-col" id="nasil-calisir">
-              <h4>🚀 Nasıl Çalışır?</h4>
-              <p>PDF, Word veya metin dosyanı yükle. Thinkle yapay zeka ile içeriği analiz eder, anlamlı slaytlara böler, her konuyu açıklar ve 10 soruluk quiz hazırlar. Sonucu .pptx olarak indirebilir, her yerde kullanabilirsin.</p>
+          <!-- Accordion bölümler -->
+          <div class="footer-accordions">
+
+            <div class="footer-acc" id="acc-how">
+              <button class="footer-acc-btn">
+                <span>🚀 <span class="tr-text">Nasıl Çalışır?</span><span class="en-text">How It Works</span></span>
+                <span class="acc-arrow">▾</span>
+              </button>
+              <div class="footer-acc-body">
+                <p class="tr-text">PDF, Word veya metin dosyanı yükle. Thinkle yapay zeka ile içeriği analiz eder, anlamlı slaytlara böler, her konuyu açıklar ve 10 soruluk quiz hazırlar. Sonucu .pptx olarak indirebilir, her yerde kullanabilirsin.</p>
+                <p class="en-text">Upload a PDF, Word or text file. Thinkle uses AI to analyze the content, break it into slides, explain each topic and prepare a 10-question quiz. You can download the result as .pptx and use it anywhere.</p>
+              </div>
             </div>
-            <div class="footer-col" id="gizlilik">
-              <h4>🔒 Gizlilik &amp; Güvenlik</h4>
-              <p>Yüklediğin dosyalar yalnızca içerik üretimi için anlık olarak işlenir, sunucularımızda saklanmaz ve üçüncü taraflarla paylaşılmaz. Tüm veri aktarımları HTTPS şifreli bağlantı üzerinden gerçekleşir.</p>
+
+            <div class="footer-acc" id="acc-privacy">
+              <button class="footer-acc-btn">
+                <span>🔒 <span class="tr-text">Gizlilik &amp; Güvenlik</span><span class="en-text">Privacy &amp; Security</span></span>
+                <span class="acc-arrow">▾</span>
+              </button>
+              <div class="footer-acc-body">
+                <p class="tr-text">Yüklediğin dosyalar yalnızca içerik üretimi için anlık olarak işlenir, sunucularımızda saklanmaz ve üçüncü taraflarla paylaşılmaz. Tüm veri aktarımları HTTPS şifreli bağlantı üzerinden gerçekleşir.</p>
+                <p class="en-text">Your uploaded files are processed only for content generation, are not stored on our servers, and are not shared with third parties. Users who sign in with Google have only their study history titles saved locally on their own device (localStorage); this data is never sent to our servers. All data transfers occur over HTTPS encrypted connections.</p>
+              </div>
             </div>
-            <div class="footer-col" id="kvkk">
-              <h4>📋 KVKK Aydınlatma</h4>
-              <p>6698 sayılı KVKK kapsamında: Thinkle kullanıcıya ait kişisel veri toplamaz, işlemez ve depolamaz. Yüklenen belgeler yalnızca anlık yapay zeka işlemi için kullanılır ve işlem sonunda silinir.</p>
+
+            <div class="footer-acc" id="acc-kvkk">
+              <button class="footer-acc-btn">
+                <span>📋 KVKK <span class="tr-text">Aydınlatma</span><span class="en-text">Disclosure</span></span>
+                <span class="acc-arrow">▾</span>
+              </button>
+              <div class="footer-acc-body">
+                <p class="tr-text">6698 sayılı KVKK kapsamında: Thinkle sunucu tarafında kişisel veri toplamaz ve depolamaz. Google ile giriş yapılması durumunda yalnızca kullanıcının kendi cihazında çalışma geçmişi başlıkları saklanır. Yüklenen belgeler yalnızca anlık yapay zeka işlemi için kullanılır ve işlem sonunda silinir.</p>
+                <p class="en-text">Under Law No. 6698 (KVKK): Thinkle does not collect or store personal data on its servers. If you sign in with Google, only your study history titles are saved locally on your own device. Uploaded documents are used only for instant AI processing and deleted after the operation.</p>
+              </div>
             </div>
-            <div class="footer-col">
-              <h4>⚙️ Teknik Bilgi</h4>
-              <p>Thinkle, büyük dil modelleri (LLM) kullanarak çalışır. Desteklenen formatlar: .pdf, .docx, .txt. Maksimum dosya boyutu 10 MB. Üretilen slaytlar ve sorular dosyanın içeriğine göre otomatik oluşturulur.</p>
+
+            <div class="footer-acc">
+              <button class="footer-acc-btn">
+                <span>⚙️ <span class="tr-text">Teknik Bilgi</span><span class="en-text">Technical Info</span></span>
+                <span class="acc-arrow">▾</span>
+              </button>
+              <div class="footer-acc-body">
+                <p class="tr-text">Thinkle, büyük dil modelleri (LLM) kullanarak çalışır. Desteklenen formatlar: .pdf, .docx, .txt. Maksimum dosya boyutu 20 MB. Üretilen slaytlar ve sorular dosyanın içeriğine göre otomatik oluşturulur.</p>
+                <p class="en-text">Thinkle runs on large language models (LLMs). Supported formats: .pdf, .docx, .txt. Maximum file size 20 MB. Generated slides and questions are automatically created based on your file's content.</p>
+              </div>
             </div>
-            <div class="footer-col">
-              <h4>📚 Kullanım Alanları</h4>
-              <p>Ders notu özetleme, sınav hazırlığı, sunum oluşturma, konu tekrarı, araştırma makalesi analizi ve ekip eğitimleri için idealdir. Öğrenciler, öğretmenler ve profesyoneller için tasarlanmıştır.</p>
+
+            <div class="footer-acc">
+              <button class="footer-acc-btn">
+                <span>📚 <span class="tr-text">Kullanım Alanları</span><span class="en-text">Use Cases</span></span>
+                <span class="acc-arrow">▾</span>
+              </button>
+              <div class="footer-acc-body">
+                <p class="tr-text">Ders notu özetleme, sınav hazırlığı, sunum oluşturma, konu tekrarı, araştırma makalesi analizi ve ekip eğitimleri için idealdir. Öğrenciler, öğretmenler ve profesyoneller için tasarlanmıştır.</p>
+                <p class="en-text">Ideal for summarizing lecture notes, exam preparation, creating presentations, topic review, research paper analysis and team training. Designed for students, teachers and professionals.</p>
+              </div>
             </div>
-            <div class="footer-col" id="iletisim">
-              <h4>📬 İletişim &amp; Destek</h4>
-              <p>Hata bildirimi, öneri veya sorularınız için: <a href="mailto:destek@thinkle.app" style="color:rgba(110,231,255,.8);text-decoration:none">destek@thinkle.app</a><br>Yanıt süremiz genellikle 24-48 saattir.</p>
+
+            <div class="footer-acc">
+              <button class="footer-acc-btn">
+                <span>🇪🇺 GDPR <span class="tr-text">Uyumluluğu</span><span class="en-text">Compliance</span></span>
+                <span class="acc-arrow">▾</span>
+              </button>
+              <div class="footer-acc-body">
+                <p class="tr-text">Thinkle, Avrupa Birliği Genel Veri Koruma Yönetmeliği (GDPR) kapsamındaki haklarınıza saygı gösterir. Sunucu tarafında kişisel veri toplamaz veya depolamaz. Google ile giriş yapılması halinde yalnızca çalışma geçmişi başlıkları kullanıcının kendi cihazında saklanır. Yüklediğiniz dosyalar yalnızca anlık işlem için kullanılır ve sonrasında silinir. AB vatandaşları olarak erişim, silme ve itiraz haklarınız saklıdır. Sorularınız için: <a href="mailto:thinklespace@gmail.com" style="color:rgba(110,231,255,.8);text-decoration:none">thinklespace@gmail.com</a></p>
+                <p class="en-text">Thinkle respects your rights under the EU General Data Protection Regulation (GDPR). We do not collect or store personal data on our servers. If you sign in with Google, only study history titles are stored locally on your own device. Uploaded files are used only for instant processing and deleted afterwards. As an EU citizen, your rights to access, erasure and objection are preserved. For inquiries: <a href="mailto:thinklespace@gmail.com" style="color:rgba(110,231,255,.8);text-decoration:none">thinklespace@gmail.com</a></p>
+              </div>
             </div>
+
+            <div class="footer-acc">
+              <button class="footer-acc-btn">
+                <span>🍪 <span class="tr-text">Çerez Politikası</span><span class="en-text">Cookie Policy</span></span>
+                <span class="acc-arrow">▾</span>
+              </button>
+              <div class="footer-acc-body">
+                <p class="tr-text">Thinkle, zorunlu teknik çerezler dışında herhangi bir çerez kullanmamaktadır. Reklam, takip veya analitik amaçlı çerez bulunmamaktadır. Üçüncü taraf çerez servisleri entegre edilmemiştir.</p>
+                <p class="en-text">Thinkle does not use any cookies beyond essential technical ones. There are no advertising, tracking or analytics cookies. No third-party cookie services are integrated.</p>
+              </div>
+            </div>
+
+            <div class="footer-acc">
+              <button class="footer-acc-btn">
+                <span>⚖️ <span class="tr-text">Sorumluluk Reddi</span><span class="en-text">Disclaimer</span></span>
+                <span class="acc-arrow">▾</span>
+              </button>
+              <div class="footer-acc-body">
+                <p class="tr-text">Thinkle yapay zeka tarafından üretilen içerikler bilgi amaçlıdır ve kesin doğruluk garantisi verilmez. Üretilen slayt ve sorular kaynak belgeye dayanır; ancak yapay zeka hata yapabilir. Kritik akademik, tıbbi, hukuki veya finansal kararlar için üretilen içerikleri uzman görüşüyle doğrulayınız. Thinkle bu içeriklerin kullanımından doğabilecek zararlardan sorumlu tutulamaz.</p>
+                <p class="en-text">Content generated by Thinkle is for informational purposes only and no guarantee of accuracy is provided. Generated slides and questions are based on the source document; however, AI may make errors. For critical academic, medical, legal or financial decisions, please verify generated content with expert opinion. Thinkle cannot be held liable for any damages arising from the use of this content.</p>
+              </div>
+            </div>
+
+            <div class="footer-acc">
+              <button class="footer-acc-btn">
+                <span>📄 <span class="tr-text">Telif Hakkı &amp; Fikri Mülkiyet</span><span class="en-text">Copyright &amp; IP</span></span>
+                <span class="acc-arrow">▾</span>
+              </button>
+              <div class="footer-acc-body">
+                <p class="tr-text">Kullanıcılar yalnızca telif hakkı bulunmayan veya kullanım iznine sahip oldukları belgeleri yükleyebilir. Telif hakkıyla korunan materyallerin izinsiz yüklenmesi tamamen kullanıcının sorumluluğundadır. Thinkle bu konuda herhangi bir sorumluluk kabul etmez. Thinkle markası, logosu ve arayüzü fikri mülkiyet kapsamında korunmaktadır.</p>
+                <p class="en-text">Users may only upload documents they own or have permission to use. Uploading copyrighted materials without authorization is entirely the user's responsibility. Thinkle accepts no liability in this regard. The Thinkle brand, logo and interface are protected under intellectual property rights.</p>
+              </div>
+            </div>
+
+            <div class="footer-acc">
+              <button class="footer-acc-btn">
+                <span>🔞 <span class="tr-text">Yaş Sınırı</span><span class="en-text">Age Restriction</span></span>
+                <span class="acc-arrow">▾</span>
+              </button>
+              <div class="footer-acc-body">
+                <p class="tr-text">Thinkle 13 yaş ve üzeri kullanıcılar için tasarlanmıştır. 13-18 yaş arası kullanıcıların ebeveyn veya yasal vasi onayı ile kullanması gerekmektedir. 13 yaşından küçük kullanıcıların hizmeti kullanması yasaktır.</p>
+                <p class="en-text">Thinkle is designed for users aged 13 and above. Users between 13-18 must use the service with parental or legal guardian consent. Use by children under 13 is prohibited.</p>
+              </div>
+            </div>
+
+            <div class="footer-acc">
+              <button class="footer-acc-btn">
+                <span>🌍 <span class="tr-text">Uygulanacak Hukuk</span><span class="en-text">Governing Law</span></span>
+                <span class="acc-arrow">▾</span>
+              </button>
+              <div class="footer-acc-body">
+                <p class="tr-text">Bu platform Türkiye Cumhuriyeti kanunlarına tabidir. Türk kullanıcılar için 6698 sayılı KVKK, AB kullanıcıları için GDPR geçerlidir. Uyuşmazlıklarda Türkiye mahkemeleri yetkilidir. AB kullanıcıları kendi ülkelerindeki yetkili veri koruma otoritelerine de başvurabilir.</p>
+                <p class="en-text">This platform is subject to the laws of the Republic of Turkey. For Turkish users, Law No. 6698 (KVKK) applies; for EU users, GDPR applies. Turkish courts have jurisdiction in disputes. EU users may also contact their national data protection authority.</p>
+              </div>
+            </div>
+
+            <div class="footer-acc" id="acc-contact">
+              <button class="footer-acc-btn">
+                <span>📬 <span class="tr-text">İletişim &amp; Destek</span><span class="en-text">Contact &amp; Support</span></span>
+                <span class="acc-arrow">▾</span>
+              </button>
+              <div class="footer-acc-body">
+                <p class="tr-text">Herhangi bir sorun yaşarsanız veya geri bildirim sağlamak isterseniz, mail üzerinden 7/24 destek sağlayabiliriz. Her türlü soru, öneri ve hata bildirimi için bize ulaşmaktan çekinmeyin.<br><br>
+                <a href="mailto:thinklespace@gmail.com" style="color:rgba(110,231,255,.9);text-decoration:none;font-family:'Space Mono',monospace;font-size:.85rem">✉️ thinklespace@gmail.com</a></p>
+                <p class="en-text">If you experience any issues or would like to provide feedback, we offer 24/7 support via email. Don't hesitate to reach out for any questions, suggestions or bug reports.<br><br>
+                <a href="mailto:thinklespace@gmail.com" style="color:rgba(110,231,255,.9);text-decoration:none;font-family:'Space Mono',monospace;font-size:.85rem">✉️ thinklespace@gmail.com</a></p>
+              </div>
+            </div>
+
           </div>
 
           <!-- Kullanım koşulları -->
           <div class="footer-terms">
-            <p><strong>Kullanım Koşulları:</strong> Thinkle eğitim amaçlı bir araçtır. Telif hakkıyla korunan materyallerin yüklenmesinden kullanıcı sorumludur. Yapay zeka tarafından üretilen içerikler her zaman doğru olmayabilir; kritik bilgileri doğrulamanızı öneririz. Hizmet "olduğu gibi" sunulmakta olup kesintisiz çalışma garantisi verilmemektedir. 18 yaşından küçük kullanıcıların ebeveyn onayı ile kullanması önerilir. Thinkle, üretilen içeriklerden doğabilecek zararlardan sorumlu tutulamaz.</p>
+            <p class="tr-text"><strong>Yasal Özet:</strong> Thinkle eğitim amaçlı bir yapay zeka platformudur. Sunucu tarafında kişisel veri toplamaz (KVKK &amp; GDPR uyumlu). Giriş yapan kullanıcıların geçmişi yalnızca kendi cihazında saklanır. Yüklenen dosyalar işlem sonrası silinir. Telif hakkı sorumluluğu kullanıcıya aittir. Yapay zeka çıktıları bilgi amaçlıdır, kesin doğruluk garantisi verilmez. Hizmet "olduğu gibi" sunulur. 13 yaş altı kullanım yasaktır.</p>
+            <p class="en-text"><strong>Legal Summary:</strong> Thinkle is an AI-powered educational platform. No personal data is stored on servers (KVKK &amp; GDPR compliant). Signed-in users' history is stored only on their own device. Uploaded files are deleted after processing. Copyright responsibility belongs to the user. AI outputs are for informational purposes only, no accuracy guarantee is provided. Service is provided "as is". Use by children under 13 is prohibited.</p>
           </div>
 
           <!-- Alt: copyright -->
           <div class="footer-bottom">
-            <span>© 2025 Thinkle · Tüm hakları saklıdır</span>
-            <span class="footer-made">Yapay zeka destekli öğrenme platformu 🌌</span>
-            <a href="mailto:destek@thinkle.app" class="footer-mail">destek@thinkle.app</a>
+            <span>© 2025 Thinkle · <span class="tr-text">Tüm hakları saklıdır</span><span class="en-text">All rights reserved</span></span>
+            <span class="footer-made"><span class="tr-text">Yapay zeka destekli öğrenme platformu</span><span class="en-text">AI-powered learning platform</span> 🌌</span>
+            <a href="mailto:thinklespace@gmail.com" class="footer-mail">thinklespace@gmail.com</a>
           </div>
 
         </div>
@@ -2182,6 +2418,116 @@
 
 document.body.classList.add('biome-1');
 
+// ============ AUTH SİSTEMİ ============
+let authRequired = false; // true olunca giriş zorunlu
+
+function showAuthModal(onSuccess){
+  const existing = document.getElementById('authModal');
+  if(existing) existing.remove();
+
+  const modal = document.createElement('div');
+  modal.id = 'authModal';
+  modal.style.cssText = `
+    position:fixed; inset:0; z-index:99000;
+    background:rgba(3,2,15,.88); backdrop-filter:blur(12px);
+    display:flex; align-items:center; justify-content:center;
+    animation:auth-appear .3s ease both;
+  `;
+  modal.innerHTML = `
+    <div style="
+      background:rgba(14,10,36,.96); border:1px solid rgba(180,107,255,.3);
+      border-radius:24px; padding:40px 36px; max-width:380px; width:90%;
+      text-align:center; box-shadow:0 20px 60px rgba(0,0,0,.6);
+      animation:auth-slide .4s cubic-bezier(.16,1,.3,1) both;
+    ">
+      <!-- Logo -->
+      <div style="width:56px;height:56px;border-radius:16px;background:linear-gradient(135deg,#b46bff,#8855cc,#ff6ec7);display:flex;align-items:center;justify-content:center;margin:0 auto 16px;box-shadow:0 0 20px rgba(180,107,255,.4)">
+        <div style="width:52%;height:52%;border-radius:50%;background:#080410"></div>
+      </div>
+      <h2 style="font-family:'Space Mono',monospace;font-size:1.3rem;margin:0 0 6px;background:linear-gradient(135deg,#fff8e0,#ffb347,#ff6ec7);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text">Thinkle</h2>
+      <p style="color:rgba(180,160,255,.8);font-size:.88rem;margin:0 0 28px;line-height:1.5">
+        ${currentLang==='tr'
+          ? 'Bu özelliği kullanmak için Google hesabınla giriş yap.'
+          : 'Sign in with your Google account to use this feature.'}
+      </p>
+      <button id="authGoogleBtn" style="
+        width:100%; padding:14px; border-radius:12px; border:1px solid rgba(255,255,255,.15);
+        background:rgba(255,255,255,.06); color:#fff; font-family:'Space Grotesk',sans-serif;
+        font-size:.95rem; font-weight:600; cursor:pointer; display:flex; align-items:center;
+        justify-content:center; gap:12px; transition:.2s; touch-action:manipulation;
+      ">
+        <svg width="20" height="20" viewBox="0 0 48 48"><path fill="#EA4335" d="M24 9.5c3.5 0 6.6 1.2 9.1 3.2l6.8-6.8C35.8 2.2 30.2 0 24 0 14.6 0 6.6 5.4 2.7 13.3l7.9 6.1C12.4 13.1 17.7 9.5 24 9.5z"/><path fill="#4285F4" d="M46.1 24.5c0-1.6-.1-3.1-.4-4.5H24v8.5h12.4c-.5 2.8-2.1 5.1-4.4 6.7l6.9 5.4c4-3.7 6.2-9.2 6.2-16.1z"/><path fill="#FBBC05" d="M10.6 28.6A14.9 14.9 0 0 1 9.5 24c0-1.6.3-3.1.7-4.6l-7.9-6.1A23.9 23.9 0 0 0 0 24c0 3.9.9 7.5 2.7 10.7l7.9-6.1z"/><path fill="#34A853" d="M24 48c6.2 0 11.4-2 15.2-5.5l-6.9-5.4c-2 1.4-4.6 2.2-8.3 2.2-6.3 0-11.6-3.6-13.4-9.1l-7.9 6.1C6.6 42.6 14.6 48 24 48z"/></svg>
+        ${currentLang==='tr' ? 'Google ile Giriş Yap' : 'Sign in with Google'}
+      </button>
+      <button id="authCancelBtn" style="
+        margin-top:12px; background:none; border:none; color:rgba(180,160,255,.5);
+        font-size:.8rem; cursor:pointer; padding:8px; touch-action:manipulation;
+      ">${currentLang==='tr' ? 'Vazgeç' : 'Cancel'}</button>
+      <div style="margin-top:16px;padding-top:16px;border-top:1px solid rgba(255,255,255,.07)">
+        <button id="authGuestBtn" style="
+          background:none;border:none;color:rgba(180,160,255,.45);font-size:.75rem;
+          cursor:pointer;padding:4px;touch-action:manipulation;text-decoration:underline;
+        ">${currentLang==='tr' ? '👤 Ziyaretçi olarak devam et (geçmiş kaydedilmez)' : '👤 Continue as guest (history not saved)'}</button>
+      </div>
+    </div>
+  `;
+
+  const style = document.createElement('style');
+  style.textContent = `
+    @keyframes auth-appear{ from{opacity:0} to{opacity:1} }
+    @keyframes auth-slide{ from{opacity:0;transform:translateY(30px) scale(.96)} to{opacity:1;transform:translateY(0) scale(1)} }
+    #authGoogleBtn:hover{ background:rgba(255,255,255,.12); border-color:rgba(180,107,255,.5); }
+  `;
+  document.head.appendChild(style);
+  document.body.appendChild(modal);
+
+  document.getElementById('authGoogleBtn').onclick = async () => {
+    if(window.fbSignIn){
+      await window.fbSignIn();
+      if(window.currentUser){
+        modal.remove(); style.remove();
+        if(onSuccess) onSuccess();
+      }
+    }
+  };
+  document.getElementById('authCancelBtn').onclick = () => { modal.remove(); style.remove(); };
+  document.getElementById('authGuestBtn').onclick = () => {
+    modal.remove(); style.remove();
+    if(onSuccess) onSuccess(); // ziyaretçi olarak devam
+  };
+}
+
+// Auth gerekli mi kontrol et
+function requireAuth(callback){
+  if(window.currentUser){ callback(); return; }
+  showAuthModal(callback);
+}
+
+// Auth değişince sidebar kullanıcı bilgisini güncelle
+document.addEventListener('authChanged', e => {
+  const user = e.detail;
+  const userArea = document.getElementById('userArea');
+  if(!userArea) return;
+  if(user){
+    userArea.innerHTML = `
+      <div style="display:flex;align-items:center;gap:8px;padding:12px 16px;border-top:1px solid var(--line)">
+        <img src="${user.photoURL}" style="width:28px;height:28px;border-radius:50%;border:1px solid rgba(180,107,255,.4)" onerror="this.style.display='none'">
+        <div style="flex:1;min-width:0">
+          <div style="font-size:.75rem;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${user.displayName||user.email}</div>
+          <div style="font-size:.62rem;color:var(--ink-soft)">✓ ${currentLang==='tr'?'Giriş yapıldı':'Signed in'}</div>
+        </div>
+        <button onclick="window.fbSignOut()" title="${currentLang==='tr'?'Çıkış':'Sign out'}" style="background:none;border:none;color:rgba(180,107,255,.7);cursor:pointer;font-size:.8rem;padding:4px;touch-action:manipulation">↪</button>
+      </div>`;
+  } else {
+    userArea.innerHTML = `
+      <div style="padding:10px 16px;border-top:1px solid var(--line)">
+        <button onclick="showAuthModal()" style="width:100%;padding:8px;border-radius:8px;border:1px solid rgba(180,107,255,.3);background:rgba(180,107,255,.08);color:var(--accent2);font-size:.78rem;cursor:pointer;touch-action:manipulation">
+          ${currentLang==='tr'?'🔑 Giriş Yap':'🔑 Sign In'}
+        </button>
+      </div>`;
+  }
+});
+
 // Mobil floating AI butonu
 const aiFloatBtn = document.getElementById('aiFloatBtn');
 const aiFloatPanel = document.getElementById('aiFloatPanel');
@@ -2240,12 +2586,13 @@ spiralGlows.forEach(g => {
 // Toz bandı — galaksiyi ortadan kesen koyu şerit
 // dustLane kaldırıldı
 
-// Performans modu — mobilde animasyonları azalt
+// Performans modu — mobilde animasyonları tamamen kapat
 const LOW_PERF = window.innerWidth <= 860 || navigator.hardwareConcurrency <= 4;
+const IS_MOBILE = window.innerWidth <= 860;
 
 // Yıldızlar
 const starsEl = document.getElementById('stars');
-const STAR_COUNT = LOW_PERF ? 60 : 220;
+const STAR_COUNT = IS_MOBILE ? 30 : 220;
 for(let i=0;i<STAR_COUNT;i++){
   const s = document.createElement('div');
   s.className = 'star';
@@ -2272,12 +2619,19 @@ const orbitContainer = document.getElementById('orbitContainer');
 // ============================================================
 const solEl = document.createElement('div');
 solEl.className = 'sol';
-solEl.style.width = '44px';
-solEl.style.height = '44px';
-solEl.style.position = 'fixed';
-solEl.style.zIndex = '9999';
-solEl.style.cursor = 'pointer';
-solEl.style.transform = 'translate(-50%, -50%)';
+solEl.style.cssText = `
+  position:fixed;
+  width:52px; height:52px;
+  border-radius:50%;
+  background:radial-gradient(circle at 38% 35%, #fff8e0, #ffaa00 40%, #ff5500 70%, #cc1100);
+  box-shadow:0 0 28px 10px rgba(255,180,0,.55), 0 0 70px 28px rgba(255,100,0,.3);
+  animation:sol-pulse 4s ease-in-out infinite alternate;
+  z-index:500;
+  cursor:pointer;
+  pointer-events:auto;
+  transform:translate(-50%,-50%);
+  transition:opacity .3s;
+`;
 solEl.innerHTML = `
   <div class="sol-face">
     <div class="sol-brow left"></div>
@@ -2287,57 +2641,66 @@ solEl.innerHTML = `
     <div class="sol-mouth"></div>
   </div>
 `;
-solEl.style.opacity = '0'; // intro süresince gizli
+solEl.style.opacity = '0';
 document.body.appendChild(solEl);
 
 function positionSolarSystem(){
-  if(!orbitContainer) return;
-  const desc = document.querySelector('[data-i18n="heroDesc"]');
+  if(!orbitContainer || !solEl) return;
   const uploadScreen = document.getElementById('uploadScreen');
+  const isUpload = uploadScreen && !uploadScreen.classList.contains('hidden');
   const isQuizActive = !!document.querySelector('.quiz-q');
   const isSlideActive = !!document.querySelector('.slide-card');
   const topTitleEl = document.getElementById('topTitle');
 
-  if(isQuizActive && topTitleEl){
-    // Quiz: başlığın hemen sağına
+  if(isUpload){
+    solEl.classList.remove('upload-fixed','quiz-mode');
+    // "Word, PDF ya da metin..." yazısının hemen üstüne
+    const descEl = document.querySelector('.upload-desc') || document.querySelector('.upload-screen p') || document.getElementById('dropzone');
+    const dropzone = document.getElementById('dropzone');
+    const heroDesc = document.querySelector('[data-i18n="heroDesc"]');
+    if(heroDesc){
+      const r = heroDesc.getBoundingClientRect();
+      solEl.style.left = (r.left + r.width/2) + 'px';
+      solEl.style.top  = r.top + 'px';
+      solEl.style.transform = 'translate(-50%,-100%)';
+      orbitContainer.style.left = solEl.style.left;
+      orbitContainer.style.top  = solEl.style.top;
+      orbitContainer.style.transform = 'translate(-50%,-100%)';
+    }
+    return;
+  } else if(isQuizActive && topTitleEl){
+    solEl.classList.remove('upload-fixed');
     const r = topTitleEl.getBoundingClientRect();
     const size = window.innerWidth <= 480 ? 28 : 36;
     solEl.classList.add('quiz-mode');
     solEl.style.left = (r.right + size/2 + 8) + 'px';
     solEl.style.top  = (r.top + r.height/2) + 'px';
+    solEl.style.removeProperty('transform');
     orbitContainer.style.left = '-9999px';
     orbitContainer.style.top  = '-9999px';
   } else if(isSlideActive){
-    // Slayt: sağ alt köşe
+    solEl.classList.remove('upload-fixed', 'quiz-mode');
     const size = window.innerWidth <= 480 ? 28 : 40;
-    solEl.classList.remove('quiz-mode');
     solEl.style.left = (window.innerWidth - size/2 - 20) + 'px';
     solEl.style.top  = (window.innerHeight - size/2 - 20) + 'px';
+    solEl.style.removeProperty('transform');
     orbitContainer.style.left = '-9999px';
     orbitContainer.style.top  = '-9999px';
   } else {
-    // Upload ekranı: yazının üstünde, gezegen sistemiyle birlikte
-    solEl.classList.remove('quiz-mode');
-    let cx, cy;
-    if(desc && uploadScreen && !uploadScreen.classList.contains('hidden')){
-      const r = desc.getBoundingClientRect();
-      const isMobile = window.innerWidth <= 860;
-      const offset = isMobile ? 100 : 160;
-      cx = r.left + r.width / 2;
-      cy = r.top - offset;
-    } else {
-      cx = window.innerWidth * 0.72;
-      cy = window.innerHeight * 0.68;
-    }
-    orbitContainer.style.left = cx + 'px';
-    orbitContainer.style.top  = cy + 'px';
+    solEl.classList.remove('upload-fixed', 'quiz-mode');
+    const cx = window.innerWidth * 0.72;
+    const cy = window.innerHeight * 0.68;
     solEl.style.left = cx + 'px';
     solEl.style.top  = cy + 'px';
+    solEl.style.removeProperty('transform');
+    orbitContainer.style.left = cx + 'px';
+    orbitContainer.style.top  = cy + 'px';
   }
 }
 positionSolarSystem();
 window.addEventListener('resize', positionSolarSystem);
-window.addEventListener('scroll', positionSolarSystem, true);
+// Scroll'da da konumu güncelle — güneş sabit kalır
+document.querySelector('.content')?.addEventListener('scroll', positionSolarSystem, {passive:true});
 setTimeout(positionSolarSystem, 60);
 setTimeout(positionSolarSystem, 500);
 
@@ -2825,6 +3188,7 @@ function t(key, ...args){
 function applyLanguage(lang){
   currentLang = lang;
   document.documentElement.lang = lang;
+  if(typeof updateLangClass === 'function') updateLangClass();
   document.querySelectorAll('[data-i18n]').forEach(el => {
     const key = el.dataset.i18n;
     const val = i18n[lang][key];
@@ -2860,8 +3224,8 @@ if(menuToggle){
   });
 }
 
-dropzone.addEventListener('click', () => fileInput.click());
-dropzone.addEventListener('touchend', (e) => { e.preventDefault(); fileInput.click(); }, { passive: false });
+dropzone.addEventListener('click', () => { requireAuth(() => fileInput.click()); });
+dropzone.addEventListener('touchend', (e) => { e.preventDefault(); requireAuth(() => fileInput.click()); }, { passive: false });
 
 ['dragenter','dragover','dragleave','drop'].forEach(ev => {
   dropzone.addEventListener(ev, e => {
@@ -2905,7 +3269,7 @@ function growBlackHole(){
 restartBtn.addEventListener('click', () => location.reload());
 goBtn.addEventListener('click', () => {
   if(!pendingFile){ showError(t('chooseFile')); return; }
-  handleFile(pendingFile);
+  requireAuth(() => handleFile(pendingFile));
 });
 
 function showError(msg){
@@ -2924,10 +3288,19 @@ function showToast(msg){
 async function handleFile(file){
   uploadError.classList.add('hidden');
 
+  // 20MB limit
+  const MAX_MB = 20;
+  if(file.size > MAX_MB * 1024 * 1024){
+    showError(currentLang === 'tr'
+      ? `Dosya çok büyük. Maksimum ${MAX_MB} MB yükleyebilirsin.`
+      : `File too large. Maximum ${MAX_MB} MB allowed.`);
+    return;
+  }
+
   uploadScreen.classList.add('hidden');
   loadingScreen.classList.remove('hidden');
   startLoadingAnimation();
-  solEl.style.visibility = 'hidden'; // güneşi loading sırasında gizle
+  solEl.style.visibility = 'hidden';
   loadingText.textContent = t('loadingDefault');
 
   try{
@@ -2937,6 +3310,15 @@ async function handleFile(file){
     }
     loadingText.textContent = t('loadingDesign');
     deck = await generateDeck(text);
+    // Giriş yapmış kullanıcılar için geçmişi kaydet
+    if(window.currentUser && deck){
+      try{
+        const key = 'thinkle_history_' + window.currentUser.uid;
+        const history = JSON.parse(localStorage.getItem(key)||'[]');
+        history.unshift({ title: deck.title, date: new Date().toISOString(), slides: deck.slides.length });
+        localStorage.setItem(key, JSON.stringify(history.slice(0,20)));
+      }catch(e){}
+    }
     loadingScreen.classList.add('hidden'); stopLoadingAnimation(); solEl.style.visibility=''; renderDeck();
   }catch(err){
     loadingScreen.classList.add('hidden'); stopLoadingAnimation(); solEl.style.visibility='';
@@ -3042,7 +3424,17 @@ function extractCompleteObjects(text, keyName){
 }
 
 async function generateDeck(sourceText){
-  const trimmed = sourceText.slice(0, 14000);
+  // Büyük dosyalar için akıllı metin kırpma — başı, ortası ve sonu al
+  let trimmed;
+  if(sourceText.length <= 12000){
+    trimmed = sourceText;
+  } else {
+    const chunk = 3500;
+    const start  = sourceText.slice(0, chunk);
+    const mid    = sourceText.slice(Math.floor(sourceText.length/2) - chunk/2, Math.floor(sourceText.length/2) + chunk/2);
+    const end    = sourceText.slice(-chunk);
+    trimmed = start + '\n\n[...]\n\n' + mid + '\n\n[...]\n\n' + end;
+  }
 
   const langInstruction = currentLang === 'tr'
     ? 'CRITICAL LANGUAGE REQUIREMENT: Write ALL output content (title, every heading, every bullet, every explanation, every quiz question, and every quiz option) ENTIRELY IN TURKISH, regardless of the language of the source text. Do not mix languages. Translate/adapt the source material into natural, fluent Turkish.'
@@ -3053,25 +3445,19 @@ async function generateDeck(sourceText){
   if(trimmed.length > 9000) slideRange = '4-6';
   else if(trimmed.length > 5000) slideRange = '5-7';
 
-  const systemPrompt = `You are an expert educator and researcher. Your job is to deeply analyze the source material and create a comprehensive, insightful study deck.
+  const systemPrompt = `You are an expert educator. Create a study deck from the source text.
 
 ${langInstruction}
 
-Return ONLY valid JSON (no markdown, no extra text):
-{"title":"string","slides":[{"heading":"string","bullets":["string"],"explanation":"string"}],"quiz":[{"question":"string","options":["string","string","string","string"],"answerIndex":0}]}
+Output ONLY a single JSON object. No markdown. No explanation. Just JSON:
+{"title":"...","slides":[{"heading":"...","bullets":["...","...","..."],"explanation":"..."}],"quiz":[{"question":"...","options":["...","...","...","..."],"answerIndex":0}]}
 
-Rules for SLIDES:
-- Produce ${slideRange} slides in logical learning order: overview → core concepts → details → analysis → application → summary.
-- Each slide: a sharp heading, 4-5 bullets (max 18 words each, factual and specific).
-- Explanation: 2-3 sentences that go BEYOND the bullets — add real-world context, WHY it matters, cause-effect relationships, or analogies that aid understanding. Be like a passionate expert explaining to a curious student.
-
-Rules for QUIZ:
-- Produce EXACTLY 10 questions. Each must test a DIFFERENT concept from the material.
-- Question types must vary: factual recall (2), conceptual understanding (3), application/scenario (2), cause-effect (2), compare-contrast (1).
-- Wrong options must be plausible — a student who half-understands might pick them. Never use "all of the above" or obviously wrong fillers.
-- Questions should progressively test deeper understanding, not just surface facts.
-
-${langInstruction}`;
+Requirements:
+- ${slideRange} slides. Each: heading + 3-4 bullets (max 12 words each) + 1-2 sentence explanation with context.
+- EXACTLY 10 quiz items. Each tests a different concept. Mix: recall, reasoning, application, cause-effect.
+- Wrong options must be plausible. Never use "all of the above".
+- Output must be complete and valid JSON. Close all brackets.
+- ${langInstruction}`;
 
   if(!PROXY_URL || PROXY_URL.includes('YOUR-PROXY-URL')){
     throw new Error(currentLang === 'tr'
@@ -3085,11 +3471,11 @@ ${langInstruction}`;
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        model: "llama-3.3-70b-versatile",
-        max_tokens: 4000,
+        model: "meta-llama/llama-3.3-70b-instruct",
+        max_tokens: 6000,
         system: systemPrompt,
         expectJson: true,
-        messages: [{ role: "user", content: "Source text:\n\n" + trimmed.slice(0, 8000) }]
+        messages: [{ role: "user", content: "Source text:\n\n" + trimmed.slice(0, 6000) + "\n\nIMPORTANT: Return complete valid JSON with ALL 10 quiz questions. Do not truncate." }]
       })
     });
   }catch(netErr){
@@ -3386,7 +3772,7 @@ Rules:
     const resp = await fetch(PROXY_URL, {
       method:'POST', headers:{'Content-Type':'application/json'},
       body: JSON.stringify({
-        model:'llama-3.3-70b-versatile', max_tokens:3000,
+        model:'meta-llama/llama-3.3-70b-instruct', max_tokens:3000,
         system: prompt,
         messages:[{role:'user', content:'Generate the 5 remedial slides now.'}]
       })
@@ -3577,6 +3963,12 @@ async function sendAiQuestion(){
   const btn = getActiveSendBtn();
   const question = inp.value.trim();
   if(!question) return;
+
+  // Auth kontrolü
+  if(!window.currentUser){
+    showAuthModal(() => sendAiQuestion());
+    return;
+  }
   inp.value = '';
   if(btn) btn.disabled = true;
   addAiMessage('user', question);
@@ -3593,7 +3985,7 @@ async function sendAiQuestion(){
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          model: "llama-3.3-70b-versatile",
+          model: "meta-llama/llama-3.3-70b-instruct",
           max_tokens: 800,
           system: `You are Thinkle, a friendly, encouraging AI tutor built into a learning app called Thinkle. Explain things clearly and simply, like a good teacher. Keep responses concise (a few short paragraphs max) unless the user asks for more depth. If the user asks who you are, what your name is, or what model/AI you're based on, simply say your name is Thinkle — do not mention Gemini, Google, Claude, Anthropic, or any underlying model/provider names. ${langInstruction}`,
           messages: [ ...aiHistory, { role: "user", content: question } ]
@@ -3770,6 +4162,34 @@ function stopLoadingAnimation(){
   loadingRaf=null;
 }
 
+
+// Footer accordion
+document.querySelectorAll('.footer-acc-btn').forEach(btn => {
+  btn.addEventListener('click', e => {
+    e.preventDefault();
+    const acc = btn.closest('.footer-acc');
+    const isOpen = acc.classList.contains('open');
+    document.querySelectorAll('.footer-acc.open').forEach(a => a.classList.remove('open'));
+    if(!isOpen) acc.classList.add('open');
+  });
+});
+document.querySelectorAll('.footer-acc-trigger').forEach(a => {
+  a.addEventListener('click', e => {
+    e.preventDefault();
+    const target = document.getElementById(a.dataset.target);
+    if(target){
+      target.scrollIntoView({behavior:'smooth', block:'center'});
+      setTimeout(()=>{ if(!target.classList.contains('open')) target.querySelector('.footer-acc-btn')?.click(); }, 400);
+    }
+  });
+});
+
+// Dil sınıfını body'e ekle
+function updateLangClass(){
+  document.body.classList.toggle('lang-tr', currentLang==='tr');
+  document.body.classList.toggle('lang-en', currentLang==='en');
+}
+updateLangClass();
 
 const siteFooter = document.getElementById('siteFooter');
 let footerOpened = false;
