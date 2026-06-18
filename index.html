@@ -141,10 +141,13 @@
     }
   }, ()=>{});
 
-  // Gerçek zamanlı bakım modu
+  // Gerçek zamanlı bakım modu — kurucu etkilenmez
   onSnapshot(doc(db, 'config', 'maintenance'), (snap) => {
     if(snap.exists() && snap.data().active){
-      window.dispatchEvent(new CustomEvent('maintenanceMode'));
+      const uid = window.currentUser?.uid || '';
+      if(uid !== 'l8Tih1awnjP7fRXnUsFVVAuXEZu2'){
+        window.dispatchEvent(new CustomEvent('maintenanceMode'));
+      }
     }
   }, ()=>{});
 </script>
