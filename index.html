@@ -40,9 +40,15 @@
 
   window.fbSignIn = async () => {
     try {
-      if(isMobileDevice) await signInWithRedirect(auth, provider);
-      else await signInWithPopup(auth, provider);
-    } catch(err){ console.error('Sign in error:', err); }
+      // Önce popup dene — mobilde de çalışabilir
+      await signInWithPopup(auth, provider);
+    } catch(err){
+      // Popup bloke olduysa redirect'e geç
+      if(err.code === 'auth/popup-blocked' || err.code === 'auth/popup-closed-by-user' || isMobileDevice){
+        try { await signInWithRedirect(auth, provider); }
+        catch(e){ console.error('Sign in error:', e); }
+      }
+    }
   };
 
   window.fbGuestSignIn = async () => {
@@ -51,7 +57,12 @@
   };
 
   window.fbSignOut = () => signOut(auth);
-  getRedirectResult(auth).catch(()=>{});
+  getRedirectResult(auth).then(result => {
+    if(result?.user){
+      window.currentUser = result.user;
+      document.dispatchEvent(new CustomEvent('authChanged', { detail: result.user }));
+    }
+  }).catch(()=>{});
 
   // İstatistik kaydet
   window.fbLogUsage = async (type) => {
