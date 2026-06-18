@@ -3832,33 +3832,35 @@ async function sendAiQuestion(){
   addAiMessage('user', question);
 
   // 🕵️ GİZLİ EASTER EGG — Mehmet Emin Ayvaz
-  const q = question.toLowerCase().replace(/[çÇ]/g,'c').replace(/[şŞ]/g,'s').replace(/[ğĞ]/g,'g').replace(/[üÜ]/g,'u').replace(/[öÖ]/g,'o').replace(/[ıİ]/g,'i');
-  const isMEA = (q.includes('mehmet') || q.includes('emin') || q.includes('ayvaz')) && (q.includes('tanı') || q.includes('biliyor') || q.includes('kim') || q.includes('tanıyor') || q.includes('taniyor'));
+  const qLow = question.toLowerCase();
+  const hasMEA = qLow.includes('mehmet') || qLow.includes('emin') || qLow.includes('ayvaz');
+  const hasAsk = qLow.includes('tan') || qLow.includes('biliy') || qLow.includes('kim') || qLow.includes('who');
   
-  if(isMEA){
+  if(hasMEA && hasAsk){
     const thinkingEl = addAiMessage('ai', '...', true);
     await new Promise(r => setTimeout(r, 1800));
     thinkingEl.classList.remove('thinking');
-    thinkingEl.innerHTML = `
-      <div style="font-family:'Space Mono',monospace;font-size:.78rem;line-height:1.8;color:#4dffb4">
-        ██████████████████████████<br>
-        &nbsp;&nbsp;GİZLİ — SINIFLANDIRILMIŞ<br>
-        ██████████████████████████<br><br>
-        DOSYA NO: MEA-2009-∞<br>
-        GÜVENLİK SEVİYESİ: KIRMIZI<br>
-        ERİŞİM: KISITLI<br><br>
-        <span style="color:#ff6ec7">ÖZNE:</span> MEHMET EMİN AYVAZ<br>
-        <span style="color:#ff6ec7">DURUM:</span> AKTİF<br>
-        <span style="color:#ff6ec7">SINIFLANDIRMA:</span> [REDACTED]<br><br>
-        Bu kişi hakkındaki bilgiler<br>
-        en üst düzey gizlilik<br>
-        kapsamındadır.<br><br>
-        Daha fazla bilgi talep etmek<br>
-        yetkisizdir.<br><br>
-        <span style="color:#ffcc00">⚠ Bu mesaj 5 saniye içinde<br>
-        kendini imha edecek.</span>
-      </div>`;
+    thinkingEl.innerHTML = `<div style="font-family:'Space Mono',monospace;font-size:.75rem;line-height:1.9;color:#4dffb4">
+██████████████████████████<br>
+&nbsp;GİZLİ — SINIFLANDIRILMIŞ<br>
+██████████████████████████<br><br>
+DOSYA NO: MEA-2009-∞<br>
+GÜVENLİK SEVİYESİ: <span style="color:#ff4444">KIRMIZI</span><br>
+ERİŞİM: KISITLI<br><br>
+<span style="color:#ff6ec7">ÖZNE:</span> MEHMET EMİN AYVAZ<br>
+<span style="color:#ff6ec7">DURUM:</span> AKTİF<br>
+<span style="color:#ff6ec7">KİMLİK:</span> [████████]<br>
+<span style="color:#ff6ec7">KONUM:</span> [REDACTED]<br>
+<span style="color:#ff6ec7">MİSYON:</span> [REDACTED]<br><br>
+Bu kişiye ait tüm bilgiler<br>
+en üst düzey gizlilik<br>
+kapsamında tutulmaktadır.<br><br>
+Daha fazla sorgu yetkisizdir.<br><br>
+<span style="color:#ffcc00">⚠ Bu mesaj 5 sn içinde<br>
+kendini imha edecek.</span></div>`;
     if(btn) btn.disabled = false;
+    // 5 saniye sonra mesajı sil
+    setTimeout(()=>{ thinkingEl.style.transition='opacity .5s'; thinkingEl.style.opacity='0'; setTimeout(()=>thinkingEl.remove(),500); }, 5000);
     return;
   }
 
