@@ -2814,14 +2814,14 @@ document.addEventListener('announcementReady', (e) => {
   setTimeout(()=>{
     const banner = document.createElement('div');
     banner.id = 'annBanner';
-    banner.style.cssText = 'position:fixed;top:0;left:0;right:0;z-index:9999;background:linear-gradient(90deg,#b46bff,#6ee7ff);color:#070a18;font-family:Space Grotesk,sans-serif;font-size:.82rem;font-weight:600;padding:10px 40px 10px 16px;text-align:center;';
+    banner.style.cssText = 'position:fixed;top:0;left:0;right:0;z-index:9999;background:linear-gradient(90deg,#b46bff,#6ee7ff);color:#070a18;font-family:Space Grotesk,sans-serif;font-size:.82rem;font-weight:600;padding:10px 16px;text-align:center;transition:opacity .8s ease;';
     banner.textContent = '📢 ' + e.detail;
-    const closeBtn = document.createElement('button');
-    closeBtn.textContent = '✕';
-    closeBtn.style.cssText = 'position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;font-size:1rem;color:#070a18;';
-    closeBtn.onclick = () => banner.remove();
-    banner.appendChild(closeBtn);
     document.body.appendChild(banner);
+    // 5 saniye sonra kaybol
+    setTimeout(()=>{
+      banner.style.opacity = '0';
+      setTimeout(()=> banner.remove(), 800);
+    }, 5000);
   }, 8000);
 });
 
