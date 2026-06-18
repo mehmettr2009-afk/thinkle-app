@@ -126,19 +126,15 @@
   // Sayfa ziyaretini kaydet
   window.fbLogUsage('visits');
 
-  // Gerçek zamanlı duyuru dinleyici — her kullanıcıya anında ulaşır
+  // Gerçek zamanlı duyuru — sadece aktif duyuru varsa banner göster, otomatik tetiklemez
   let lastAnnText = null;
   onSnapshot(doc(db, 'config', 'announcement'), (snap) => {
     if(!snap.exists()) return;
     const data = snap.data();
-    if(data.active && data.text && data.text !== lastAnnText){
-      lastAnnText = data.text;
-      document.dispatchEvent(new CustomEvent('announcementReady', {detail: data.text}));
-    } else if(!data.active){
-      // Duyuru kapatıldıysa banner'ı kaldır
-      document.getElementById('cosmicAnn')?.remove();
+    if(!data.active){
       document.getElementById('annBanner')?.remove();
     }
+    // Otomatik banner yok — sadece kaydet butonundan tetiklenir
   }, ()=>{});
 
   // Gerçek zamanlı bakım modu — kurucu ASLA etkilenmez
@@ -2612,8 +2608,8 @@ document.addEventListener('authChanged', e => {
         </button>` : ''}
       </div>`;
 
-    // Kurucu karşılama ekranı — sadece ilk girişte
-    if(isFounder) showFounderWelcome();
+    // Kurucu paneli sadece butona basınca açılır
+    // if(isFounder) showFounderWelcome(); — kaldırıldı
   } else {
     userArea.innerHTML = `
       <div style="padding:10px 16px;border-top:1px solid var(--line)">
