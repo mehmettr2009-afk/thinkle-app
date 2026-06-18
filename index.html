@@ -8,6 +8,7 @@
 <meta http-equiv="Expires" content="0">
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><defs><linearGradient id='g' x1='0%25' y1='0%25' x2='100%25' y2='100%25'><stop offset='0%25' stop-color='%23b46bff'/><stop offset='50%25' stop-color='%238855cc'/><stop offset='100%25' stop-color='%23ff6ec7'/></linearGradient></defs><rect width='32' height='32' rx='8' fill='url(%23g)'/><circle cx='16' cy='16' r='9' fill='%23080410'/></svg>">
 <link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;900&family=Space+Grotesk:wght@400;500;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js"></script>
@@ -1380,26 +1381,23 @@
   @keyframes intro-mouth-smile{
     to{ width:46%; height:22%; border-radius:0 0 50px 50px; }
   }
-  /* ============ MOBİL PERFORMANS OPTİMİZASYONU ============ */
+  /* ===== PERFORMANS OPTİMİZASYONU ===== */
+  .star, .orbiter, .planet, .asteroid, .space-ship, .bg-planet {
+    will-change: transform;
+    contain: layout style;
+  }
+  .sol { will-change: transform; }
+  
+  /* Mobil — ağır efektleri tamamen kapat */
   @media (max-width: 860px){
-    /* Ağır CSS animasyonlarını kapat */
-    .orbiter, .planet, .space-ship, .asteroid { display:none !important; }
+    .orbiter, .planet, .space-ship { display:none !important; }
+    .bg-planet { display:none !important; }
     .dropzone-ring { display:none !important; }
     .dropzone::before { display:none !important; }
-    .bg-planet { display:none !important; }
-    .lg-planet { display:none !important; }
-
-    /* Diğer animasyonları yavaşlat */
     .lg-ring { animation-duration:15s !important; }
     .sol { animation-duration:8s !important; }
-    #introRing1, #introRing2 { animation-duration:10s !important; }
-
-    /* will-change kapalı — GPU yük azalt */
     * { will-change:auto !important; }
-
-    /* Blur efektleri azalt */
-    .footer-inner { backdrop-filter:blur(8px) !important; }
-    .slide-card { backdrop-filter:none !important; }
+    .footer-inner { backdrop-filter:blur(6px) !important; }
   }
   #siteFooter{
     margin-top: 80px;
@@ -2555,21 +2553,13 @@ const IS_MOBILE = window.innerWidth <= 860;
 
 // Yıldızlar
 const starsEl = document.getElementById('stars');
-const STAR_COUNT = IS_MOBILE ? 25 : 220;
+const STAR_COUNT = IS_MOBILE ? 40 : 120;
 const activeShipCount = IS_MOBILE ? 0 : 1;
 for(let i=0;i<STAR_COUNT;i++){
   const s = document.createElement('div');
   s.className = 'star';
-  const size = Math.random()*2.4 + 0.3;
-  s.style.width = size+'px'; s.style.height = size+'px';
-  s.style.left = (Math.random()*100)+'%';
-  s.style.top = (Math.random()*100)+'%';
-  s.style.setProperty('--d', (Math.random()*5+1.5)+'s');
-  // Galaksi merkezi yakınındaki yıldızlar daha sıcak renk
-  const cx = parseFloat(s.style.left), cy = parseFloat(s.style.top);
-  const distFromCenter = Math.sqrt((cx-50)**2 + (cy-50)**2);
-  if(distFromCenter < 25) s.style.boxShadow = `0 0 ${Math.random()*4+1}px 1px rgba(255,220,130,.6)`;
-  else if(Math.random() < 0.2) s.style.boxShadow = '0 0 2px 1px rgba(180,200,255,.4)';
+  const size = Math.random()*2 + 0.3;
+  s.style.cssText = `width:${size}px;height:${size}px;left:${Math.random()*100}%;top:${Math.random()*100}%;--d:${(Math.random()*5+2).toFixed(1)}s`;
   starsEl.appendChild(s);
 }
 
@@ -2695,7 +2685,7 @@ function updateSolEyes(){
     if(p) p.style.transform=`translate(calc(-50% + ${ox.toFixed(1)}px), calc(-50% + ${oy.toFixed(1)}px))`;
   });
 }
-setInterval(updateSolEyes, LOW_PERF ? 400 : 120);
+setInterval(updateSolEyes, IS_MOBILE ? 600 : 150);
 
 // Öfke sistemi — 3 dosyadan sonra sinirlensin
 let solAngerLevel = 0;
@@ -2765,16 +2755,6 @@ const shipSVGs = [
   // UFO
   `<svg viewBox="0 0 40 28" xmlns="http://www.w3.org/2000/svg"><ellipse cx="20" cy="20" rx="18" ry="6" fill="#b46bff"/><path d="M6 18C6 10 34 10 34 18Z" fill="#eaf0ff"/><circle cx="14" cy="14" r="2.5" fill="#ff6ec7"/><circle cx="20" cy="11" r="2.5" fill="#6ee7ff"/><circle cx="26" cy="14" r="2.5" fill="#ff6ec7"/></svg>`,
   // Kargo gemisi
-  `<svg viewBox="0 0 48 28" xmlns="http://www.w3.org/2000/svg"><rect x="6" y="9" width="30" height="12" rx="5" fill="#d0d8f0"/><path d="M36 9L46 15L36 21Z" fill="#6ee7ff" opacity=".9"/><path d="M6 9L2 15L6 21Z" fill="#8a93c7"/><rect x="10" y="5" width="5" height="4" rx="1" fill="#b46bff"/><rect x="18" y="5" width="5" height="4" rx="1" fill="#b46bff"/><rect x="26" y="5" width="5" height="4" rx="1" fill="#b46bff"/></svg>`,
-  // Keşif sondası
-  `<svg viewBox="0 0 20 44" xmlns="http://www.w3.org/2000/svg"><rect x="8" y="10" width="4" height="24" rx="2" fill="#e0e8ff"/><circle cx="10" cy="8" r="5" fill="#6ee7ff"/><rect x="1" y="16" width="7" height="3" rx="1" fill="#b46bff"/><rect x="12" y="16" width="7" height="3" rx="1" fill="#b46bff"/><path d="M7 34L10 42L13 34Z" fill="#ff6ec7" opacity=".8"/></svg>`,
-  // Çift motorlu shuttle
-  `<svg viewBox="0 0 44 36" xmlns="http://www.w3.org/2000/svg"><path d="M22 4L30 24L22 20L14 24Z" fill="#eaf0ff"/><ellipse cx="22" cy="18" rx="6" ry="10" fill="#c8d8f0"/><circle cx="22" cy="13" r="4" fill="#6ee7ff" opacity=".9"/><rect x="8" y="22" width="5" height="9" rx="3" fill="#8a93c7"/><rect x="31" y="22" width="5" height="9" rx="3" fill="#8a93c7"/><path d="M8 31L11 36L14 31Z" fill="#ff6ec7" opacity=".7"/><path d="M30 31L33 36L36 31Z" fill="#ff6ec7" opacity=".7"/></svg>`,
-  // ISS benzeri istasyon
-  `<svg viewBox="0 0 56 20" xmlns="http://www.w3.org/2000/svg"><rect x="18" y="6" width="20" height="8" rx="2" fill="#d8e0f0"/><rect x="26" y="4" width="4" height="12" rx="1" fill="#c0c8e0"/><rect x="2" y="8" width="16" height="3" rx="1" fill="#7080a0"/><rect x="2" y="4" width="7" height="8" rx="1" fill="#4d7bff" opacity=".9"/><rect x="11" y="4" width="7" height="8" rx="1" fill="#4d7bff" opacity=".85"/><rect x="38" y="8" width="16" height="3" rx="1" fill="#7080a0"/><rect x="38" y="4" width="7" height="8" rx="1" fill="#4d7bff" opacity=".9"/><rect x="47" y="4" width="7" height="8" rx="1" fill="#4d7bff" opacity=".85"/><circle cx="28" cy="10" r="1.5" fill="#fff" opacity=".8"/></svg>`,
-  // Elmas şekilli savaş aracı
-  `<svg viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg"><polygon points="16,2 28,16 16,26 4,16" fill="#c0d0e8"/><ellipse cx="16" cy="14" rx="5" ry="5" fill="#6ee7ff" opacity=".9"/><line x1="0" y1="16" x2="32" y2="16" stroke="#8a93c7" stroke-width="1" opacity=".5"/><path d="M12 26L16 34L20 26Z" fill="#ff6ec7" opacity=".7"/></svg>`,
-  // Küçük interceptor
   `<svg viewBox="0 0 24 36" xmlns="http://www.w3.org/2000/svg"><path d="M12 2L18 20L12 16L6 20Z" fill="#e0e8ff"/><path d="M6 20L0 28L6 24Z" fill="#b46bff"/><path d="M18 20L24 28L18 24Z" fill="#b46bff"/><circle cx="12" cy="13" r="3" fill="#6ee7ff"/><path d="M9 28L12 36L15 28Z" fill="#ff6ec7" opacity=".8"/></svg>`,
 ];
 
@@ -2894,10 +2874,10 @@ function spawnAsteroid(){
   setTimeout(()=>el.remove(), dur*1000+600);
 }
 
-// Mobilde daha az asteroid
-const INIT_ASTEROIDS = LOW_PERF ? 3 : 8;
-const ASTEROID_INTERVAL = LOW_PERF ? 8000 : 3800;
-for(let i=0;i<INIT_ASTEROIDS;i++) setTimeout(()=>spawnAsteroid(), i*2200);
+// Asteroid spawn — mobilde çok az
+const INIT_ASTEROIDS = IS_MOBILE ? 1 : 5;
+const ASTEROID_INTERVAL = IS_MOBILE ? 15000 : 5000;
+for(let i=0;i<INIT_ASTEROIDS;i++) setTimeout(()=>spawnAsteroid(), i*3000);
 setInterval(spawnAsteroid, ASTEROID_INTERVAL);
 
 // Requests go through a small backend proxy that keeps the real Anthropic
