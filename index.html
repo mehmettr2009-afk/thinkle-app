@@ -2903,6 +2903,11 @@ setInterval(spawnAsteroid, ASTEROID_INTERVAL);
 // Requests go through a small backend proxy that keeps the real Anthropic
 // API key secret. Replace this with your deployed proxy's URL.
 const PROXY_URL = "https://thinkle-proxy-518x.onrender.com/api/messages";
+
+// Sayfa yüklenince proxy'yi uyandır
+fetch("https://thinkle-proxy-518x.onrender.com/ping").catch(()=>{});
+// 14 dakikada bir tekrar uyandır
+setInterval(()=>{ fetch("https://thinkle-proxy-518x.onrender.com/ping").catch(()=>{}); }, 60*1000);
 let deck = null;
 let currentSlide = 0;
 let pendingFile = null;
