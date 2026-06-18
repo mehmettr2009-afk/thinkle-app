@@ -1803,7 +1803,71 @@
   #staticBg{ animation:galaxy-pulse 8s ease-in-out infinite; }
 
   /* Visibility change — sayfadan çıkınca animasyon dur */
-  #staticBg.paused{ animation-play-state:paused; }
+  #staticBg.paused{ animation-play-state:paused; }  /* ===== FLASHCARD MODU ===== */
+  .flashcard-wrap{
+    perspective:1200px; width:100%; max-width:600px; margin:0 auto;
+    height:320px; cursor:pointer;
+  }
+  .flashcard{
+    width:100%; height:100%; position:relative;
+    transform-style:preserve-3d;
+    transition:transform .6s cubic-bezier(.4,0,.2,1);
+  }
+  .flashcard.flipped{ transform:rotateY(180deg); }
+  .flashcard-front, .flashcard-back{
+    position:absolute; inset:0; border-radius:20px;
+    backface-visibility:hidden; -webkit-backface-visibility:hidden;
+    display:flex; flex-direction:column; align-items:center; justify-content:center;
+    padding:32px 28px; text-align:center;
+  }
+  .flashcard-front{
+    background:linear-gradient(145deg,rgba(16,12,40,.97),rgba(10,8,28,.99));
+    border:1px solid rgba(180,107,255,.3);
+    box-shadow:0 0 40px rgba(180,107,255,.1);
+  }
+  .flashcard-back{
+    background:linear-gradient(145deg,rgba(8,20,40,.97),rgba(6,16,32,.99));
+    border:1px solid rgba(110,231,255,.3);
+    box-shadow:0 0 40px rgba(110,231,255,.1);
+    transform:rotateY(180deg);
+  }
+  .flashcard-hint{
+    font-size:.65rem;font-family:'Space Mono',monospace;letter-spacing:.1em;
+    color:rgba(180,160,255,.4);margin-bottom:16px;
+  }
+  .flashcard-front h2{
+    font-size:clamp(1rem,3vw,1.5rem);color:#eaf0ff;margin:0;line-height:1.3;
+  }
+  .flashcard-back ul{
+    list-style:none;padding:0;margin:0;text-align:left;width:100%;
+  }
+  .flashcard-back ul li{
+    font-size:.82rem;color:rgba(200,190,220,.85);padding:4px 0;
+    border-bottom:1px solid rgba(255,255,255,.06);
+    padding-left:14px;position:relative;
+  }
+  .flashcard-back ul li::before{ content:'›';position:absolute;left:0;color:var(--accent); }
+  .flashcard-counter{
+    text-align:center;font-family:'Space Mono',monospace;font-size:.7rem;
+    color:rgba(180,160,255,.5);margin:12px 0;
+  }
+  .flashcard-nav{ display:flex;gap:12px;justify-content:center;margin-top:12px; }
+
+  /* ===== ZORLUK SEVİYESİ ===== */
+  .difficulty-select{
+    display:flex;gap:10px;justify-content:center;margin:16px 0;
+  }
+  .diff-btn{
+    padding:8px 18px;border-radius:20px;border:1px solid rgba(255,255,255,.15);
+    background:rgba(255,255,255,.04);color:var(--ink-soft);font-size:.78rem;
+    cursor:pointer;font-family:'Space Grotesk',sans-serif;transition:.2s;
+    touch-action:manipulation;
+  }
+  .diff-btn:hover{ background:rgba(255,255,255,.08); }
+  .diff-btn.active-easy{ background:rgba(77,255,176,.15);border-color:rgba(77,255,176,.5);color:#4dffb0; }
+  .diff-btn.active-medium{ background:rgba(255,200,0,.15);border-color:rgba(255,200,0,.5);color:#ffc800; }
+  .diff-btn.active-hard{ background:rgba(255,100,100,.15);border-color:rgba(255,100,100,.5);color:#ff6464; }
+
 </style>
 </head>
 <body>
@@ -3722,7 +3786,7 @@ function renderSlide(){
     </div>
     <div class="slide-nav">
       <button class="btn" id="prevBtn" ${currentSlide===0?'disabled':''}>${t('prevBtn')}</button>
-      <span class="progress">${t('progressOf', currentSlide+1, deck.slides.length)}</span>
+      <button class="btn" id="flashcardBtn" title="Flashcard modu" style="font-size:.8rem;padding:8px 12px">🃏</button>
       <button class="btn" id="nextBtn">${currentSlide===deck.slides.length-1?t('nextToQuiz'):t('nextBtn')}</button>
     </div>
   `;
@@ -3731,25 +3795,116 @@ function renderSlide(){
     if(currentSlide < deck.slides.length-1){ currentSlide++; renderSlide(); }
     else { renderQuiz(); markActiveTab(tabsEl.lastChild); }
   };
+  document.getElementById('flashcardBtn').onclick = () => renderFlashcards();
 }
+
+// ===== FLASHCARD MODU =====
+let fcIndex = 0;
+
+function renderFlashcards(){
+  fcIndex = 0;
+  showFlashcard();
+}
+
+function showFlashcard(){
+  const s = deck.slides[fcIndex];
+  const total = deck.slides.length;
+  topTitle.textContent = '🃏 Flashcard — ' + deck.title;
+  setTimeout(positionSolarSystem, 50);
+
+  deckScreen.innerHTML = `
+    <div style="padding:8px 0">
+      <div class="flashcard-counter">${fcIndex+1} / ${total} — tıklayarak çevir</div>
+      <div class="flashcard-wrap" id="fcWrap">
+        <div class="flashcard" id="fc">
+          <div class="flashcard-front">
+            <div class="flashcard-hint">KONU</div>
+            <h2>${escapeHtml(s.heading)}</h2>
+          </div>
+          <div class="flashcard-back">
+            <div class="flashcard-hint" style="color:rgba(110,231,255,.4)">ÖZET</div>
+            <ul>${s.bullets.map(b=>`<li>${escapeHtml(b)}</li>`).join('')}</ul>
+          </div>
+        </div>
+      </div>
+      <div class="flashcard-nav">
+        <button class="btn" id="fcPrev" ${fcIndex===0?'disabled':''}>← Önceki</button>
+        <button class="btn" id="fcBack" onclick="currentSlide=0;renderSlide()">📖 Slaytlar</button>
+        <button class="btn primary" id="fcNext">${fcIndex===total-1?'✓ Bitti':'Sonraki →'}</button>
+      </div>
+    </div>
+  `;
+
+  // Kart çevirme
+  document.getElementById('fcWrap').onclick = () => {
+    document.getElementById('fc').classList.toggle('flipped');
+  };
+  document.getElementById('fcPrev').onclick = () => { fcIndex--; showFlashcard(); };
+  document.getElementById('fcNext').onclick = () => {
+    if(fcIndex < total-1){ fcIndex++; showFlashcard(); }
+    else { currentSlide=0; renderSlide(); }
+  };
+}
+
+// ===== ZORLUK SEVİYESİ =====
+let difficulty = 'medium';
 
 function renderQuiz(){
   topTitle.textContent = t('quizTitle', deck.title);
-  let html = '';
+
+  // Zorluk seçim ekranı
+  deckScreen.innerHTML = `
+    <div class="slide-card" style="text-align:center">
+      <div style="font-family:'Space Mono',monospace;font-size:.75rem;color:var(--accent2);letter-spacing:.08em;margin-bottom:12px">📊 QUIZ ZORLUK SEVİYESİ</div>
+      <h2 style="font-size:1.1rem;margin-bottom:20px">${escapeHtml(deck.title)}</h2>
+      <div class="difficulty-select">
+        <button class="diff-btn ${difficulty==='easy'?'active-easy':''}" id="dEasy">😊 Kolay</button>
+        <button class="diff-btn ${difficulty==='medium'?'active-medium':''}" id="dMedium">🎯 Orta</button>
+        <button class="diff-btn ${difficulty==='hard'?'active-hard':''}" id="dHard">🔥 Zor</button>
+      </div>
+      <div style="font-size:.78rem;color:rgba(180,160,255,.6);margin-bottom:24px;line-height:1.6" id="diffDesc">
+        ${getDiffDesc()}
+      </div>
+      <button class="btn primary" id="startQuizBtn" style="width:100%;padding:14px">
+        Sınava Başla →
+      </button>
+    </div>
+  `;
+
+  document.getElementById('dEasy').onclick = () => { difficulty='easy'; renderQuiz(); };
+  document.getElementById('dMedium').onclick = () => { difficulty='medium'; renderQuiz(); };
+  document.getElementById('dHard').onclick = () => { difficulty='hard'; renderQuiz(); };
+  document.getElementById('startQuizBtn').onclick = () => startQuizWithDifficulty();
+  markActiveTab(tabsEl.lastChild);
+  setTimeout(positionSolarSystem, 50);
+}
+
+function getDiffDesc(){
+  if(difficulty==='easy') return '4 seçenek · Soru ipuçları var · Süre sınırı yok';
+  if(difficulty==='medium') return '4 seçenek · İpucu yok · Standart sorular';
+  return '4 seçenek · Daha spesifik sorular · Yanıltıcı şıklar';
+}
+
+function startQuizWithDifficulty(){
+  const diffLabel = difficulty==='easy'?'Kolay':difficulty==='medium'?'Orta':'Zor';
+  let html = `<div style="font-family:'Space Mono',monospace;font-size:.65rem;color:rgba(180,160,255,.4);text-align:right;margin-bottom:8px;letter-spacing:.06em">🎯 ${diffLabel} seviye</div>`;
   deck.quiz.forEach((q,qi) => {
+    // Zor modda soruları biraz farklı göster
+    const questionText = difficulty==='hard'
+      ? q.question.replace(/\?$/,'?').replace(/nedir/gi,'tam olarak nedir')
+      : q.question;
     html += `<div class="quiz-q" style="animation-delay:${qi*0.06}s" data-qi="${qi}">
-      <h3>${qi+1}. ${escapeHtml(q.question)}</h3>
+      <h3>${qi+1}. ${escapeHtml(questionText)}</h3>
+      ${difficulty==='easy' ? `<div style="font-size:.7rem;color:rgba(180,160,255,.45);margin-bottom:8px;font-style:italic">💡 İpucu: Doğru cevap "${escapeHtml(q.options[q.answerIndex].substring(0,20))}..." ile başlıyor</div>` : ''}
       ${q.options.map((opt,oi)=>`<button class="quiz-opt" data-oi="${oi}">${escapeHtml(opt)}</button>`).join('')}
     </div>`;
   });
   html += `<div id="quizResultSlot"></div>`;
   deckScreen.innerHTML = html;
-  setTimeout(positionSolarSystem, 50); // güneşi köşeye taşı
+  setTimeout(positionSolarSystem, 50);
   deckScreen.querySelectorAll('.quiz-q').forEach(qEl => {
     const qi = +qEl.dataset.qi;
     const correct = deck.quiz[qi].answerIndex;
-
-    // restore a previously selected answer (e.g. after a language switch)
     if(quizAnswers[qi] !== undefined){
       qEl.querySelectorAll('.quiz-opt').forEach((b,i) => {
         b.disabled = true;
@@ -3757,35 +3912,22 @@ function renderQuiz(){
         else if(i===quizAnswers[qi]) b.classList.add('wrong');
       });
     }
-
-    qEl.querySelectorAll('.quiz-opt').forEach(btn => {
-      btn.onclick = () => {
-        const oi = +btn.dataset.oi;
-        const isCorrect = oi === correct;
-        qEl.querySelectorAll('.quiz-opt').forEach((b,i) => {
-          b.disabled = true;
-          if(i===correct) b.classList.add('correct');
-          else if(i===oi) b.classList.add('wrong');
-        });
+    qEl.querySelectorAll('.quiz-opt').forEach(b => {
+      b.onclick = () => {
+        if(quizAnswers[qi]!==undefined) return;
+        const oi = +b.dataset.oi;
         quizAnswers[qi] = oi;
-
-        // Güneş tepkisi
-        if(isCorrect){
-           // sevinç
-        } else {
-           // yanlış
-        }
-
+        qEl.querySelectorAll('.quiz-opt').forEach((btn,i)=>{
+          btn.disabled=true;
+          if(i===correct) btn.classList.add('correct');
+          else if(i===oi) btn.classList.add('wrong');
+        });
         checkQuizCompletion();
       };
     });
   });
-
-  // if every question was already answered (e.g. returning to the quiz tab), show the result immediately
-  if(Object.keys(quizAnswers).length === deck.quiz.length && deck.quiz.length > 0){
-    showQuizResult();
-  }
 }
+
 
 function checkQuizCompletion(){
   if(Object.keys(quizAnswers).length === deck.quiz.length){
