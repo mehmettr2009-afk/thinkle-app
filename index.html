@@ -3299,6 +3299,14 @@ setInterval(spawnAsteroid, ASTEROID_INTERVAL);
 // API key secret. Replace this with your deployed proxy's URL.
 const PROXY_URL = "https://thinkle-proxy-518x.onrender.com/api/messages";
 
+// Request imzalama — her istek için zaman bazlı imza üret
+function getRequestSignature(){
+  const hour = Math.floor(Date.now() / 3600000); // Her saat değişir
+  const secret = 'thinkle-' + hour + '-space';
+  // Basit hash — btoa ile encode
+  return btoa(secret + '-' + (hour % 7)).replace(/=/g,'');
+}
+
 // Sayfa yüklenince proxy'yi uyandır
 fetch("https://thinkle-proxy-518x.onrender.com/ping").catch(()=>{});
 // 14 dakikada bir tekrar uyandır
@@ -3737,6 +3745,7 @@ Requirements:
           expectJson: true,
           isDeck: true,
           uid: window.currentUser?.uid || '',
+          sig: getRequestSignature(),
           messages: [{ role: "user", content: "Source text:\n\n" + trimmed.slice(0, 5000) + "\n\nReturn complete valid JSON with ALL 10 quiz questions." }]
         })
       });
@@ -4397,6 +4406,7 @@ kendini imha edecek.</span></div>`;
           model: "google/gemini-2.5-flash",
           max_tokens: 1200,
           uid: window.currentUser?.uid || '',
+          sig: getRequestSignature(),
           system: `You are Thinkle, a helpful AI assistant.
 
 ABSOLUTE RULE — LANGUAGE:
