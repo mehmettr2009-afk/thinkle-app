@@ -2138,6 +2138,17 @@
           <!-- Accordion bölümler -->
           <div class="footer-accordions">
 
+            <div class="footer-acc">
+              <button class="footer-acc-btn">
+                <span>⭐ <span class="tr-text">Premium Planlar — Yakında</span><span class="en-text">Premium Plans — Coming Soon</span></span>
+                <span class="acc-arrow">▾</span>
+              </button>
+              <div class="footer-acc-body">
+                <p class="tr-text">Thinkle yakında premium abonelik planları sunacak. Daha fazla dosya yükleme hakkı, sınırsız AI chat ve özel özelliklerle öğrenme deneyimini bir üst seviyeye taşı. Planlar ve fiyatlandırma hakkında bildirim almak için <a href="mailto:thinklespace@gmail.com" style="color:rgba(110,231,255,.8);text-decoration:none">thinklespace@gmail.com</a> adresine "Premium" yazarak mail atabilirsin.</p>
+                <p class="en-text">Thinkle will soon offer premium subscription plans. Take your learning experience to the next level with more file uploads, unlimited AI chat and exclusive features. To be notified about plans and pricing, send an email to <a href="mailto:thinklespace@gmail.com" style="color:rgba(110,231,255,.8);text-decoration:none">thinklespace@gmail.com</a> with the subject "Premium".</p>
+              </div>
+            </div>
+
             <div class="footer-acc" id="acc-how">
               <button class="footer-acc-btn">
                 <span>🚀 <span class="tr-text">Nasıl Çalışır?</span><span class="en-text">How It Works</span></span>
@@ -2710,7 +2721,6 @@ function showFounderWelcome(){
     btn.textContent = '✓ Kaydedildi';
     setTimeout(()=>{ btn.textContent = 'Kaydet'; }, 2000);
     // Kozmik duyuru efektini göster
-    if(text) showCosmicAnnouncement(text);
   };
 
   document.getElementById('founderMaintenance').onchange = async (e) => {
@@ -2727,100 +2737,35 @@ function showFounderWelcome(){
 
 
 // Kozmik duyuru efekti
-function showCosmicAnnouncement(text){
-  const existing = document.getElementById('cosmicAnn');
-  if(existing) existing.remove();
-
-  const el = document.createElement('div');
-  el.id = 'cosmicAnn';
-  el.style.cssText = `
-    position:fixed; inset:0; z-index:2; pointer-events:none;
-    display:flex; align-items:center; justify-content:center;
-    overflow:hidden;
-  `;
-
-  // Parçacık yıldızlar
-  let particles = '';
-  for(let i=0;i<30;i++){
-    const x=Math.random()*100, y=Math.random()*100;
-    const s=Math.random()*3+1, dur=Math.random()*3+2, delay=Math.random()*2;
-    const colors=['#b46bff','#6ee7ff','#ff6ec7','#ffd700','#fff'];
-    const c=colors[Math.floor(Math.random()*colors.length)];
-    particles+=`<div style="position:absolute;left:${x}%;top:${y}%;width:${s}px;height:${s}px;border-radius:50%;background:${c};box-shadow:0 0 ${s*3}px ${c};animation:ca-star ${dur}s ${delay}s ease-in-out infinite alternate;opacity:0"></div>`;
-  }
-
-  el.innerHTML = `
-    ${particles}
-    <!-- Arka plan parıltısı -->
-    <div style="position:absolute;inset:0;background:radial-gradient(ellipse 80% 50% at 50% 50%,rgba(180,107,255,.15) 0%,transparent 70%);animation:ca-glow 4s ease-in-out infinite alternate"></div>
-
-    <!-- Kozmik metin -->
-    <div style="
-      position:relative; text-align:center; padding:0 40px; max-width:80vw;
-      animation:ca-text-in 1s cubic-bezier(.16,1,.3,1) both;
-    ">
-      <!-- Üst çizgi -->
-      <div style="display:flex;align-items:center;gap:16px;justify-content:center;margin-bottom:20px;opacity:0;animation:ca-line-in .8s .3s ease both">
-        <div style="height:1px;width:80px;background:linear-gradient(90deg,transparent,#b46bff)"></div>
-        <div style="font-family:'Space Mono',monospace;font-size:.65rem;letter-spacing:.2em;color:rgba(180,107,255,.7)">📡 MESAJ GELİYOR</div>
-        <div style="height:1px;width:80px;background:linear-gradient(90deg,#b46bff,transparent)"></div>
-      </div>
-
-      <!-- Ana metin -->
-      <div style="
-        font-family:'Orbitron',sans-serif;
-        font-size:clamp(1.2rem,4vw,2.8rem);
-        font-weight:900; line-height:1.3;
-        background:linear-gradient(135deg,#fff8e0,#b46bff,#6ee7ff,#ff6ec7,#ffd700);
-        background-size:300%;
-        -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
-        animation:ca-shimmer 3s linear infinite;
-        text-shadow:none;
-        filter:drop-shadow(0 0 30px rgba(180,107,255,.5));
-      ">${text}</div>
-
-      <!-- Alt çizgi -->
-      <div style="display:flex;align-items:center;gap:16px;justify-content:center;margin-top:20px;opacity:0;animation:ca-line-in .8s .5s ease both">
-        <div style="height:1px;width:60px;background:linear-gradient(90deg,transparent,#6ee7ff)"></div>
-        <div style="font-family:'Space Mono',monospace;font-size:.6rem;letter-spacing:.15em;color:rgba(110,231,255,.5)">✦ THINKLE ✦</div>
-        <div style="height:1px;width:60px;background:linear-gradient(90deg,#6ee7ff,transparent)"></div>
-      </div>
-    </div>
-  `;
-
-  const style = document.createElement('style');
-  style.textContent = `
-    @keyframes ca-star{ from{opacity:0;transform:scale(.5)} to{opacity:.9;transform:scale(1.2)} }
-    @keyframes ca-glow{ from{opacity:.5} to{opacity:1} }
-    @keyframes ca-shimmer{ from{background-position:0%} to{background-position:300%} }
-    @keyframes ca-text-in{ from{opacity:0;transform:scale(.8) translateY(20px)} to{opacity:1;transform:scale(1) translateY(0)} }
-    @keyframes ca-line-in{ from{opacity:0;transform:scaleX(0)} to{opacity:1;transform:scaleX(1)} }
-    @keyframes ca-fade-out{ from{opacity:1} to{opacity:0} }
-  `;
-  document.head.appendChild(style);
-  document.body.appendChild(el);
-
-  // 6 saniye sonra kaybol
-  setTimeout(()=>{
-    el.style.animation = 'ca-fade-out 1.5s ease forwards';
-    setTimeout(()=>{ el.remove(); style.remove(); }, 1500);
-  }, 6000);
-}
 
 // Duyuru banner'ı — Firestore'dan gelince kozmik göster
 document.addEventListener('announcementReady', (e) => {
-  showCosmicAnnouncement(e.detail);
-  // 8 saniye sonra normal banner
   setTimeout(()=>{
     const banner = document.createElement('div');
     banner.id = 'annBanner';
-    banner.style.cssText = 'position:fixed;top:0;left:0;right:0;z-index:9999;background:linear-gradient(90deg,#b46bff,#6ee7ff);color:#070a18;font-family:Space Grotesk,sans-serif;font-size:.82rem;font-weight:600;padding:10px 16px;text-align:center;transition:opacity .8s ease;';
+    banner.style.cssText = `
+      position:fixed; bottom:32px; left:50%; transform:translateX(-50%) translateY(20px);
+      z-index:9999; pointer-events:none;
+      background:rgba(14,10,36,.95); backdrop-filter:blur(12px);
+      border:1px solid rgba(180,107,255,.35);
+      border-radius:40px; padding:12px 24px;
+      font-family:'Space Grotesk',sans-serif; font-size:.85rem; font-weight:600;
+      color:#eaf0ff; white-space:nowrap;
+      box-shadow:0 8px 32px rgba(0,0,0,.4), 0 0 0 1px rgba(110,231,255,.1) inset;
+      opacity:0; transition:opacity .4s ease, transform .4s cubic-bezier(.16,1,.3,1);
+    `;
     banner.textContent = '📢 ' + e.detail;
     document.body.appendChild(banner);
+    // Slide up animasyonu
+    requestAnimationFrame(()=>requestAnimationFrame(()=>{
+      banner.style.opacity = '1';
+      banner.style.transform = 'translateX(-50%) translateY(0)';
+    }));
     // 5 saniye sonra kaybol
     setTimeout(()=>{
       banner.style.opacity = '0';
-      setTimeout(()=> banner.remove(), 800);
+      banner.style.transform = 'translateX(-50%) translateY(20px)';
+      setTimeout(()=> banner.remove(), 500);
     }, 5000);
   }, 8000);
 });
@@ -3019,27 +2964,119 @@ setTimeout(positionSolarSystem, 500);
 
 
 
-// Göz takibi
+// Göz takibi — gezegenleri izle
 function updateSolEyes(){
   const rect = solEl.getBoundingClientRect();
   const cx = rect.left + rect.width/2, cy = rect.top + rect.height/2;
+
+  // Önce gezegenlere bak, yoksa asteroide
   let closest = null, minDist = 9999;
-  document.querySelectorAll('.space-ship.transiting, .asteroid').forEach(el => {
+  document.querySelectorAll('.planet, .space-ship.transiting, .asteroid').forEach(el => {
     const r = el.getBoundingClientRect();
     const ex = r.left+r.width/2, ey = r.top+r.height/2;
     const d = Math.sqrt((ex-cx)**2+(ey-cy)**2);
-    if(d < minDist){ minDist=d; closest={x:ex,y:ey}; }
+    if(d < minDist){ minDist=d; closest={x:ex,y:ey,dist:d}; }
   });
+
   const tx = closest?closest.x:cx, ty = closest?closest.y:cy;
   const angle = Math.atan2(ty-cy, tx-cx);
-  const maxOff = 3, dist = Math.min(minDist/80,1);
+  const maxOff = 3, dist = Math.min((closest?.dist||999)/120,1);
   const ox = Math.cos(angle)*maxOff*dist, oy = Math.sin(angle)*maxOff*dist;
   ['pupilL','pupilR'].forEach(id=>{
     const p = document.getElementById(id);
     if(p) p.style.transform=`translate(calc(-50% + ${ox.toFixed(1)}px), calc(-50% + ${oy.toFixed(1)}px))`;
   });
 }
-setInterval(updateSolEyes, IS_MOBILE ? 1000 : 200);
+setInterval(updateSolEyes, IS_MOBILE ? 1000 : 180);
+
+// ===== GÜNEŞ KİŞİLİĞİ — rastgele duygular =====
+const solMouth  = () => solEl.querySelector('.sol-mouth');
+const solBrowL  = () => solEl.querySelector('.sol-brow.left');
+const solBrowR  = () => solEl.querySelector('.sol-brow.right');
+
+function solSetMood(mood){
+  const m = solMouth(), bl = solBrowL(), br = solBrowR();
+  if(!m||!bl||!br) return;
+
+  // Reset
+  m.style.cssText  = '';
+  bl.style.cssText = '';
+  br.style.cssText = '';
+  solEl.style.filter = '';
+
+  if(mood === 'happy'){
+    // Geniş gülümseme
+    m.style.cssText  = 'position:absolute;bottom:16%;left:50%;transform:translateX(-50%);width:44%;height:22%;border-radius:0 0 40px 40px;border:2.5px solid #8b1a00;border-top:none;background:rgba(180,60,0,.2)';
+    bl.style.cssText = 'position:absolute;width:22%;height:9%;background:#cc4400;border-radius:5px;top:12%;left:16%;transform:rotate(10deg)';
+    br.style.cssText = 'position:absolute;width:22%;height:9%;background:#cc4400;border-radius:5px;top:12%;left:58%;transform:rotate(-10deg)';
+    solEl.style.filter = 'drop-shadow(0 0 14px rgba(255,220,0,.6))';
+  } else if(mood === 'surprised'){
+    // Ağzı açık
+    m.style.cssText  = 'position:absolute;bottom:18%;left:50%;transform:translateX(-50%);width:28%;height:24%;border-radius:50%;border:2.5px solid #8b1a00;background:rgba(140,40,0,.25)';
+    bl.style.cssText = 'position:absolute;width:22%;height:8%;background:#cc4400;border-radius:5px;top:8%;left:16%;transform:rotate(-15deg)';
+    br.style.cssText = 'position:absolute;width:22%;height:8%;background:#cc4400;border-radius:5px;top:8%;left:58%;transform:rotate(15deg)';
+    solEl.style.filter = 'drop-shadow(0 0 18px rgba(255,255,100,.7))';
+  } else if(mood === 'bored'){
+    // Sıkılmış — düz ağız, yarı kapalı gözler
+    m.style.cssText  = 'position:absolute;bottom:20%;left:50%;transform:translateX(-50%);width:36%;height:3px;background:#8b1a00;border-radius:3px';
+    bl.style.cssText = 'position:absolute;width:22%;height:9%;background:#cc4400;border-radius:5px;top:14%;left:16%;transform:rotate(-3deg)';
+    br.style.cssText = 'position:absolute;width:22%;height:9%;background:#cc4400;border-radius:5px;top:14%;left:58%;transform:rotate(3deg)';
+    // Gözleri yarı kapat
+    const eyeL = solEl.querySelector('.sol-eye.left');
+    const eyeR = solEl.querySelector('.sol-eye.right');
+    if(eyeL) eyeL.style.clipPath = 'inset(50% 0 0 0)';
+    if(eyeR) eyeR.style.clipPath = 'inset(50% 0 0 0)';
+    setTimeout(()=>{
+      if(eyeL) eyeL.style.clipPath = '';
+      if(eyeR) eyeR.style.clipPath = '';
+    }, 3000);
+  } else if(mood === 'laughing'){
+    // Gülen — sıkışmış gözler
+    m.style.cssText  = 'position:absolute;bottom:15%;left:50%;transform:translateX(-50%);width:50%;height:26%;border-radius:0 0 50px 50px;border:2.5px solid #8b1a00;border-top:none;background:rgba(180,60,0,.25)';
+    bl.style.cssText = 'position:absolute;width:22%;height:9%;background:#cc4400;border-radius:5px;top:11%;left:16%;transform:rotate(12deg)';
+    br.style.cssText = 'position:absolute;width:22%;height:9%;background:#cc4400;border-radius:5px;top:11%;left:58%;transform:rotate(-12deg)';
+    solEl.style.filter = 'drop-shadow(0 0 20px rgba(255,200,0,.8))';
+    // Salla
+    solEl.style.animation = 'sol-laugh .3s ease-in-out 4';
+    setTimeout(()=>{ solEl.style.animation=''; }, 1200);
+  }
+}
+
+function solResetMood(){
+  const m = solMouth(), bl = solBrowL(), br = solBrowR();
+  if(m) m.style.cssText = '';
+  if(bl) bl.style.cssText = '';
+  if(br) br.style.cssText = '';
+  solEl.style.filter = '';
+  solEl.style.animation = '';
+}
+
+// Kahkaha CSS keyframe
+const laughStyle = document.createElement('style');
+laughStyle.textContent = '@keyframes sol-laugh{0%,100%{transform:translate(-50%,-50%) rotate(0deg)}25%{transform:translate(-50%,-50%) rotate(-5deg)}75%{transform:translate(-50%,-50%) rotate(5deg)}}';
+document.head.appendChild(laughStyle);
+
+// Rastgele duygu sistemi
+const MOODS = ['happy','surprised','bored','laughing','laughing','happy','happy'];
+let moodTimeout = null;
+let lastMood = null;
+
+function triggerRandomMood(){
+  if(solEl.style.visibility === 'hidden') return;
+  const available = MOODS.filter(m => m !== lastMood);
+  const mood = available[Math.floor(Math.random()*available.length)];
+  lastMood = mood;
+  solSetMood(mood);
+  moodTimeout = setTimeout(()=>{
+    solResetMood();
+    // Bir sonraki duygu için rastgele süre bekle
+    const next = (IS_MOBILE ? 15000 : 8000) + Math.random() * 12000;
+    moodTimeout = setTimeout(triggerRandomMood, next);
+  }, mood === 'bored' ? 3500 : 2500);
+}
+
+// Başlat — 5 saniye sonra ilk duygu
+setTimeout(triggerRandomMood, 5000);
 
 // Öfke sistemi — 3 dosyadan sonra sinirlensin
 let solAngerLevel = 0;
