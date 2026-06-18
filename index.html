@@ -3273,8 +3273,12 @@ async function generateDeck(sourceText){
   }
 
   const langInstruction = currentLang === 'tr'
-    ? 'CRITICAL LANGUAGE REQUIREMENT: Write ALL output content (title, every heading, every bullet, every explanation, every quiz question, and every quiz option) ENTIRELY IN TURKISH, regardless of the language of the source text. Do not mix languages. Translate/adapt the source material into natural, fluent Turkish.'
-    : 'CRITICAL LANGUAGE REQUIREMENT: Write ALL output content (title, every heading, every bullet, every explanation, every quiz question, and every quiz option) ENTIRELY IN ENGLISH, regardless of the language of the source text. Do not mix languages. Translate/adapt the source material into natural, fluent English.';
+    ? `ZORUNLU: Tüm çıktıyı TÜRKÇE yaz. Türkçe özel karakterleri DOĞRU kullan:
+ş(s değil), ğ(g değil), ü(u değil), ö(o değil), ı(i değil), İ, Ç, Ğ, Ü, Ö, Ş, Ç
+Doğru: "öğrenci, şekil, güzel, çalışma, ağırlık, bilgi, işlem"
+Yanlış: "ogrenci, sekil, guzel, calisma, agirlik"
+Kaynak metin başka dilde olsa bile Türkçeye çevir.`
+    : 'Write ALL content in English. Translate source material if needed.';
 
   // Slayt sayısı — dosya boyutuna göre
   let slideRange = '5-8';
@@ -3593,16 +3597,18 @@ async function showRemedialSlides(wrongTopics){
     </div>`;
 
   const langInstruction = currentLang === 'tr'
-    ? `ZORUNLU: Tüm içeriği TÜRKÇE yaz. Türkçe karakter kuralları kesinlikle uygulanmalı:
-- "ş" yerine asla "s" veya başka karakter kullanma
-- "ğ" yerine asla "g" kullanma  
-- "ü" yerine asla "u" kullanma
-- "ö" yerine asla "o" kullanma
-- "ı" yerine asla "i" kullanma
-- "İ" büyük harf i ile karıştırma
-Doğru: "öğrenci, şekil, güzel, ağırlık, çalışma"
-Yanlış: "ogrenci, sekil, guzel, agirlık, calisma"`
-    : 'Write ALL content in English.';
+    ? `TÜM İÇERİĞİ TÜRKÇE YAZ. ZORUNLU KURALLAR:
+1. Türkçe karakterleri ASLA hatalı yazma:
+   - ş (sh değil, s değil) → "şekil, işlem, başlık"
+   - ğ (gh değil, g değil) → "öğrenci, ağırlık, bilgi"
+   - ü (u değil) → "ünite, süre, düşünce"
+   - ö (o değil) → "önem, örnek, görev"
+   - ı (i değil) → "ısı, kısım, sınıf"
+   - İ (I değil büyük harf) → "İnsan, İşlem"
+   - ç (c değil) → "çalışma, içerik, seçim"
+2. Kesinlikle Türkçe karakterler kullan, Latin karşılıklarına çevirme.
+3. Akademik ve anlaşılır Türkçe kullan.`
+    : 'Write ALL content in English. Use clear, academic language.';
 
   const topicsText = wrongTopics.map((t,i) =>
     `${i+1}. Q: "${t.question}" → Correct: "${t.correct}"`
@@ -3716,13 +3722,32 @@ function triggerSwallowAndRetry(){
 }
 
 function fixText(str){
-  if(!str) return str;
-  // Yaygın encoding sorunlarını düzelt
+  if(!str || typeof str !== 'string') return str;
   return str
-    .replace(/ý/g,'ı').replace(/ð/g,'ğ').replace(/þ/g,'ş')
-    .replace(/Ý/g,'İ').replace(/Ð/g,'Ğ').replace(/Þ/g,'Ş')
+    // Latin-1 / Windows-1252 → Türkçe
+    .replace(/ý/g,'ı').replace(/Ý/g,'İ')
+    .replace(/ð/g,'ğ').replace(/Ð/g,'Ğ')
+    .replace(/þ/g,'ş').replace(/Þ/g,'Ş')
     .replace(/\u00fd/g,'ı').replace(/\u00f0/g,'ğ').replace(/\u00fe/g,'ş')
-    .replace(/â€™/g,"'").replace(/â€œ/g,'"').replace(/â€/g,'"');
+    .replace(/\u00dd/g,'İ').replace(/\u00d0/g,'Ğ').replace(/\u00de/g,'Ş')
+    // UTF-8 bozulması
+    .replace(/Ä±/g,'ı').replace(/Ä°/g,'İ')
+    .replace(/ÄŸ/g,'ğ').replace(/Ä\u009e/g,'Ğ')
+    .replace(/Å\u009f/g,'ş').replace(/Å\u009e/g,'Ş')
+    .replace(/Ã¼/g,'ü').replace(/Ã\u009c/g,'Ü')
+    .replace(/Ã¶/g,'ö').replace(/Ã\u0096/g,'Ö')
+    .replace(/Ã§/g,'ç').replace(/Ã\u0087/g,'Ç')
+    // Yaygın hatalı yazımlar (AI bazen bunları üretiyor)
+    .replace(/\bğ\b/g,'ğ') // zaten doğru ama normalize et
+    // Tırnak ve apostrof bozulması
+    .replace(/â€™/g,"'").replace(/â€˜/g,"'")
+    .replace(/â€œ/g,'"').replace(/â€/g,'"')
+    .replace(/\u2018/g,"'").replace(/\u2019/g,"'")
+    .replace(/\u201c/g,'"').replace(/\u201d/g,'"')
+    // Tire bozulması
+    .replace(/â€"/g,'—').replace(/â€"/g,'–')
+    // Null karakterler
+    .replace(/\u0000/g,'').replace(/\ufffd/g,'');
 }
 
 function escapeHtml(str){
@@ -3866,10 +3891,6 @@ kendini imha edecek.</span></div>`;
 
   const thinkingEl = addAiMessage('ai', t('aiThinking'), true);
 
-  const langInstruction = currentLang === 'tr'
-    ? 'Respond in natural, fluent TURKISH.'
-    : 'Respond in natural, fluent ENGLISH.';
-
   try{
     let aiResponse;
     try{
@@ -3882,11 +3903,12 @@ kendini imha edecek.</span></div>`;
           system: `You are Thinkle, a helpful and friendly AI assistant. You can help with anything: answering questions, explaining concepts, solving problems, writing, coding, math, science, history, or general conversation. Be natural, clear and concise. If asked who you are, say you are Thinkle AI. Do not mention any underlying model names.
 
 CRITICAL LANGUAGE RULES:
-- If the user writes in Turkish, respond ONLY in perfect Turkish with correct spelling
-- Turkish characters must be correct: ş, ğ, ü, ö, ı, İ, Ç, Ğ, Ü, Ö, Ş
-- Never use: ý instead of ı, ð instead of ğ, þ instead of ş
-- If the user writes in English, respond in English
-- Match the user's language always`,
+- Detect the language of the user's message and respond in the SAME language
+- If Turkish: use PERFECT Turkish with all special characters: ş, ğ, ü, ö, ı, İ, Ç, Ğ, Ü, Ö, Ş, ç
+- NEVER replace Turkish chars with Latin: ş≠s, ğ≠g, ü≠u, ö≠o, ı≠i
+- Correct: "öğrenci, şekil, güzel, çalışma, ağırlık"
+- Wrong: "ogrenci, sekil, guzel, calisma, agirlik"
+- If English: respond in English`,
           messages: [ ...aiHistory, { role: "user", content: question } ]
         })
       });
