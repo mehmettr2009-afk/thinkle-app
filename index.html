@@ -141,14 +141,18 @@
     }
   }, ()=>{});
 
-  // Gerçek zamanlı bakım modu — kurucu etkilenmez
+  // Gerçek zamanlı bakım modu — kurucu ASLA etkilenmez
+  const FOUNDER = 'l8Tih1awnjP7fRXnUsFVVAuXEZu2';
   onSnapshot(doc(db, 'config', 'maintenance'), (snap) => {
-    if(snap.exists() && snap.data().active){
+    if(!snap.exists() || !snap.data().active) return;
+    // Auth state'i bekle
+    const checkAndApply = () => {
       const uid = window.currentUser?.uid || '';
-      if(uid !== 'l8Tih1awnjP7fRXnUsFVVAuXEZu2'){
-        window.dispatchEvent(new CustomEvent('maintenanceMode'));
-      }
-    }
+      if(uid === FOUNDER) return; // kurucu → hiçbir şey yapma
+      window.dispatchEvent(new CustomEvent('maintenanceMode'));
+    };
+    if(window.currentUser !== undefined) checkAndApply();
+    else setTimeout(checkAndApply, 2000); // auth yüklenene kadar bekle
   }, ()=>{});
 </script>
 <style>
@@ -1876,9 +1880,13 @@
 
   <div class="ai-panel" id="aiPanel">
     <div class="ai-panel-header">
-      <div>
+      <div style="flex:1">
         <h3 data-i18n="aiPanelTitle">Sor & Öğren</h3>
         <span class="util" data-i18n="aiPanelTagline">dosyasız da sorabilirsin</span>
+      </div>
+      <div id="chatLimitBadge" style="font-family:'Space Mono',monospace;font-size:.6rem;color:rgba(110,231,255,.7);text-align:right;line-height:1.5;display:none">
+        <div id="chatLimitText">— / 30</div>
+        <div style="color:rgba(180,160,255,.5)">mesaj</div>
       </div>
     </div>
     <div class="ai-chat" id="aiChat">
@@ -1985,6 +1993,9 @@
         </div>
 
         <button class="btn primary go-btn" id="goBtn" data-i18n="goBtn">Çalışma kağıdı oluştur →</button>
+        <div id="deckLimitBadge" style="display:none;text-align:center;margin-top:8px;font-family:'Space Mono',monospace;font-size:.65rem;color:rgba(110,231,255,.6)">
+          <span id="deckLimitText">— / 10</span> <span style="color:rgba(180,160,255,.5)">dosya hakkı kaldı</span>
+        </div>
 
         <div class="error hidden" id="uploadError"></div>
       </div>
@@ -2659,7 +2670,7 @@ function showCosmicAnnouncement(text){
   const el = document.createElement('div');
   el.id = 'cosmicAnn';
   el.style.cssText = `
-    position:fixed; inset:0; z-index:8500; pointer-events:none;
+    position:fixed; inset:0; z-index:2; pointer-events:none;
     display:flex; align-items:center; justify-content:center;
     overflow:hidden;
   `;
@@ -3416,6 +3427,7 @@ async function handleFile(file){
     }
     loadingScreen.classList.add('hidden'); stopLoadingAnimation(); solEl.style.visibility='';
     if(window.fbLogUsage) window.fbLogUsage('decks');
+    updateLimitBadges();
     renderDeck();
   }catch(err){
     loadingScreen.classList.add('hidden'); stopLoadingAnimation(); solEl.style.visibility='';
@@ -4220,6 +4232,7 @@ Never mention underlying model names.`,
     aiHistory.push({ role: 'user', content: question });
     aiHistory.push({ role: 'assistant', content: answer });
     if(aiHistory.length > 16) aiHistory = aiHistory.slice(-16);
+    updateLimitBadges();
   }catch(err){
     thinkingEl.classList.remove('thinking');
     thinkingEl.textContent = t('aiError');
@@ -4399,6 +4412,32 @@ function updateLangClass(){
   document.body.classList.toggle('lang-en', currentLang==='en');
 }
 updateLangClass();
+
+// Kullanım limitlerini göster
+async function updateLimitBadges(){
+  try{
+    const r = await fetch('https://thinkle-proxy-518x.onrender.com/api/limit');
+    if(!r.ok) return;
+    const data = await r.json();
+    const deckBadge = document.getElementById('deckLimitBadge');
+    const deckText  = document.getElementById('deckLimitText');
+    if(deckBadge && deckText){
+      const left = Math.max(0, data.decks.limit - data.decks.used);
+      deckText.textContent = left + ' / ' + data.decks.limit;
+      deckBadge.style.display = 'block';
+      deckText.style.color = left <= 2 ? '#ff6ec7' : 'rgba(110,231,255,.7)';
+    }
+    const chatBadge = document.getElementById('chatLimitBadge');
+    const chatText  = document.getElementById('chatLimitText');
+    if(chatBadge && chatText){
+      const left = Math.max(0, data.chats.limit - data.chats.used);
+      chatText.textContent = left + ' / ' + data.chats.limit;
+      chatBadge.style.display = 'flex';
+      chatText.style.color = left <= 5 ? '#ff6ec7' : 'rgba(110,231,255,.7)';
+    }
+  }catch(e){}
+}
+setTimeout(updateLimitBadges, 1500);
 
 const siteFooter = document.getElementById('siteFooter');
 let footerOpened = false;
