@@ -1413,32 +1413,26 @@
   @keyframes intro-mouth-smile{
     to{ width:46%; height:22%; border-radius:0 0 50px 50px; }
   }
-  /* ============ MOBİL PERFORMANS — tüm ağır animasyonlar kapalı ============ */
+  /* ============ MOBİL PERFORMANS OPTİMİZASYONU ============ */
   @media (max-width: 860px){
-    /* Tüm CSS animasyonlarını yavaşlat veya durdur */
-    .orbiter, .planet, .space-ship, .asteroid, .lg-ring,
-    .dropzone-ring, .loading-galaxy *, .intro-ring,
-    #introRing1, #introRing2 {
-      animation-duration: 20s !important;
-    }
-    .spiral-glow, .galaxy-core, #galaxySVG animate {
-      animation: none !important;
-    }
-    /* Dropzone animasyonları kapat */
-    .dropzone::before { display: none !important; }
-    .dropzone-rings { display: none !important; }
-    /* Yıldız titreme yavaşlat */
-    .star { animation-duration: 8s !important; }
-    /* Sol animasyonları yavaşlat */
-    .sol { animation-duration: 8s !important; }
-    .sol.angry { animation: none !important; }
-    .sol.crazy { animation: none !important; }
-    /* Intro yavaşlat */
-    #introRing1, #introRing2 { animation-duration: 8s !important; }
-    /* Loading ring */
-    .lg-ring { animation-duration: 12s !important; }
-    /* Genel transform azalt */
-    * { will-change: auto !important; }
+    /* Ağır CSS animasyonlarını kapat */
+    .orbiter, .planet, .space-ship, .asteroid { display:none !important; }
+    .dropzone-ring { display:none !important; }
+    .dropzone::before { display:none !important; }
+    .bg-planet { display:none !important; }
+    .lg-planet { display:none !important; }
+
+    /* Diğer animasyonları yavaşlat */
+    .lg-ring { animation-duration:15s !important; }
+    .sol { animation-duration:8s !important; }
+    #introRing1, #introRing2 { animation-duration:10s !important; }
+
+    /* will-change kapalı — GPU yük azalt */
+    * { will-change:auto !important; }
+
+    /* Blur efektleri azalt */
+    .footer-inner { backdrop-filter:blur(8px) !important; }
+    .slide-card { backdrop-filter:none !important; }
   }
   #siteFooter{
     margin-top: 80px;
@@ -2594,7 +2588,8 @@ const IS_MOBILE = window.innerWidth <= 860;
 
 // Yıldızlar
 const starsEl = document.getElementById('stars');
-const STAR_COUNT = IS_MOBILE ? 30 : 220;
+const STAR_COUNT = IS_MOBILE ? 25 : 220;
+const activeShipCount = IS_MOBILE ? 0 : 5;
 for(let i=0;i<STAR_COUNT;i++){
   const s = document.createElement('div');
   s.className = 'star';
@@ -2663,7 +2658,7 @@ function positionSolarSystem(){
     if(heroDesc){
       const r = heroDesc.getBoundingClientRect();
       solEl.style.left = (r.left + r.width/2) + 'px';
-      solEl.style.top  = r.top + 'px';
+      solEl.style.top  = (r.top - 30) + 'px';
       solEl.style.transform = 'translate(-50%,-100%)';
       orbitContainer.style.left = solEl.style.left;
       orbitContainer.style.top  = solEl.style.top;
@@ -2977,7 +2972,7 @@ function spawnShip(svgStr, initDelay){
 }
 
 // Mobilde daha az gemi
-const activeShipCount = LOW_PERF ? 2 : 5;
+// activeShipCount yukarıda tanımlı
 const activeShipSVGs = shipSVGs.sort(()=>Math.random()-.5).slice(0,activeShipCount);
 activeShipSVGs.forEach((svg,i) => spawnShip(svg, i*4));
 // Periyodik yeni gemi — mobilde daha seyrek
@@ -3467,28 +3462,42 @@ Requirements:
       : 'Proxy URL not configured.');
   }
 
-  let response;
-  try{
-    response = await fetch(PROXY_URL, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        model: "meta-llama/llama-3.3-70b-instruct",
-        max_tokens: 6000,
-        system: systemPrompt,
-        expectJson: true,
-        messages: [{ role: "user", content: "Source text:\n\n" + trimmed.slice(0, 6000) + "\n\nIMPORTANT: Return complete valid JSON with ALL 10 quiz questions. Do not truncate." }]
-      })
-    });
-  }catch(netErr){
-    throw new Error(currentLang === 'tr'
-      ? 'Sunucuya bağlanılamadı. Hata: ' + netErr.message
-      : 'Could not reach the proxy server. Make sure it is deployed and "Live" on Render. Error: ' + netErr.message);
-  }
+  // Render uyku modundaysa önceden uyandır
+  try{ fetch(PROXY_URL.replace('/api/messages','/')); }catch(e){}
 
-  if(!response.ok){
-    const errText = await response.text();
-    throw new Error(t('apiError', response.status, errText.slice(0,200)));
+  // Retry mekanizması — 2 deneme
+  let response;
+  let lastErr;
+  for(let attempt = 0; attempt < 2; attempt++){
+    try{
+      if(attempt > 0){
+        if(typeof loadingText !== 'undefined')
+          loadingText.textContent = currentLang === 'tr' ? 'Tekrar deneniyor…' : 'Retrying…';
+        await new Promise(r => setTimeout(r, 3000));
+      }
+      response = await fetch(PROXY_URL, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          model: "meta-llama/llama-3.3-70b-instruct",
+          max_tokens: 5000,
+          system: systemPrompt,
+          expectJson: true,
+          messages: [{ role: "user", content: "Source text:\n\n" + trimmed.slice(0, 5000) + "\n\nReturn complete valid JSON with ALL 10 quiz questions." }]
+        })
+      });
+      if(response.ok) break;
+      lastErr = new Error('HTTP ' + response.status);
+    }catch(netErr){
+      lastErr = netErr;
+      if(attempt === 1) throw new Error(currentLang === 'tr'
+        ? 'Sunucuya bağlanılamadı. Render\'ın çalıştığını kontrol et.'
+        : 'Could not reach the server. Check that Render is running.');
+    }
+  }
+  if(!response || !response.ok){
+    const errText = response ? await response.text().catch(()=>'') : '';
+    throw new Error(t('apiError', response?.status || 0, errText.slice(0,120)));
   }
 
   const data = await response.json();
@@ -3988,8 +3997,15 @@ async function sendAiQuestion(){
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           model: "meta-llama/llama-3.3-70b-instruct",
-          max_tokens: 800,
-          system: `You are Thinkle, a friendly, encouraging AI tutor built into a learning app called Thinkle. Explain things clearly and simply, like a good teacher. Keep responses concise (a few short paragraphs max) unless the user asks for more depth. If the user asks who you are, what your name is, or what model/AI you're based on, simply say your name is Thinkle — do not mention Gemini, Google, Claude, Anthropic, or any underlying model/provider names. ${langInstruction}`,
+          max_tokens: 1200,
+          system: `You are Thinkle, a helpful and friendly AI assistant. You can help with anything: answering questions, explaining concepts, solving problems, writing, coding, math, science, history, or general conversation. Be natural, clear and concise. If asked who you are, say you are Thinkle AI. Do not mention any underlying model names.
+
+CRITICAL LANGUAGE RULES:
+- If the user writes in Turkish, respond ONLY in perfect Turkish with correct spelling
+- Turkish characters must be correct: ş, ğ, ü, ö, ı, İ, Ç, Ğ, Ü, Ö, Ş
+- Never use: ý instead of ı, ð instead of ğ, þ instead of ş
+- If the user writes in English, respond in English
+- Match the user's language always`,
           messages: [ ...aiHistory, { role: "user", content: question } ]
         })
       });
