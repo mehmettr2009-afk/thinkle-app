@@ -12,6 +12,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;900&family=Space+Grotesk:wght@400;500;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js"></script>
+<script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
 <script src="https://cdn.jsdelivr.net/gh/gitbrent/pptxgenjs@3.12.0/dist/pptxgen.bundle.js"></script>
 <!-- Firebase -->
 <script type="module">
@@ -2004,9 +2005,9 @@
           </div>
           <div class="dropzone-label"><strong data-i18n="dzTitle">Dosya seçmek için tıkla</strong> <span data-i18n="dzOr" style="color:rgba(180,160,255,.7);font-weight:400">veya buraya sürükle</span></div>
           <div class="dropzone-sublabel">Yapay zeka dosyanı slayta ve quize dönüştürür</div>
-          <div class="small">.pdf &nbsp;·&nbsp; .docx &nbsp;·&nbsp; .txt</div>
+          <div class="small">.pdf &nbsp;·&nbsp; .docx &nbsp;·&nbsp; .txt &nbsp;·&nbsp; .xlsx &nbsp;·&nbsp; .csv</div>
           <div class="filename" id="fileName"></div>
-          <input type="file" id="fileInput" accept=".pdf,.docx,.txt">
+          <input type="file" id="fileInput" accept=".pdf,.docx,.txt,.xlsx,.xls,.csv">
         </div>
 
         <button class="btn primary go-btn" id="goBtn" data-i18n="goBtn">Çalışma kağıdı oluştur →</button>
@@ -2127,8 +2128,8 @@
                 <span class="acc-arrow">▾</span>
               </button>
               <div class="footer-acc-body">
-                <p class="tr-text">Thinkle, büyük dil modelleri (LLM) kullanarak çalışır. Desteklenen formatlar: .pdf, .docx, .txt. Maksimum dosya boyutu 20 MB. Üretilen slaytlar ve sorular dosyanın içeriğine göre otomatik oluşturulur.</p>
-                <p class="en-text">Thinkle runs on large language models (LLMs). Supported formats: .pdf, .docx, .txt. Maximum file size 20 MB. Generated slides and questions are automatically created based on your file's content.</p>
+                <p class="tr-text">Thinkle, büyük dil modelleri (LLM) kullanarak çalışır. Desteklenen formatlar: .pdf, .docx, .txt, .xlsx, .xls, .csv. Maksimum dosya boyutu 20 MB. Üretilen slaytlar ve sorular dosyanın içeriğine göre otomatik oluşturulur.<br><br><strong style="color:rgba(180,160,255,.9)">Kullanım Limitleri:</strong> Günde maksimum 10 dosya yükleyebilirsiniz. Günde 30 AI chat mesajı hakkınız bulunmaktadır. Limitler gece yarısı sıfırlanır.</p>
+                <p class="en-text">Thinkle runs on large language models (LLMs). Supported formats: .pdf, .docx, .txt, .xlsx, .xls, .csv. Maximum file size 20 MB. Generated slides and questions are automatically created based on your file's content.<br><br><strong style="color:rgba(180,160,255,.9)">Usage Limits:</strong> You can upload a maximum of 10 files per day. You have 30 AI chat messages per day. Limits reset at midnight.</p>
               </div>
             </div>
 
@@ -2984,7 +2985,7 @@ const i18n = {
     whyMatters: 'Neden önemli',
     quizTitle: (t) => `${t} — Quiz`,
     chooseFile: 'Lütfen önce bir dosya seç.',
-    unsupportedFile: 'Desteklenmeyen dosya türü. .pdf, .docx veya .txt deneyin.',
+    unsupportedFile: 'Desteklenmeyen dosya türü. .pdf, .docx, .txt, .xlsx veya .csv deneyin.',
     notEnoughText: 'Bu dosyada yeterli okunabilir metin bulunamadı.',
     apiError: (s,t) => `API hatası (${s}): ${t}`,
     noResponse: 'Modelden yanıt alınamadı.',
@@ -3026,7 +3027,7 @@ const i18n = {
     whyMatters: 'Why it matters',
     quizTitle: (t) => `${t} — Quiz`,
     chooseFile: 'Please choose a file first.',
-    unsupportedFile: 'Unsupported file type. Try .pdf, .docx, or .txt.',
+    unsupportedFile: 'Unsupported file type. Try .pdf, .docx, .txt, .xlsx, or .csv.',
     notEnoughText: 'Could not find enough readable text in this file.',
     apiError: (s,t) => `API error (${s}): ${t}`,
     noResponse: 'No response from model.',
@@ -3219,6 +3220,17 @@ async function extractText(file){
     const result = await mammoth.extractRawText({arrayBuffer: buf});
     return result.value;
   }
+  if(name.endsWith('.xlsx') || name.endsWith('.xls') || name.endsWith('.csv')){
+    const buf = await file.arrayBuffer();
+    const workbook = XLSX.read(buf, {type:'array'});
+    let text = '';
+    workbook.SheetNames.forEach(sheetName => {
+      const sheet = workbook.Sheets[sheetName];
+      const csv = XLSX.utils.sheet_to_csv(sheet, {blankrows:false});
+      if(csv.trim()) text += `[Sayfa: ${sheetName}]\n${csv}\n\n`;
+    });
+    return text;
+  }
   throw new Error(t('unsupportedFile'));
 }
 
@@ -3358,6 +3370,7 @@ Requirements:
           max_tokens: 5000,
           system: systemPrompt,
           expectJson: true,
+          isDeck: true,
           messages: [{ role: "user", content: "Source text:\n\n" + trimmed.slice(0, 5000) + "\n\nReturn complete valid JSON with ALL 10 quiz questions." }]
         })
       });
@@ -3372,6 +3385,13 @@ Requirements:
   }
   if(!response || !response.ok){
     const errText = response ? await response.text().catch(()=>'') : '';
+    if(response?.status === 429){
+      let errMsg = '';
+      try{ errMsg = JSON.parse(errText)?.error?.message || ''; }catch(e){}
+      throw new Error(errMsg || (currentLang==='tr'
+        ? '⏳ Günlük kullanım limitine ulaştın. Lütfen yarın tekrar dene.'
+        : '⏳ Daily usage limit reached. Please try again tomorrow.'));
+    }
     throw new Error(t('apiError', response?.status || 0, errText.slice(0,120)));
   }
 
