@@ -1381,23 +1381,40 @@
   @keyframes intro-mouth-smile{
     to{ width:46%; height:22%; border-radius:0 0 50px 50px; }
   }
-  /* ===== PERFORMANS OPTİMİZASYONU ===== */
-  .star, .orbiter, .planet, .asteroid, .space-ship, .bg-planet {
-    will-change: transform;
-    contain: layout style;
-  }
-  .sol { will-change: transform; }
-  
-  /* Mobil — ağır efektleri tamamen kapat */
   @media (max-width: 860px){
-    .orbiter, .planet, .space-ship { display:none !important; }
-    .bg-planet { display:none !important; }
-    .dropzone-ring { display:none !important; }
+    #galaxy { display:none !important; }
+    .spiral-glow { display:none !important; }
+    .galaxy-core { display:none !important; }
+  }
+  @media (min-width: 861px){
+    .star, .orbiter, .planet, .asteroid, .space-ship {
+      will-change: transform;
+    }
+    .sol { will-change: transform; }
+  }
+  @media (max-width: 860px){
+    /* JS ile oluşturulan elementleri gizle */
+    .orbiter, .planet, .space-ship, .asteroid,
+    .bg-planet, .dropzone-ring, .lg-planet { display:none !important; }
+    
+    /* CSS animasyonlarını kapat */
+    .star { animation:none !important; opacity:.6; }
+    .sol { animation:none !important; }
     .dropzone::before { display:none !important; }
-    .lg-ring { animation-duration:15s !important; }
-    .sol { animation-duration:8s !important; }
-    * { will-change:auto !important; }
-    .footer-inner { backdrop-filter:blur(6px) !important; }
+    .lg-ring { animation-duration:20s !important; }
+    #introRing1, #introRing2 { animation-duration:12s !important; }
+    
+    /* Blur efektleri kaldır — en büyük FPS katili */
+    .footer-inner { backdrop-filter:none !important; background:rgba(8,6,20,.97) !important; }
+    .slide-card { backdrop-filter:none !important; }
+    .auth-modal-box { backdrop-filter:none !important; }
+    
+    /* will-change kaldır — GPU belleği boşalt */
+    *, *::before, *::after { will-change:auto !important; }
+    
+    /* Transition süreleri kısalt */
+    * { transition-duration:.1s !important; }
+    .dropzone { transition-duration:.2s !important; }
   }
   #siteFooter{
     margin-top: 80px;
@@ -2553,7 +2570,7 @@ const IS_MOBILE = window.innerWidth <= 860;
 
 // Yıldızlar
 const starsEl = document.getElementById('stars');
-const STAR_COUNT = IS_MOBILE ? 40 : 120;
+const STAR_COUNT = IS_MOBILE ? 0 : 100;
 const activeShipCount = IS_MOBILE ? 0 : 1;
 for(let i=0;i<STAR_COUNT;i++){
   const s = document.createElement('div');
@@ -2685,7 +2702,7 @@ function updateSolEyes(){
     if(p) p.style.transform=`translate(calc(-50% + ${ox.toFixed(1)}px), calc(-50% + ${oy.toFixed(1)}px))`;
   });
 }
-setInterval(updateSolEyes, IS_MOBILE ? 600 : 150);
+setInterval(updateSolEyes, IS_MOBILE ? 1000 : 200);
 
 // Öfke sistemi — 3 dosyadan sonra sinirlensin
 let solAngerLevel = 0;
@@ -2708,7 +2725,7 @@ const orbitDefs = [
 ];
 
 // Mobilde daha az gezegen
-const activeDefs = LOW_PERF ? orbitDefs.slice(0, 3) : orbitDefs;
+const activeDefs = IS_MOBILE ? [] : orbitDefs.slice(0, 4);
 activeDefs.forEach((def, i) => {
   const orbitR = BASE_R + i * STEP_R;
   const delay = -(Math.random() * def.dur);
@@ -2875,8 +2892,8 @@ function spawnAsteroid(){
 }
 
 // Asteroid spawn — mobilde çok az
-const INIT_ASTEROIDS = IS_MOBILE ? 1 : 5;
-const ASTEROID_INTERVAL = IS_MOBILE ? 15000 : 5000;
+const INIT_ASTEROIDS = IS_MOBILE ? 0 : 4;
+const ASTEROID_INTERVAL = IS_MOBILE ? 999999 : 6000;
 for(let i=0;i<INIT_ASTEROIDS;i++) setTimeout(()=>spawnAsteroid(), i*3000);
 setInterval(spawnAsteroid, ASTEROID_INTERVAL);
 
