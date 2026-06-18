@@ -16,7 +16,8 @@
 <!-- Firebase -->
 <script type="module">
   import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
-  import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged }
+  import { getAuth, GoogleAuthProvider, signInWithPopup, signInWithRedirect, 
+           signInAnonymously, getRedirectResult, signOut, onAuthStateChanged }
     from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js';
 
   const firebaseConfig = {
@@ -31,14 +32,33 @@
   const app = initializeApp(firebaseConfig);
   const auth = getAuth(app);
   const provider = new GoogleAuthProvider();
+  const isMobileDevice = /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent);
 
-  // Global auth fonksiyonları
-  window.fbSignIn = () => signInWithPopup(auth, provider)
-    .catch(err => console.error('Sign in error:', err));
+  // Google ile giriş
+  window.fbSignIn = async () => {
+    try {
+      if(isMobileDevice){
+        await signInWithRedirect(auth, provider);
+      } else {
+        await signInWithPopup(auth, provider);
+      }
+    } catch(err){ console.error('Sign in error:', err); }
+  };
+
+  // Ziyaretçi — anonim oturum aç
+  window.fbGuestSignIn = async () => {
+    try {
+      const result = await signInAnonymously(auth);
+      return result.user;
+    } catch(err){ console.error('Guest sign in error:', err); return null; }
+  };
 
   window.fbSignOut = () => signOut(auth);
 
-  // Auth state değişince siteyi güncelle
+  // Redirect sonucu yakala
+  getRedirectResult(auth).catch(err => console.error('Redirect result error:', err));
+
+  // Auth state
   onAuthStateChanged(auth, user => {
     window.currentUser = user;
     document.dispatchEvent(new CustomEvent('authChanged', { detail: user }));
@@ -1382,9 +1402,10 @@
     to{ width:46%; height:22%; border-radius:0 0 50px 50px; }
   }
   @media (max-width: 860px){
-    #galaxy { display:none !important; }
-    .spiral-glow { display:none !important; }
-    .galaxy-core { display:none !important; }
+    /* Galaksiyi geri getir ama animasyonları yavaşlat */
+    #galaxy { opacity:.6; }
+    .spiral-glow { animation-duration:80s !important; }
+    .galaxy-core { animation:none !important; }
   }
   @media (min-width: 861px){
     .star, .orbiter, .planet, .asteroid, .space-ship {
@@ -1393,28 +1414,23 @@
     .sol { will-change: transform; }
   }
   @media (max-width: 860px){
-    /* JS ile oluşturulan elementleri gizle */
-    .orbiter, .planet, .space-ship, .asteroid,
-    .bg-planet, .dropzone-ring, .lg-planet { display:none !important; }
-    
-    /* CSS animasyonlarını kapat */
-    .star { animation:none !important; opacity:.6; }
-    .sol { animation:none !important; }
-    .dropzone::before { display:none !important; }
-    .lg-ring { animation-duration:20s !important; }
-    #introRing1, #introRing2 { animation-duration:12s !important; }
-    
-    /* Blur efektleri kaldır — en büyük FPS katili */
+    /* Sadece JS spawn'lu CPU döngüleri kapat */
+    .space-ship, .asteroid { display:none !important; }
+    .dropzone-ring, .dropzone::before { display:none !important; }
+
+    /* Blur — en büyük FPS katili */
     .footer-inner { backdrop-filter:none !important; background:rgba(8,6,20,.97) !important; }
     .slide-card { backdrop-filter:none !important; }
     .auth-modal-box { backdrop-filter:none !important; }
-    
-    /* will-change kaldır — GPU belleği boşalt */
+
+    /* Gezegenler ve yıldızlar kalır ama daha yavaş döner */
+    .orbiter { animation-duration: calc(var(--orbit-dur,30s) * 1.8) !important; }
+    .spiral-glow { animation-duration:80s !important; }
+    .bg-planet { animation:none !important; }
+    .sol { animation:none !important; }
+
+    /* will-change kaldır */
     *, *::before, *::after { will-change:auto !important; }
-    
-    /* Transition süreleri kısalt */
-    * { transition-duration:.1s !important; }
-    .dropzone { transition-duration:.2s !important; }
   }
   #siteFooter{
     margin-top: 80px;
@@ -2443,9 +2459,11 @@ function showAuthModal(onSuccess){
       ">${currentLang==='tr' ? 'Vazgeç' : 'Cancel'}</button>
       <div style="margin-top:16px;padding-top:16px;border-top:1px solid rgba(255,255,255,.07)">
         <button id="authGuestBtn" style="
-          background:none;border:none;color:rgba(180,160,255,.45);font-size:.75rem;
-          cursor:pointer;padding:4px;touch-action:manipulation;text-decoration:underline;
-        ">${currentLang==='tr' ? '👤 Ziyaretçi olarak devam et (geçmiş kaydedilmez)' : '👤 Continue as guest (history not saved)'}</button>
+          width:100%; background:rgba(255,255,255,.04); border:1px solid rgba(255,255,255,.1);
+          border-radius:10px; color:rgba(180,160,255,.7); font-size:.82rem;
+          cursor:pointer; padding:12px 16px; touch-action:manipulation;
+          font-family:'Space Grotesk',sans-serif;
+        ">${currentLang==='tr' ? '👤 Ziyaretçi olarak devam et' : '👤 Continue as guest'}</button>
       </div>
     </div>
   `;
@@ -2469,10 +2487,27 @@ function showAuthModal(onSuccess){
     }
   };
   document.getElementById('authCancelBtn').onclick = () => { modal.remove(); style.remove(); };
-  document.getElementById('authGuestBtn').onclick = () => {
+  
+  function handleGuest(e){
+    if(e) e.preventDefault();
     modal.remove(); style.remove();
-    if(onSuccess) onSuccess(); // ziyaretçi olarak devam
-  };
+    // Anonim oturum aç — sorunsuz ziyaretçi girişi
+    if(window.fbGuestSignIn){
+      window.fbGuestSignIn().then(user => {
+        if(user && onSuccess) onSuccess();
+        else if(onSuccess) onSuccess();
+      });
+    } else {
+      setTimeout(()=>{ if(onSuccess) onSuccess(); }, 50);
+    }
+  }
+  const guestBtn = document.getElementById('authGuestBtn');
+  guestBtn.addEventListener('touchend', handleGuest, {passive:false});
+  guestBtn.addEventListener('click', (e)=>{ 
+    // touchend zaten tetiklendiyse click'i yoksay
+    if(e.detail === 0) return; // klavye ile basış
+    handleGuest(e); 
+  });
 }
 
 // Auth gerekli mi kontrol et
@@ -2570,7 +2605,7 @@ const IS_MOBILE = window.innerWidth <= 860;
 
 // Yıldızlar
 const starsEl = document.getElementById('stars');
-const STAR_COUNT = IS_MOBILE ? 0 : 100;
+const STAR_COUNT = IS_MOBILE ? 50 : 120;
 const activeShipCount = IS_MOBILE ? 0 : 1;
 for(let i=0;i<STAR_COUNT;i++){
   const s = document.createElement('div');
@@ -2725,7 +2760,7 @@ const orbitDefs = [
 ];
 
 // Mobilde daha az gezegen
-const activeDefs = IS_MOBILE ? [] : orbitDefs.slice(0, 4);
+const activeDefs = IS_MOBILE ? orbitDefs.slice(0, 2) : orbitDefs.slice(0, 5);
 activeDefs.forEach((def, i) => {
   const orbitR = BASE_R + i * STEP_R;
   const delay = -(Math.random() * def.dur);
