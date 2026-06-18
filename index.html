@@ -2662,7 +2662,7 @@ function showFounderWelcome(){
         <div style="font-size:.68rem;color:rgba(255,215,0,.7);font-family:'Space Mono',monospace;margin-bottom:6px">📢 DUYURU (boş = kapalı)</div>
         <div style="display:flex;gap:8px">
           <input id="founderAnn" placeholder="Tüm kullanıcılara duyuru..." style="flex:1;padding:9px 11px;border-radius:10px;border:1px solid rgba(255,215,0,.2);background:rgba(255,255,255,.04);color:#fff;font-size:.8rem;font-family:'Space Grotesk',sans-serif;">
-          <button id="founderAnnSave" style="padding:9px 13px;border-radius:10px;border:none;background:rgba(255,215,0,.15);color:#ffd700;cursor:pointer;font-size:.8rem;touch-action:manipulation;white-space:nowrap">Kaydet</button>
+          <button id="founderAnnSave" style="padding:9px 16px;border-radius:10px;border:none;background:rgba(77,255,150,.2);color:#4dff96;cursor:pointer;font-size:.8rem;touch-action:manipulation;white-space:nowrap;font-weight:600">📤 Gönder</button>
         </div>
       </div>
 
@@ -2710,14 +2710,17 @@ function showFounderWelcome(){
     });
   }
 
-  document.getElementById('founderAnnSave').onclick = async () => {
-    const text = document.getElementById('founderAnn').value.trim();
+  async function handleAnnSave(){
+    const text = document.getElementById('founderAnn')?.value.trim();
     if(window.fbSetAnnouncement) await window.fbSetAnnouncement(text);
     const btn = document.getElementById('founderAnnSave');
-    btn.textContent = '✓ Kaydedildi';
-    setTimeout(()=>{ btn.textContent = 'Kaydet'; }, 2000);
-    // Kozmik duyuru efektini göster
-  };
+    if(btn){ btn.textContent = '✓ Gönderildi'; }
+    setTimeout(()=>{ if(document.getElementById('founderAnnSave')) document.getElementById('founderAnnSave').textContent = '📤 Gönder'; }, 2000);
+    if(text) document.dispatchEvent(new CustomEvent('announcementReady', {detail: text}));
+  }
+  const annBtn = document.getElementById('founderAnnSave');
+  annBtn.addEventListener('click', handleAnnSave);
+  annBtn.addEventListener('touchend', (e)=>{ e.preventDefault(); handleAnnSave(); }, {passive:false});
 
   document.getElementById('founderMaintenance').onchange = async (e) => {
     const active = e.target.checked;
