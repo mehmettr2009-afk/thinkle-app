@@ -1687,7 +1687,33 @@
   body.lang-en .tr-text{ display:none; }
   body:not(.lang-en) .en-text{ display:none; }
   body:not(.lang-tr) .tr-text{ }
+  /* ===== STATİK UZAY ARKA PLANI — sıfır animasyon yük ===== */
+  #staticBg{
+    position:fixed; inset:0; z-index:0; pointer-events:none;
+    background:
+      /* Galaksi çekirdeği — merkez parıltı */
+      radial-gradient(ellipse 35% 20% at 52% 50%, rgba(255,240,180,.18) 0%, rgba(255,180,80,.10) 30%, transparent 70%),
+      /* Sol spiral kol */
+      radial-gradient(ellipse 60% 30% at 20% 48%, rgba(180,160,255,.10) 0%, rgba(100,80,220,.06) 50%, transparent 80%),
+      /* Sağ spiral kol */
+      radial-gradient(ellipse 55% 28% at 80% 52%, rgba(200,140,255,.09) 0%, rgba(120,60,200,.05) 50%, transparent 80%),
+      /* Üst nebula */
+      radial-gradient(ellipse 45% 35% at 65% 15%, rgba(100,180,255,.07) 0%, rgba(60,100,200,.04) 60%, transparent 85%),
+      /* Alt nebula */
+      radial-gradient(ellipse 50% 30% at 30% 85%, rgba(255,100,180,.06) 0%, rgba(180,60,140,.04) 55%, transparent 80%),
+      /* Genel uzay rengi */
+      radial-gradient(ellipse 100% 100% at 50% 50%, #0d1035 0%, #080620 40%, #040212 70%, #020108 100%);
+  }
 
+  /* Sadece 1 hafif pulse animasyonu — galaksi çekirdeği için */
+  @keyframes galaxy-pulse{
+    0%,100%{ opacity:.85; }
+    50%{ opacity:1; }
+  }
+  #staticBg{ animation:galaxy-pulse 8s ease-in-out infinite; }
+
+  /* Visibility change — sayfadan çıkınca animasyon dur */
+  #staticBg.paused{ animation-play-state:paused; }
 </style>
 </head>
 <body>
@@ -1722,152 +1748,14 @@
 
 <div id="space">
   <!-- Andromeda tarzı galaksi katmanları -->
-  <div id="galaxy">
-  <svg id="galaxySVG" style="position:fixed;inset:0;width:100%;height:100%;pointer-events:none;z-index:0;" xmlns="http://www.w3.org/2000/svg">
-    <defs>
-      <!-- Çekirdek gradyanı -->
-      <radialGradient id="gCore" cx="50%" cy="50%" r="50%">
-        <stop offset="0%"   stop-color="#fffff8" stop-opacity="1"/>
-        <stop offset="8%"   stop-color="#fff5d0" stop-opacity=".98"/>
-        <stop offset="20%"  stop-color="#ffd080" stop-opacity=".85"/>
-        <stop offset="40%"  stop-color="#e08030" stop-opacity=".55"/>
-        <stop offset="65%"  stop-color="#803818" stop-opacity=".22"/>
-        <stop offset="100%" stop-color="#200800" stop-opacity="0"/>
-      </radialGradient>
-      <!-- Sol spiral kol -->
-      <radialGradient id="gArm1" cx="30%" cy="50%" r="70%">
-        <stop offset="0%"   stop-color="#c0c8ff" stop-opacity=".38"/>
-        <stop offset="35%"  stop-color="#9090e8" stop-opacity=".22"/>
-        <stop offset="70%"  stop-color="#5050c0" stop-opacity=".10"/>
-        <stop offset="100%" stop-color="#202080" stop-opacity="0"/>
-      </radialGradient>
-      <!-- Sağ spiral kol -->
-      <radialGradient id="gArm2" cx="70%" cy="50%" r="70%">
-        <stop offset="0%"   stop-color="#d0b8ff" stop-opacity=".32"/>
-        <stop offset="40%"  stop-color="#9870e0" stop-opacity=".18"/>
-        <stop offset="75%"  stop-color="#5030b0" stop-opacity=".08"/>
-        <stop offset="100%" stop-color="#180060" stop-opacity="0"/>
-      </radialGradient>
-      <!-- Dış hâle -->
-      <radialGradient id="gHalo" cx="50%" cy="50%" r="50%">
-        <stop offset="0%"   stop-color="#3030a0" stop-opacity="0"/>
-        <stop offset="55%"  stop-color="#2828a0" stop-opacity=".04"/>
-        <stop offset="75%"  stop-color="#1818a0" stop-opacity=".08"/>
-        <stop offset="90%"  stop-color="#100860" stop-opacity=".06"/>
-        <stop offset="100%" stop-color="#080430" stop-opacity="0"/>
-      </radialGradient>
-      <!-- HII bölgesi pembe -->
-      <radialGradient id="gHII1" cx="50%" cy="50%" r="50%">
-        <stop offset="0%"  stop-color="#ff90d0" stop-opacity=".55"/>
-        <stop offset="50%" stop-color="#e060b0" stop-opacity=".25"/>
-        <stop offset="100%" stop-color="#a02080" stop-opacity="0"/>
-      </radialGradient>
-      <radialGradient id="gHII2" cx="50%" cy="50%" r="50%">
-        <stop offset="0%"  stop-color="#80c0ff" stop-opacity=".48"/>
-        <stop offset="50%" stop-color="#5090e0" stop-opacity=".22"/>
-        <stop offset="100%" stop-color="#2050b0" stop-opacity="0"/>
-      </radialGradient>
-      <radialGradient id="gHII3" cx="50%" cy="50%" r="50%">
-        <stop offset="0%"  stop-color="#ffc060" stop-opacity=".42"/>
-        <stop offset="50%" stop-color="#e09030" stop-opacity=".20"/>
-        <stop offset="100%" stop-color="#804010" stop-opacity="0"/>
-      </radialGradient>
-      <!-- Toz bandı -->
-      <radialGradient id="gDust" cx="50%" cy="50%" r="50%">
-        <stop offset="0%"  stop-color="#050310" stop-opacity=".55"/>
-        <stop offset="50%" stop-color="#080518" stop-opacity=".35"/>
-        <stop offset="100%" stop-color="#02010a" stop-opacity="0"/>
-      </radialGradient>
-      <!-- Tüm galaksiyi kesen galaktik filtre -->
-      <filter id="gBlur1"><feGaussianBlur stdDeviation="18"/></filter>
-      <filter id="gBlur2"><feGaussianBlur stdDeviation="8"/></filter>
-      <filter id="gBlur3"><feGaussianBlur stdDeviation="4"/></filter>
-      <filter id="gBlur4"><feGaussianBlur stdDeviation="28"/></filter>
-      <filter id="gBlur5"><feGaussianBlur stdDeviation="2"/></filter>
-    </defs>
-
-    <!-- Dış galaktik hâle — çok geniş, çok soluk -->
-    <ellipse id="gHaloEl" cx="50%" cy="50%" rx="46%" ry="18%" fill="url(#gHalo)" filter="url(#gBlur4)"
-      transform="rotate(-28,50%,50%)" opacity=".9">
-      <animate attributeName="opacity" values=".7;1;.7" dur="22s" repeatCount="indefinite"/>
-    </ellipse>
-
-    <!-- Sol spiral kol gövdesi -->
-    <ellipse cx="34%" cy="50%" rx="28%" ry="9%" fill="url(#gArm1)" filter="url(#gBlur1)"
-      transform="rotate(-28,50%,50%)" opacity=".85">
-      <animate attributeName="opacity" values=".7;.95;.7" dur="26s" repeatCount="indefinite"/>
-    </ellipse>
-
-    <!-- Sağ spiral kol gövdesi -->
-    <ellipse cx="66%" cy="50%" rx="26%" ry="8%" fill="url(#gArm2)" filter="url(#gBlur1)"
-      transform="rotate(-28,50%,50%)" opacity=".85">
-      <animate attributeName="opacity" values=".75;1;.75" dur="30s" repeatCount="indefinite"/>
-    </ellipse>
-
-    <!-- İç disk — parlak, turuncu-sarı tonu -->
-    <ellipse cx="50%" cy="50%" rx="20%" ry="7%" fill="url(#gCore)" filter="url(#gBlur2)"
-      transform="rotate(-28,50%,50%)" opacity=".9">
-      <animate attributeName="opacity" values=".8;1;.8" dur="18s" repeatCount="indefinite"/>
-    </ellipse>
-
-    <!-- HII bölgeleri — sol kol -->
-    <ellipse cx="30%" cy="47%" rx="3.5%" ry="2.2%" fill="url(#gHII1)" filter="url(#gBlur3)"
-      transform="rotate(-28,50%,50%)" opacity=".8">
-      <animate attributeName="opacity" values=".5;.9;.5" dur="8s" repeatCount="indefinite"/>
-    </ellipse>
-    <ellipse cx="24%" cy="51%" rx="2.5%" ry="1.6%" fill="url(#gHII2)" filter="url(#gBlur3)"
-      transform="rotate(-28,50%,50%)" opacity=".7">
-      <animate attributeName="opacity" values=".4;.8;.4" dur="11s" repeatCount="indefinite"/>
-    </ellipse>
-    <!-- HII bölgeleri — sağ kol -->
-    <ellipse cx="70%" cy="50%" rx="3%" ry="2%" fill="url(#gHII1)" filter="url(#gBlur3)"
-      transform="rotate(-28,50%,50%)" opacity=".75">
-      <animate attributeName="opacity" values=".45;.85;.45" dur="9s" repeatCount="indefinite"/>
-    </ellipse>
-    <ellipse cx="76%" cy="48%" rx="2.2%" ry="1.5%" fill="url(#gHII2)" filter="url(#gBlur3)"
-      transform="rotate(-28,50%,50%)" opacity=".65">
-      <animate attributeName="opacity" values=".35;.75;.35" dur="13s" repeatCount="indefinite"/>
-    </ellipse>
-    <!-- Sarı HII — iç disk kenarı -->
-    <ellipse cx="42%" cy="49%" rx="2%" ry="1.4%" fill="url(#gHII3)" filter="url(#gBlur3)"
-      transform="rotate(-28,50%,50%)" opacity=".7">
-      <animate attributeName="opacity" values=".4;.8;.4" dur="7s" repeatCount="indefinite"/>
-    </ellipse>
-    <ellipse cx="58%" cy="51%" rx="1.8%" ry="1.2%" fill="url(#gHII3)" filter="url(#gBlur3)"
-      transform="rotate(-28,50%,50%)" opacity=".6">
-      <animate attributeName="opacity" values=".35;.7;.35" dur="10s" repeatCount="indefinite"/>
-    </ellipse>
-
-    <!-- Çekirdek parlak noktası — en üstte -->
-    <ellipse cx="50%" cy="50%" rx="5%" ry="2.8%" fill="url(#gCore)" filter="url(#gBlur5)"
-      transform="rotate(-28,50%,50%)" opacity="1">
-      <animate attributeName="opacity" values=".88;1;.88" dur="5s" repeatCount="indefinite"/>
-    </ellipse>
-    <!-- Çekirdek ultra-parlak merkez -->
-    <ellipse cx="50%" cy="50%" rx="1.2%" ry="0.7%" fill="#fffff8"
-      transform="rotate(-28,50%,50%)" opacity=".95">
-      <animate attributeName="opacity" values=".8;1;.8" dur="3s" repeatCount="indefinite"/>
-    </ellipse>
-  </svg>
-</div>
+  <!-- Statik uzay arka planı — CSS only, sıfır JS yük -->
+  <div id="staticBg"></div>
   <div class="stars" id="stars"></div>
-
   <div id="orbitContainer" class="orbit-container"></div>
-  <div id="asteroids"></div>
-  <div class="planets" id="planets"></div>
-  <div id="ships"></div>
-
-  <!-- Büyük arka plan gezegenleri -->
-  <div class="bg-planet" style="width:420px;height:420px;left:-80px;top:15%;--rot-dur:90s;--drift-dur:70s;--dx:30px;--dy:20px;background:radial-gradient(circle at 35% 32%, rgba(100,140,255,.18) 0%, rgba(60,80,200,.12) 40%, rgba(20,30,120,.06) 70%, transparent 100%);box-shadow:inset -30px -20px 60px rgba(0,0,0,.3),0 0 80px rgba(80,100,255,.08);border:1px solid rgba(100,130,255,.08)"></div>
-  <div class="bg-planet" style="width:320px;height:320px;right:-60px;top:5%;--rot-dur:70s;--drift-dur:55s;--dx:-20px;--dy:25px;background:radial-gradient(circle at 38% 30%, rgba(180,100,255,.16) 0%, rgba(120,60,200,.10) 40%, rgba(60,20,140,.05) 70%, transparent 100%);box-shadow:inset -25px -15px 50px rgba(0,0,0,.3),0 0 60px rgba(150,80,255,.07);border:1px solid rgba(150,80,255,.08)"></div>
-  <div class="bg-planet" style="width:500px;height:500px;right:-120px;bottom:10%;--rot-dur:110s;--drift-dur:80s;--dx:-25px;--dy:-30px;background:radial-gradient(circle at 32% 28%, rgba(80,180,180,.14) 0%, rgba(40,120,140,.09) 40%, rgba(15,60,80,.05) 70%, transparent 100%);box-shadow:inset -40px -25px 70px rgba(0,0,0,.3),0 0 100px rgba(60,160,180,.06);border:1px solid rgba(60,160,180,.07)"></div>
-  <div class="bg-planet" style="width:260px;height:260px;left:20%;bottom:-40px;--rot-dur:60s;--drift-dur:50s;--dx:15px;--dy:-20px;background:radial-gradient(circle at 40% 35%, rgba(255,140,80,.12) 0%, rgba(200,90,40,.08) 40%, rgba(120,40,10,.04) 70%, transparent 100%);box-shadow:inset -20px -15px 40px rgba(0,0,0,.3),0 0 50px rgba(220,120,60,.06);border:1px solid rgba(220,120,60,.07)"></div>
-  <div class="bg-planet" style="width:180px;height:180px;left:55%;top:8%;--rot-dur:50s;--drift-dur:45s;--dx:10px;--dy:18px;background:radial-gradient(circle at 36% 30%, rgba(255,200,100,.13) 0%, rgba(200,150,50,.08) 40%, rgba(120,80,10,.04) 70%, transparent 100%);box-shadow:inset -15px -10px 30px rgba(0,0,0,.3),0 0 40px rgba(220,180,80,.06);border:1px solid rgba(220,180,80,.07)"></div>
-
 
 </div>
 
-<!-- Mobil floating AI butonu -->
+<!-- Mobil floating AI butonu --><!-- Mobil floating AI butonu -->
 <button class="ai-float-btn" id="aiFloatBtn" style="display:none">💬</button>
 <div class="ai-float-panel" id="aiFloatPanel">
   <div class="ai-panel-header" style="display:flex;align-items:center;gap:10px">
@@ -2683,7 +2571,7 @@ const IS_MOBILE = window.innerWidth <= 860;
 
 // Yıldızlar
 const starsEl = document.getElementById('stars');
-const STAR_COUNT = IS_MOBILE ? 50 : 120;
+const STAR_COUNT = IS_MOBILE ? 30 : 80;
 const activeShipCount = IS_MOBILE ? 0 : 1;
 for(let i=0;i<STAR_COUNT;i++){
   const s = document.createElement('div');
@@ -2787,6 +2675,14 @@ function positionSolarSystem(){
 positionSolarSystem();
 window.addEventListener('resize', positionSolarSystem);
 // Scroll'da da konumu güncelle — güneş sabit kalır
+// Sayfa gizlenince animasyonları durdur — pil/CPU tasarrufu
+document.addEventListener('visibilitychange', () => {
+  const bg = document.getElementById('staticBg');
+  if(bg) bg.classList.toggle('paused', document.hidden);
+  const stars = document.getElementById('stars');
+  if(stars) stars.style.animationPlayState = document.hidden ? 'paused' : 'running';
+});
+
 // Scroll'da pozisyon güncellenmez — sabit viewport konumu
 setTimeout(positionSolarSystem, 60);
 setTimeout(positionSolarSystem, 500);
@@ -2888,7 +2784,7 @@ const shipSVGs = [
   `<svg viewBox="0 0 24 36" xmlns="http://www.w3.org/2000/svg"><path d="M12 2L18 20L12 16L6 20Z" fill="#e0e8ff"/><path d="M6 20L0 28L6 24Z" fill="#b46bff"/><path d="M18 20L24 28L18 24Z" fill="#b46bff"/><circle cx="12" cy="13" r="3" fill="#6ee7ff"/><path d="M9 28L12 36L15 28Z" fill="#ff6ec7" opacity=".8"/></svg>`,
 ];
 
-const shipsEl = document.getElementById('ships');
+const shipsEl = document.getElementById('ships'); // element kaldırıldı
 
 function spawnShip(svgStr, initDelay){
   const el = document.createElement('div');
@@ -2904,7 +2800,7 @@ function spawnShip(svgStr, initDelay){
   el.style.setProperty('--transit-dx', (window.innerWidth+40)+'px');
   el.style.setProperty('--transit-dy', dy+'px');
   if(initDelay) el.style.animationDelay = initDelay+'s';
-  shipsEl.appendChild(el);
+  if(shipsEl) shipsEl.appendChild(el);
 
   let swallowed = false;
   // Karadelik artık yok — basit soldan sağa geçiş, yutulma yok
@@ -2925,7 +2821,7 @@ setInterval(()=>{ spawnShip(shipSVGs[Math.floor(Math.random()*shipSVGs.length)],
 // ============================================================
 // ASTEROİDLER — gerçekçi taşlı, pütürlü, boyutu çok değişken
 // ============================================================
-const asteroidsEl = document.getElementById('asteroids');
+const asteroidsEl = document.getElementById('asteroids'); // element kaldırıldı
 
 function makeAsteroidSVG(size, isBig){
   const seed = Math.random();
@@ -3000,7 +2896,7 @@ function spawnAsteroid(){
   el.style.setProperty('--ast-dy', dy+'px');
   el.style.setProperty('--ast-rot', rot+'deg');
   el.style.setProperty('--ast-op', op);
-  asteroidsEl.appendChild(el);
+  if(asteroidsEl) asteroidsEl.appendChild(el);
   setTimeout(()=>el.remove(), dur*1000+600);
 }
 
