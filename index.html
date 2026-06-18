@@ -2065,7 +2065,7 @@
                 <span class="acc-arrow">▾</span>
               </button>
               <div class="footer-acc-body">
-                <p class="tr-text">Yüklediğin dosyalar yalnızca içerik üretimi için anlık olarak işlenir, sunucularımızda saklanmaz ve üçüncü taraflarla paylaşılmaz. Tüm veri aktarımları HTTPS şifreli bağlantı üzerinden gerçekleşir.</p>
+                <p class="tr-text">Yüklediğin dosyalar yalnızca içerik üretimi için anlık olarak işlenir, sunucularımızda saklanmaz ve üçüncü taraflarla paylaşılmaz. Tüm veri aktarımları HTTPS şifreli bağlantı üzerinden gerçekleşir. Kullanıcı hesap bilgileri (giriş tarihi, kullanım istatistikleri) Google Firebase Firestore'da güvenli şekilde saklanır.</p>
                 <p class="en-text">Your uploaded files are processed only for content generation, are not stored on our servers, and are not shared with third parties. Users who sign in with Google have only their study history titles saved locally on their own device (localStorage); this data is never sent to our servers. All data transfers occur over HTTPS encrypted connections.</p>
               </div>
             </div>
@@ -2087,8 +2087,8 @@
                 <span class="acc-arrow">▾</span>
               </button>
               <div class="footer-acc-body">
-                <p class="tr-text">Thinkle, büyük dil modelleri (LLM) kullanarak çalışır. Desteklenen formatlar: .pdf, .docx, .txt, .xlsx, .xls, .csv. Maksimum dosya boyutu 20 MB. Üretilen slaytlar ve sorular dosyanın içeriğine göre otomatik oluşturulur.<br><br><strong style="color:rgba(180,160,255,.9)">Kullanım Limitleri:</strong> Günde maksimum 10 dosya yükleyebilirsiniz. Günde 30 AI chat mesajı hakkınız bulunmaktadır. Limitler gece yarısı sıfırlanır.</p>
-                <p class="en-text">Thinkle runs on large language models (LLMs). Supported formats: .pdf, .docx, .txt, .xlsx, .xls, .csv. Maximum file size 20 MB. Generated slides and questions are automatically created based on your file's content.<br><br><strong style="color:rgba(180,160,255,.9)">Usage Limits:</strong> You can upload a maximum of 10 files per day. You have 30 AI chat messages per day. Limits reset at midnight.</p>
+                <p class="tr-text">Thinkle, büyük dil modelleri (LLM) kullanarak çalışır. Desteklenen formatlar: .pdf, .docx, .txt, .xlsx, .xls, .csv. Maksimum dosya boyutu 20 MB. Üretilen slaytlar ve sorular dosyanın içeriğine göre otomatik oluşturulur. Kullanıcı verileri Google Firebase Firestore'da güvenli şekilde saklanır.<br><br><strong style="color:rgba(180,160,255,.9)">Kullanım Limitleri:</strong> Günde maksimum 10 dosya yükleyebilirsiniz. Günde 30 AI chat mesajı hakkınız bulunmaktadır. Limitler gece yarısı sıfırlanır.</p>
+                <p class="en-text">Thinkle runs on large language models (LLMs). Supported formats: .pdf, .docx, .txt, .xlsx, .xls, .csv. Maximum file size 20 MB. Generated slides and questions are automatically created based on your file's content. User data is securely stored in Google Firebase Firestore.<br><br><strong style="color:rgba(180,160,255,.9)">Usage Limits:</strong> You can upload a maximum of 10 files per day. You have 30 AI chat messages per day. Limits reset at midnight.</p>
               </div>
             </div>
 
@@ -2486,20 +2486,32 @@ document.addEventListener('authChanged', e => {
   if(user){
     const isFounder = user.uid === FOUNDER_UID;
     userArea.innerHTML = `
-      <div style="display:flex;align-items:center;gap:8px;padding:12px 16px;border-top:1px solid var(--line)">
-        <img src="${user.photoURL||''}" style="width:28px;height:28px;border-radius:50%;border:1px solid rgba(180,107,255,.4)" onerror="this.style.display='none'">
-        <div style="flex:1;min-width:0">
-          <div style="font-size:.75rem;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">
-            ${isFounder ? '👑 ' : ''}${user.displayName||user.email||'Ziyaretçi'}
+      <div style="display:flex;flex-direction:column;gap:0;border-top:1px solid var(--line)">
+        <div style="display:flex;align-items:center;gap:8px;padding:12px 16px;">
+          <img src="${user.photoURL||''}" style="width:28px;height:28px;border-radius:50%;border:1px solid rgba(180,107,255,.4)" onerror="this.style.display='none'">
+          <div style="flex:1;min-width:0">
+            <div style="font-size:.75rem;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">
+              ${isFounder ? '👑 ' : ''}${user.displayName||user.email||'Ziyaretçi'}
+            </div>
+            <div style="font-size:.62rem;color:${isFounder?'#ffd700':'var(--ink-soft)'}">
+              ${isFounder ? '⚡ Kurucu' : '✓ '+(currentLang==='tr'?'Giriş yapıldı':'Signed in')}
+            </div>
           </div>
-          <div style="font-size:.62rem;color:${isFounder?'#ffd700':'var(--ink-soft)'}">
-            ${isFounder ? '⚡ Kurucu' : '✓ '+(currentLang==='tr'?'Giriş yapıldı':'Signed in')}
-          </div>
+          <button onclick="window.fbSignOut()" title="${currentLang==='tr'?'Çıkış':'Sign out'}" style="background:none;border:none;color:rgba(180,107,255,.7);cursor:pointer;font-size:.8rem;padding:4px;touch-action:manipulation">↪</button>
         </div>
-        <button onclick="window.fbSignOut()" title="${currentLang==='tr'?'Çıkış':'Sign out'}" style="background:none;border:none;color:rgba(180,107,255,.7);cursor:pointer;font-size:.8rem;padding:4px;touch-action:manipulation">↪</button>
+        ${isFounder ? `
+        <button onclick="showFounderWelcome()" style="
+          margin:0 12px 12px; padding:8px 12px; border-radius:10px; border:1px solid rgba(255,215,0,.3);
+          background:rgba(255,215,0,.08); color:#ffd700; cursor:pointer; font-size:.75rem;
+          font-family:'Space Mono',monospace; letter-spacing:.04em; touch-action:manipulation;
+          display:flex; align-items:center; justify-content:center; gap:6px;
+          transition:background .2s;
+        " onmouseover="this.style.background='rgba(255,215,0,.15)'" onmouseout="this.style.background='rgba(255,215,0,.08)'">
+          👑 Yönetici Paneli
+        </button>` : ''}
       </div>`;
 
-    // Kurucu karşılama ekranı
+    // Kurucu karşılama ekranı — sadece ilk girişte
     if(isFounder) showFounderWelcome();
   } else {
     userArea.innerHTML = `
@@ -2513,7 +2525,7 @@ document.addEventListener('authChanged', e => {
 
 function showFounderWelcome(){
   const existing = document.getElementById('founderWelcome');
-  if(existing) return;
+  if(existing){ existing.remove(); return; } // açıksa kapat
 
   const el = document.createElement('div');
   el.id = 'founderWelcome';
