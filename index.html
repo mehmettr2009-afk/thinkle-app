@@ -2739,34 +2739,32 @@ function showFounderWelcome(){
 
 // Duyuru banner'ı — Firestore'dan gelince kozmik göster
 document.addEventListener('announcementReady', (e) => {
+  const existing = document.getElementById('annBanner');
+  if(existing) existing.remove();
+  const banner = document.createElement('div');
+  banner.id = 'annBanner';
+  banner.style.cssText = `
+    position:fixed; bottom:32px; left:50%; transform:translateX(-50%) translateY(20px);
+    z-index:9999; pointer-events:none;
+    background:rgba(14,10,36,.95); backdrop-filter:blur(12px);
+    border:1px solid rgba(180,107,255,.35);
+    border-radius:40px; padding:12px 24px;
+    font-family:'Space Grotesk',sans-serif; font-size:.85rem; font-weight:600;
+    color:#eaf0ff; white-space:nowrap;
+    box-shadow:0 8px 32px rgba(0,0,0,.4);
+    opacity:0; transition:opacity .4s ease, transform .4s cubic-bezier(.16,1,.3,1);
+  `;
+  banner.textContent = '📢 ' + e.detail;
+  document.body.appendChild(banner);
+  requestAnimationFrame(()=>requestAnimationFrame(()=>{
+    banner.style.opacity = '1';
+    banner.style.transform = 'translateX(-50%) translateY(0)';
+  }));
   setTimeout(()=>{
-    const banner = document.createElement('div');
-    banner.id = 'annBanner';
-    banner.style.cssText = `
-      position:fixed; bottom:32px; left:50%; transform:translateX(-50%) translateY(20px);
-      z-index:9999; pointer-events:none;
-      background:rgba(14,10,36,.95); backdrop-filter:blur(12px);
-      border:1px solid rgba(180,107,255,.35);
-      border-radius:40px; padding:12px 24px;
-      font-family:'Space Grotesk',sans-serif; font-size:.85rem; font-weight:600;
-      color:#eaf0ff; white-space:nowrap;
-      box-shadow:0 8px 32px rgba(0,0,0,.4), 0 0 0 1px rgba(110,231,255,.1) inset;
-      opacity:0; transition:opacity .4s ease, transform .4s cubic-bezier(.16,1,.3,1);
-    `;
-    banner.textContent = '📢 ' + e.detail;
-    document.body.appendChild(banner);
-    // Slide up animasyonu
-    requestAnimationFrame(()=>requestAnimationFrame(()=>{
-      banner.style.opacity = '1';
-      banner.style.transform = 'translateX(-50%) translateY(0)';
-    }));
-    // 5 saniye sonra kaybol
-    setTimeout(()=>{
-      banner.style.opacity = '0';
-      banner.style.transform = 'translateX(-50%) translateY(20px)';
-      setTimeout(()=> banner.remove(), 500);
-    }, 5000);
-  }, 8000);
+    banner.style.opacity = '0';
+    banner.style.transform = 'translateX(-50%) translateY(20px)';
+    setTimeout(()=> banner.remove(), 500);
+  }, 5000);
 });
 
 // Bakım modu
