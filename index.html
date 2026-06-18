@@ -3830,6 +3830,38 @@ async function sendAiQuestion(){
   inp.value = '';
   if(btn) btn.disabled = true;
   addAiMessage('user', question);
+
+  // 🕵️ GİZLİ EASTER EGG — Mehmet Emin Ayvaz
+  const q = question.toLowerCase().replace(/[çÇ]/g,'c').replace(/[şŞ]/g,'s').replace(/[ğĞ]/g,'g').replace(/[üÜ]/g,'u').replace(/[öÖ]/g,'o').replace(/[ıİ]/g,'i');
+  const isMEA = (q.includes('mehmet') || q.includes('emin') || q.includes('ayvaz')) && (q.includes('tanı') || q.includes('biliyor') || q.includes('kim') || q.includes('tanıyor') || q.includes('taniyor'));
+  
+  if(isMEA){
+    const thinkingEl = addAiMessage('ai', '...', true);
+    await new Promise(r => setTimeout(r, 1800));
+    thinkingEl.classList.remove('thinking');
+    thinkingEl.innerHTML = `
+      <div style="font-family:'Space Mono',monospace;font-size:.78rem;line-height:1.8;color:#4dffb4">
+        ██████████████████████████<br>
+        &nbsp;&nbsp;GİZLİ — SINIFLANDIRILMIŞ<br>
+        ██████████████████████████<br><br>
+        DOSYA NO: MEA-2009-∞<br>
+        GÜVENLİK SEVİYESİ: KIRMIZI<br>
+        ERİŞİM: KISITLI<br><br>
+        <span style="color:#ff6ec7">ÖZNE:</span> MEHMET EMİN AYVAZ<br>
+        <span style="color:#ff6ec7">DURUM:</span> AKTİF<br>
+        <span style="color:#ff6ec7">SINIFLANDIRMA:</span> [REDACTED]<br><br>
+        Bu kişi hakkındaki bilgiler<br>
+        en üst düzey gizlilik<br>
+        kapsamındadır.<br><br>
+        Daha fazla bilgi talep etmek<br>
+        yetkisizdir.<br><br>
+        <span style="color:#ffcc00">⚠ Bu mesaj 5 saniye içinde<br>
+        kendini imha edecek.</span>
+      </div>`;
+    if(btn) btn.disabled = false;
+    return;
+  }
+
   const thinkingEl = addAiMessage('ai', t('aiThinking'), true);
 
   const langInstruction = currentLang === 'tr'
