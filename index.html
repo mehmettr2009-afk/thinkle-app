@@ -117,10 +117,26 @@
     catch(e){ return false; }
   };
 
+  // Duyuru listener — auth yüklendikten sonra başlat
   onAuthStateChanged(auth, user => {
     window.currentUser = user;
     if(user && !user.isAnonymous) window.fbLogUser(user.uid).catch(()=>{});
     document.dispatchEvent(new CustomEvent('authChanged', { detail: user }));
+
+    // Auth yüklenince duyuru dinlemeye başla (ziyaretçi dahil herkes)
+    if(!window._annListenerStarted){
+      window._annListenerStarted = true;
+      onSnapshot(doc(db, 'config', 'announcement'), (snap) => {
+        if(!snap.exists()) return;
+        const data = snap.data();
+        if(!data.active || !data.text) return;
+        // Sadece son 30 saniyede gönderilmişse göster
+        const sentAt = new Date(data.updatedAt).getTime();
+        if(Date.now() - sentAt < 30000){
+          document.dispatchEvent(new CustomEvent('announcementReady', {detail: data.text}));
+        }
+      }, ()=>{});
+    }
   });
 
   // Sayfa ziyaretini kaydet
