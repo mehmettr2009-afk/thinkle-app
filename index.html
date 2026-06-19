@@ -2071,7 +2071,12 @@
 
     bindTap(slidesBtn, () => {
       const tabsEl = document.getElementById('tabs');
-      if(!tabsEl || tabsEl.children.length === 0) return;
+      if(!tabsEl || tabsEl.children.length === 0){
+        // Henüz slayt yok — kısa bir geri bildirim ver
+        slidesBtn.style.background = 'rgba(255,110,140,.25)';
+        setTimeout(()=>{ slidesBtn.style.background = ''; }, 300);
+        return;
+      }
       tabsEl.classList.toggle('open');
       actionsMenu?.classList.remove('open');
     });
@@ -4096,6 +4101,10 @@ function buildTabs(){
   qt.innerHTML = `<span class="num">Q</span> ${t('quizTab')}`;
   qt.onclick = () => { renderQuiz(); markActiveTab(qt); tabsEl.classList.remove('open'); };
   tabsEl.appendChild(qt);
+
+  // Mobil ☰ butonunu aktif görünüme al — artık slayt listesi dolu
+  const mhSlides = document.getElementById('mhSlidesBtn');
+  if(mhSlides){ mhSlides.style.borderColor = 'rgba(110,231,255,.5)'; mhSlides.style.color = 'var(--accent)'; }
 }
 
 function markActiveTab(activeEl){
