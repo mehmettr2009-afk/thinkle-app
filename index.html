@@ -775,7 +775,7 @@
   }
   .topbar h2{font-size:1.05rem; font-weight:500; color:var(--ink-soft); font-family:'Space Grotesk'; user-select:none;}
   @media (min-width: 861px){
-    #mobileActionsBtn, #mobileActionsMenu{ display:none !important; }
+    #mobileActionsMenu, #mobileHeader{ display:none !important; }
   }
   .btn{
     font-family:'Space Mono',monospace; font-size:.78rem;
@@ -1286,39 +1286,46 @@
     html, body{ height:100%; width:100%; overflow:hidden; margin:0; padding:0; }
     body{ display:flex; flex-direction:column; position:fixed; inset:0; }
 
-    .left-column{
-      width:100%; flex-shrink:0; order:1; height:auto; min-height:0;
-      border-right:none; border-bottom:1px solid var(--line);
+    /* Eski sidebar tamamen gizli — yerine #mobileHeader kullanılıyor */
+    .left-column{ display:none !important; }
+
+    /* ===== YENİ MOBİL HEADER — sıfırdan, sade ===== */
+    #mobileHeader{
+      display:flex !important; align-items:center; justify-content:space-between;
+      flex-shrink:0; width:100%; height:48px; padding:0 12px;
       background:rgba(7,10,24,.97); backdrop-filter:blur(12px);
-      display:flex; flex-direction:column;
-      position:relative; z-index:20; overflow:visible;
+      border-bottom:1px solid var(--line); position:relative; z-index:30;
+      box-sizing:border-box;
     }
-    .sidebar{
-      flex-direction:row; align-items:center; padding:6px 10px;
-      flex-wrap:nowrap; border-bottom:none; gap:6px;
-      height:auto; max-height:none; min-height:0;
+    #mobileHeader .mh-left{
+      display:flex; align-items:center; gap:8px; min-width:0; flex:1;
     }
-    .brand{ flex:0 1 auto; padding:0; border-bottom:none; margin:0; display:flex; align-items:center; gap:6px; min-width:0; }
-    .brand h1{ font-size:.8rem; margin:0; white-space:nowrap; }
-    .brand .util{ display:none; } /* tagline mobilde gizli — yer kaplamasın */
-    .brand-mark{ width:24px; height:24px; border-radius:7px; flex-shrink:0; }
-    .menu-toggle{
-      display:inline-flex; padding:5px 8px; font-size:.6rem;
-      border:1px solid var(--line); background:rgba(255,255,255,.06);
-      color:var(--ink); border-radius:7px; cursor:pointer;
-      touch-action:manipulation; white-space:nowrap; flex-shrink:0;
+    #mobileHeader .mh-logo{
+      width:26px; height:26px; border-radius:8px; flex-shrink:0;
+      background:radial-gradient(circle at 35% 30%, #ffe9a8, #ff8a2b 55%, #b4308f 100%);
+      box-shadow:0 0 10px rgba(255,150,50,.4);
     }
-    /* userArea mobilde sidebar'ın en sağında, kompakt — taşmasın diye sıkıştırıldı */
-    #userArea{ flex-shrink:1; min-width:0; max-width:120px; }
-    #userArea > div{ border-top:none !important; padding:0 !important; gap:4px !important; }
-    #userArea img{ width:20px !important; height:20px !important; }
-    #userArea button{ padding:4px 6px !important; font-size:.58rem !important; }
-    #userArea > div > div:nth-child(2){ display:none !important; } /* isim/email metnini gizle, sadece avatar+çıkış kalsın */
+    #mobileHeader .mh-title{
+      font-family:'Orbitron',sans-serif; font-size:.85rem; font-weight:700;
+      color:var(--ink); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+    }
+    #mobileHeader .mh-right{
+      display:flex; align-items:center; gap:6px; flex-shrink:0;
+    }
+    #mobileHeader button{
+      display:flex; align-items:center; justify-content:center;
+      height:32px; padding:0 10px; border-radius:8px;
+      border:1px solid var(--line); background:rgba(255,255,255,.05);
+      color:var(--ink); font-size:.68rem; font-family:'Space Grotesk',sans-serif;
+      cursor:pointer; touch-action:manipulation; white-space:nowrap;
+    }
+    #mobileHeader #mhSlidesBtn{ font-size:.85rem; padding:0 9px; }
+
     .tabs{
-      display:none; position:fixed; top:56px; left:0; right:0; bottom:0;
+      display:none; position:fixed; top:48px; left:0; right:0; bottom:0;
       max-height:none; overflow-y:auto; -webkit-overflow-scrolling:touch;
       background:rgba(6,8,20,.99); backdrop-filter:blur(16px);
-      border-top:1px solid var(--line); z-index:50; padding:8px;
+      z-index:50; padding:8px;
     }
     .tabs.open{ display:block; }
     .tab{ padding:14px 16px !important; font-size:.9rem !important; margin-bottom:4px; }
@@ -1328,31 +1335,15 @@
 
     .main{ flex:1; display:flex; flex-direction:column; order:2; overflow:hidden; min-height:0; position:relative; z-index:5; }
 
-    /* Topbar — sade, tek satır, taşma yok */
-    .topbar{
-      flex-shrink:0; padding:8px 10px; background:rgba(7,10,24,.95);
-      display:flex; align-items:center; gap:6px; z-index:10;
-      flex-wrap:nowrap;
-    }
-    .topbar h2{
-      font-size:.72rem; flex:1; order:1; margin:0;
-      white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
-      min-width:0;
-    }
-    /* Eski PC buton grubunu gizle — spesifik seçici, mobileActionsMenu'yü etkilemez */
-    .topbar > div:not(#mobileActionsMenu){ display:none !important; }
-    #mobileActionsBtn{
-      display:flex !important; align-items:center; justify-content:center;
-      width:32px; height:32px; flex-shrink:0; order:2;
-      border-radius:8px; border:1px solid var(--line);
-      background:rgba(255,255,255,.05); color:var(--ink);
-      font-size:1rem; cursor:pointer; touch-action:manipulation;
-    }
+    /* Eski .topbar tamamen gizli — #mobileHeader onu değiştirdi */
+    .topbar{ display:none !important; }
+
+    /* Mobil aksiyon menüsü — #mobileHeader'a bağlı, ⋯ ile açılır */
     #mobileActionsMenu{
-      display:none; position:fixed; top:48px; right:8px; z-index:200;
+      display:none; position:fixed; top:52px; right:8px; z-index:200;
       background:rgba(14,10,36,.98); backdrop-filter:blur(14px);
       border:1px solid rgba(180,107,255,.25); border-radius:14px;
-      padding:8px; min-width:170px;
+      padding:8px; min-width:175px;
       box-shadow:0 12px 40px rgba(0,0,0,.5);
       flex-direction:column; gap:4px;
     }
@@ -2015,6 +2006,117 @@
   </div>
 </div>
 
+<!-- Mobil Header — sade, sıfırdan tasarlandı -->
+<div id="mobileHeader">
+  <div class="mh-left">
+    <div class="mh-logo"></div>
+    <div class="mh-title">Thinkle</div>
+  </div>
+  <div class="mh-right">
+    <button id="mhSlidesBtn">☰</button>
+    <button id="mobileActionsBtn">⋯</button>
+  </div>
+</div>
+<div id="mobileActionsMenu">
+  <div class="mam-lang">
+    <button class="mam-lang-tr active" data-lang="tr">TR</button>
+    <button class="mam-lang-en" data-lang="en">EN</button>
+  </div>
+  <div class="mam-divider"></div>
+  <button id="mamRestart">↺ <span data-i18n="restartBtn">Yeni dosya</span></button>
+  <button id="mamExport" disabled>⬇ <span data-i18n="exportBtn">.pptx indir</span></button>
+  <div class="mam-divider" id="mamFounderDivider" style="display:none"></div>
+  <button id="mamFounderBtn" style="display:none;color:#ffd700">👑 Yönetici Paneli</button>
+  <div class="mam-divider" id="mamUserDivider" style="display:none"></div>
+  <div id="mamUserArea"></div>
+</div>
+
+<script>
+  // Mobil header — slayt menüsü ve aksiyon menüsü
+  (function(){
+    const slidesBtn = document.getElementById('mhSlidesBtn');
+    const actionsBtn = document.getElementById('mobileActionsBtn');
+    const actionsMenu = document.getElementById('mobileActionsMenu');
+
+    slidesBtn?.addEventListener('click', () => {
+      document.getElementById('tabs')?.classList.toggle('open');
+      actionsMenu?.classList.remove('open');
+    });
+
+    function toggleActions(e){
+      e.preventDefault(); e.stopPropagation();
+      actionsMenu?.classList.toggle('open');
+      document.getElementById('tabs')?.classList.remove('open');
+    }
+    actionsBtn?.addEventListener('click', toggleActions);
+
+    document.addEventListener('click', (e) => {
+      if(actionsMenu && !actionsMenu.contains(e.target) && e.target !== actionsBtn){
+        actionsMenu.classList.remove('open');
+      }
+    });
+
+    actionsMenu?.querySelectorAll('[data-lang]').forEach(b => {
+      b.addEventListener('click', () => {
+        if(typeof applyLanguage === 'function') applyLanguage(b.dataset.lang);
+        actionsMenu.querySelectorAll('[data-lang]').forEach(x => x.classList.toggle('active', x.dataset.lang === b.dataset.lang));
+        actionsMenu.classList.remove('open');
+      });
+    });
+
+    document.getElementById('mamRestart')?.addEventListener('click', () => {
+      document.getElementById('restartBtn')?.click();
+      actionsMenu.classList.remove('open');
+    });
+    document.getElementById('mamExport')?.addEventListener('click', () => {
+      document.getElementById('exportBtn')?.click();
+      actionsMenu.classList.remove('open');
+    });
+    document.getElementById('mamFounderBtn')?.addEventListener('click', () => {
+      if(typeof showFounderWelcome === 'function') showFounderWelcome();
+      actionsMenu.classList.remove('open');
+    });
+
+    const exportBtn = document.getElementById('exportBtn');
+    if(exportBtn){
+      const syncExport = () => {
+        const mamExport = document.getElementById('mamExport');
+        if(mamExport) mamExport.disabled = exportBtn.disabled;
+      };
+      new MutationObserver(syncExport).observe(exportBtn, { attributes:true, attributeFilter:['disabled'] });
+      syncExport();
+    }
+
+    // Kurucu butonu + kullanıcı alanını menüye yansıt
+    document.addEventListener('authChanged', (e) => {
+      const user = e.detail;
+      const isFounder = user?.uid === 'l8Tih1awnjP7fRXnUsFVVAuXEZu2';
+      const fb = document.getElementById('mamFounderBtn');
+      const fd = document.getElementById('mamFounderDivider');
+      if(fb) fb.style.display = isFounder ? 'flex' : 'none';
+      if(fd) fd.style.display = isFounder ? 'block' : 'none';
+
+      // userArea içeriğini mamUserArea'ya kopyala (mobil menü içinde göster)
+      const src = document.getElementById('userArea');
+      const dst = document.getElementById('mamUserArea');
+      const ud = document.getElementById('mamUserDivider');
+      if(src && dst){
+        dst.innerHTML = src.innerHTML;
+        const hasContent = src.innerHTML.trim().length > 0;
+        if(ud) ud.style.display = hasContent ? 'block' : 'none';
+      }
+    });
+    // topTitle değiştiğinde mobil header başlığını da güncelle
+    const topTitleEl = document.getElementById('topTitle');
+    const mhTitleEl = document.querySelector('#mobileHeader .mh-title');
+    if(topTitleEl && mhTitleEl){
+      const syncTitle = () => { mhTitleEl.textContent = topTitleEl.textContent; };
+      new MutationObserver(syncTitle).observe(topTitleEl, { childList:true, characterData:true, subtree:true });
+      syncTitle();
+    }
+  })();
+</script>
+
 <div class="left-column" id="leftColumn">
   <div class="sidebar" id="sidebar">
     <div class="brand">
@@ -2061,85 +2163,7 @@
       <button class="btn" id="restartBtn" data-i18n="restartBtn">↺ Yeni dosya</button>
       <button class="btn primary" id="exportBtn" disabled data-i18n="exportBtn">⬇ .pptx indir</button>
     </div>
-
-    <!-- Mobil — tüm aksiyonlar tek menüde -->
-    <button id="mobileActionsBtn">⋯</button>
-    <div id="mobileActionsMenu">
-      <div class="mam-lang">
-        <button class="mam-lang-tr active" data-lang="tr">TR</button>
-        <button class="mam-lang-en" data-lang="en">EN</button>
-      </div>
-      <div class="mam-divider"></div>
-      <button id="mamRestart">↺ <span data-i18n="restartBtn">Yeni dosya</span></button>
-      <button id="mamExport" disabled>⬇ <span data-i18n="exportBtn">.pptx indir</span></button>
-      <div class="mam-divider" id="mamFounderDivider" style="display:none"></div>
-      <button id="mamFounderBtn" style="display:none;color:#ffd700">👑 Yönetici Paneli</button>
-    </div>
   </div>
-
-  <script>
-    // Mobil aksiyon menüsü
-    (function(){
-      const btn = document.getElementById('mobileActionsBtn');
-      const menu = document.getElementById('mobileActionsMenu');
-      if(!btn || !menu) return;
-
-      function toggleMenu(e){
-        e.preventDefault(); e.stopPropagation();
-        menu.classList.toggle('open');
-      }
-      btn.addEventListener('click', toggleMenu);
-      btn.addEventListener('touchend', toggleMenu, {passive:false});
-
-      document.addEventListener('click', (e) => {
-        if(!menu.contains(e.target) && e.target !== btn) menu.classList.remove('open');
-      });
-
-      // Dil butonları senkronize
-      menu.querySelectorAll('[data-lang]').forEach(b => {
-        b.addEventListener('click', () => {
-          if(typeof applyLanguage === 'function') applyLanguage(b.dataset.lang);
-          menu.querySelectorAll('[data-lang]').forEach(x => x.classList.toggle('active', x.dataset.lang === b.dataset.lang));
-          menu.classList.remove('open');
-        });
-      });
-
-      // Yeni dosya / export — orijinal butonları tetikle
-      document.getElementById('mamRestart')?.addEventListener('click', () => {
-        document.getElementById('restartBtn')?.click();
-        menu.classList.remove('open');
-      });
-      document.getElementById('mamExport')?.addEventListener('click', () => {
-        document.getElementById('exportBtn')?.click();
-        menu.classList.remove('open');
-      });
-      document.getElementById('mamFounderBtn')?.addEventListener('click', () => {
-        if(typeof showFounderWelcome === 'function') showFounderWelcome();
-        menu.classList.remove('open');
-      });
-
-      // exportBtn'in disabled durumunu mamExport'a yansıt
-      const exportBtn = document.getElementById('exportBtn');
-      if(exportBtn){
-        const syncExport = () => {
-          const mamExport = document.getElementById('mamExport');
-          if(mamExport) mamExport.disabled = exportBtn.disabled;
-        };
-        new MutationObserver(syncExport).observe(exportBtn, { attributes:true, attributeFilter:['disabled'] });
-        syncExport();
-      }
-
-      // Kurucu ise menüde butonu göster
-      document.addEventListener('authChanged', (e) => {
-        const user = e.detail;
-        const isFounder = user?.uid === 'l8Tih1awnjP7fRXnUsFVVAuXEZu2';
-        const fb = document.getElementById('mamFounderBtn');
-        const fd = document.getElementById('mamFounderDivider');
-        if(fb) fb.style.display = isFounder ? 'flex' : 'none';
-        if(fd) fd.style.display = isFounder ? 'block' : 'none';
-      });
-    })();
-  </script>
 
   <div class="content">
     <div class="content-inner" id="contentInner">
