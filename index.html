@@ -2878,117 +2878,372 @@ document.addEventListener('authChanged', e => {
 
 function showFounderWelcome(){
   const existing = document.getElementById('founderWelcome');
-  if(existing){ existing.remove(); return; } // açıksa kapat
+  if(existing){ existing.remove(); return; }
 
   const el = document.createElement('div');
   el.id = 'founderWelcome';
-  el.style.cssText = 'position:fixed;inset:0;z-index:99999;display:flex;align-items:center;justify-content:center;background:rgba(3,2,15,.92);backdrop-filter:blur(12px);animation:fw-appear .5s ease both;overflow-y:auto;padding:20px;';
+  el.style.cssText = 'position:fixed;inset:0;z-index:99999;display:flex;align-items:center;justify-content:center;background:rgba(3,2,15,.94);backdrop-filter:blur(14px);animation:fw-appear .4s ease both;overflow-y:auto;padding:16px;';
 
   el.innerHTML = `
-    <div style="text-align:center;padding:36px 28px;max-width:480px;width:100%;background:rgba(14,10,36,.97);border:1px solid rgba(255,215,0,.3);border-radius:28px;box-shadow:0 0 80px rgba(255,215,0,.15),0 20px 60px rgba(0,0,0,.6);animation:fw-slide .6s cubic-bezier(.16,1,.3,1) both;">
-      <div style="font-size:2.8rem;margin-bottom:10px;animation:fw-crown 1s ease-in-out infinite alternate">👑</div>
-      <div style="font-family:'Orbitron',sans-serif;font-size:1.4rem;font-weight:900;margin-bottom:4px;background:linear-gradient(135deg,#ffd700,#ffaa00,#ff6ec7);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;">Yönetici Paneli</div>
-      <div style="font-family:'Space Mono',monospace;font-size:.68rem;color:rgba(255,215,0,.5);margin-bottom:20px;letter-spacing:.12em">HOŞGELDİNİZ</div>
+    <div id="fwPanel" style="text-align:left;padding:0;max-width:600px;width:100%;max-height:92vh;display:flex;flex-direction:column;background:rgba(12,9,32,.98);border:1px solid rgba(255,215,0,.25);border-radius:24px;box-shadow:0 0 90px rgba(255,215,0,.12),0 24px 70px rgba(0,0,0,.65);animation:fw-slide .5s cubic-bezier(.16,1,.3,1) both;overflow:hidden;">
 
-      <!-- İstatistik kartları -->
-      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:18px">
-        <div style="background:rgba(255,215,0,.06);border:1px solid rgba(255,215,0,.15);border-radius:12px;padding:12px 6px">
-          <div style="font-size:1.5rem;font-weight:700;color:#ffd700" id="statUsers">—</div>
-          <div style="font-size:.6rem;color:rgba(255,215,0,.6);font-family:'Space Mono',monospace;margin-top:2px">KULLANICI</div>
-        </div>
-        <div style="background:rgba(110,231,255,.06);border:1px solid rgba(110,231,255,.15);border-radius:12px;padding:12px 6px">
-          <div style="font-size:1.5rem;font-weight:700;color:#6ee7ff" id="statDecks">—</div>
-          <div style="font-size:.6rem;color:rgba(110,231,255,.6);font-family:'Space Mono',monospace;margin-top:2px">BUGÜN DECK</div>
-        </div>
-        <div style="background:rgba(180,107,255,.06);border:1px solid rgba(180,107,255,.15);border-radius:12px;padding:12px 6px">
-          <div style="font-size:1.5rem;font-weight:700;color:#b46bff" id="statVisits">—</div>
-          <div style="font-size:.6rem;color:rgba(180,107,255,.6);font-family:'Space Mono',monospace;margin-top:2px">BUGÜN ZİYARET</div>
-        </div>
+      <!-- Header -->
+      <div style="padding:22px 24px 14px;text-align:center;border-bottom:1px solid rgba(255,255,255,.06);flex-shrink:0">
+        <div style="font-size:2.2rem;margin-bottom:4px;animation:fw-crown 1s ease-in-out infinite alternate">👑</div>
+        <div style="font-family:'Orbitron',sans-serif;font-size:1.25rem;font-weight:900;background:linear-gradient(135deg,#ffd700,#ffaa00,#ff6ec7);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;">Yönetici Paneli</div>
+        <button id="founderCloseBtn" style="position:absolute;top:18px;right:18px;width:30px;height:30px;border-radius:9px;border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.05);color:#ccc;cursor:pointer;font-size:.9rem;touch-action:manipulation">✕</button>
       </div>
 
-      <!-- Ayrıcalıklar -->
-      <div style="background:rgba(255,215,0,.04);border:1px solid rgba(255,215,0,.12);border-radius:12px;padding:12px 14px;margin-bottom:16px;text-align:left">
-        <div style="font-size:.72rem;color:rgba(255,215,0,.8);font-family:'Space Mono',monospace;line-height:1.9">
-          ⚡ Sınırsız dosya &nbsp;·&nbsp; ⚡ Sınırsız chat &nbsp;·&nbsp; ⚡ Token limiti yok
-        </div>
+      <!-- Tabs -->
+      <div id="fwTabs" style="display:flex;gap:4px;padding:10px 16px 0;flex-shrink:0;overflow-x:auto;-webkit-overflow-scrolling:touch">
+        <button class="fw-tab active" data-tab="overview">📊 Genel</button>
+        <button class="fw-tab" data-tab="moderation">🛡️ Moderasyon</button>
+        <button class="fw-tab" data-tab="users">👥 Kullanıcılar</button>
+        <button class="fw-tab" data-tab="settings">⚙️ Ayarlar</button>
       </div>
 
-      <!-- Duyuru -->
-      <div style="margin-bottom:12px;text-align:left">
-        <div style="font-size:.68rem;color:rgba(255,215,0,.7);font-family:'Space Mono',monospace;margin-bottom:6px">📢 DUYURU (boş = kapalı)</div>
-        <div style="display:flex;gap:8px">
-          <input id="founderAnn" placeholder="Tüm kullanıcılara duyuru..." style="flex:1;padding:9px 11px;border-radius:10px;border:1px solid rgba(255,215,0,.2);background:rgba(255,255,255,.04);color:#fff;font-size:.8rem;font-family:'Space Grotesk',sans-serif;">
-          <button id="founderAnnSave" style="padding:9px 16px;border-radius:10px;border:none;background:rgba(77,255,150,.2);color:#4dff96;cursor:pointer;font-size:.8rem;touch-action:manipulation;white-space:nowrap;font-weight:600">📤 Gönder</button>
-        </div>
-      </div>
-
-      <!-- Bakım modu -->
-      <div style="display:flex;align-items:center;justify-content:space-between;background:rgba(255,100,100,.05);border:1px solid rgba(255,100,100,.15);border-radius:12px;padding:11px 14px;margin-bottom:18px">
-        <div style="font-size:.8rem;color:rgba(255,150,150,.9)">🔧 Bakım Modu</div>
-        <label style="display:flex;align-items:center;gap:8px;cursor:pointer">
-          <input type="checkbox" id="founderMaintenance" style="width:18px;height:18px;cursor:pointer">
-          <span style="font-size:.72rem;color:rgba(255,150,150,.7);font-family:'Space Mono',monospace" id="maintLabel">KAPALI</span>
-        </label>
-      </div>
-
-      <button id="founderCloseBtn" style="width:100%;padding:13px;border-radius:12px;border:none;cursor:pointer;background:linear-gradient(135deg,#ffd700,#ffaa00);color:#0a0810;font-family:'Space Mono',monospace;font-size:.88rem;font-weight:700;box-shadow:0 0 20px rgba(255,215,0,.4);touch-action:manipulation;">
-        Kapat ✕
-      </button>
+      <!-- Content -->
+      <div id="fwContent" style="flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:16px 20px 24px"></div>
     </div>
   `;
 
   const style = document.createElement('style');
-  style.textContent = '@keyframes fw-appear{from{opacity:0}to{opacity:1}}@keyframes fw-slide{from{opacity:0;transform:translateY(40px) scale(.95)}to{opacity:1;transform:translateY(0) scale(1)}}@keyframes fw-crown{from{transform:rotate(-8deg) scale(1)}to{transform:rotate(8deg) scale(1.1)}}';
+  style.textContent = `
+    @keyframes fw-appear{from{opacity:0}to{opacity:1}}
+    @keyframes fw-slide{from{opacity:0;transform:translateY(40px) scale(.95)}to{opacity:1;transform:translateY(0) scale(1)}}
+    @keyframes fw-crown{from{transform:rotate(-8deg) scale(1)}to{transform:rotate(8deg) scale(1.1)}}
+    .fw-tab{
+      padding:8px 14px;border-radius:10px 10px 0 0;border:none;background:transparent;
+      color:rgba(255,255,255,.45);font-size:.74rem;font-family:'Space Grotesk',sans-serif;
+      cursor:pointer;touch-action:manipulation;white-space:nowrap;font-weight:600;
+      border-bottom:2px solid transparent;
+    }
+    .fw-tab.active{ color:#ffd700; border-bottom-color:#ffd700; }
+    .fw-card{
+      background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.07);
+      border-radius:14px;padding:14px 16px;margin-bottom:12px;
+    }
+    .fw-stat-grid{ display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px; }
+    .fw-stat-grid.cols3{ grid-template-columns:1fr 1fr 1fr; }
+    .fw-stat-box{
+      background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.08);
+      border-radius:12px;padding:11px 10px;
+    }
+    .fw-stat-num{ font-size:1.3rem;font-weight:700;font-family:'Space Grotesk',sans-serif; }
+    .fw-stat-label{ font-size:.6rem;color:rgba(255,255,255,.4);font-family:'Space Mono',monospace;margin-top:2px;letter-spacing:.04em; }
+    .fw-bar-row{ display:flex;align-items:center;gap:8px;margin-bottom:3px; }
+    .fw-bar-label{ font-size:.6rem;color:rgba(255,255,255,.35);font-family:'Space Mono',monospace;width:32px;flex-shrink:0; }
+    .fw-bar-track{ flex:1;height:10px;background:rgba(255,255,255,.05);border-radius:5px;overflow:hidden; }
+    .fw-bar-fill{ height:100%;background:linear-gradient(90deg,#6ee7ff,#b46bff);border-radius:5px;transition:width .4s ease; }
+    .fw-list-item{
+      display:flex;justify-content:space-between;align-items:center;gap:8px;
+      padding:8px 10px;border-radius:9px;font-size:.72rem;margin-bottom:4px;
+      background:rgba(255,255,255,.02);
+    }
+    .fw-badge{
+      font-size:.6rem;padding:2px 7px;border-radius:6px;font-family:'Space Mono',monospace;
+      white-space:nowrap;
+    }
+    .fw-input{
+      width:100%;padding:9px 11px;border-radius:10px;border:1px solid rgba(255,255,255,.12);
+      background:rgba(255,255,255,.04);color:#fff;font-size:.8rem;font-family:'Space Grotesk',sans-serif;
+      box-sizing:border-box;
+    }
+    .fw-btn{
+      padding:9px 14px;border-radius:10px;border:none;cursor:pointer;font-size:.78rem;
+      font-family:'Space Grotesk',sans-serif;touch-action:manipulation;font-weight:600;white-space:nowrap;
+    }
+    .fw-btn-green{ background:rgba(77,255,150,.18);color:#4dff96; }
+    .fw-btn-red{ background:rgba(255,100,110,.18);color:#ff6e78; }
+    .fw-btn-gold{ background:rgba(255,215,0,.18);color:#ffd700; }
+    .fw-empty{ text-align:center;padding:20px;color:rgba(255,255,255,.3);font-size:.78rem; }
+  `;
   document.head.appendChild(style);
   document.body.appendChild(el);
 
-  // İstatistikleri yükle
-  if(window.fbGetStats){
-    window.fbGetStats().then(stats => {
-      const today = new Date().toISOString().split('T')[0];
-      const ts = stats.find(s => s.date === today) || {};
-      document.getElementById('statDecks').textContent = ts.decks || 0;
-      document.getElementById('statVisits').textContent = ts.visits || 0;
-    });
-  }
-  if(window.fbGetUserCount){
-    window.fbGetUserCount().then(n => { document.getElementById('statUsers').textContent = n; });
-  }
-  if(window.fbGetAnnouncement){
-    window.fbGetAnnouncement().then(ann => {
-      if(ann?.text) document.getElementById('founderAnn').value = ann.text;
-    });
-  }
-  if(window.fbGetMaintenance){
-    window.fbGetMaintenance().then(active => {
-      document.getElementById('founderMaintenance').checked = active;
-      document.getElementById('maintLabel').textContent = active ? 'AÇIK' : 'KAPALI';
-    });
-  }
-
-  async function handleAnnSave(){
-    const text = document.getElementById('founderAnn')?.value.trim();
-    if(window.fbSetAnnouncement) await window.fbSetAnnouncement(text);
-    const btn = document.getElementById('founderAnnSave');
-    if(btn){ btn.textContent = '✓ Gönderildi'; }
-    setTimeout(()=>{ if(document.getElementById('founderAnnSave')) document.getElementById('founderAnnSave').textContent = '📤 Gönder'; }, 2000);
-    if(text) document.dispatchEvent(new CustomEvent('announcementReady', {detail: text}));
-  }
-  const annBtn = document.getElementById('founderAnnSave');
-  annBtn.addEventListener('click', handleAnnSave);
-  annBtn.addEventListener('touchend', (e)=>{ e.preventDefault(); handleAnnSave(); }, {passive:false});
-
-  document.getElementById('founderMaintenance').onchange = async (e) => {
-    const active = e.target.checked;
-    document.getElementById('maintLabel').textContent = active ? 'AÇIK' : 'KAPALI';
-    if(window.fbSetMaintenance) await window.fbSetMaintenance(active);
-  };
-
   document.getElementById('founderCloseBtn').onclick = () => {
-    el.style.animation = 'fw-appear .3s ease reverse both';
-    setTimeout(()=>{ el.remove(); style.remove(); }, 300);
+    el.style.animation = 'fw-appear .25s ease reverse both';
+    setTimeout(()=>{ el.remove(); style.remove(); }, 250);
   };
+
+  // ============ ADMIN API ÇAĞRISI ============
+  const ADMIN_SECRET = 'thinkle-admin-' + 'l8Tih1aw'; // founder UID'in ilk 8 karakteri
+  const PROXY_BASE = 'https://thinkle-proxy-518x.onrender.com';
+
+  async function adminFetch(path, body){
+    if(body){
+      const res = await fetch(PROXY_BASE + path, {
+        method: 'POST',
+        headers: { 'Content-Type':'application/json' },
+        body: JSON.stringify({ uid: window.currentUser?.uid, adminToken: ADMIN_SECRET, ...body })
+      });
+      return res.json();
+    }
+    // GET — query string ile
+    const url = new URL(PROXY_BASE + path);
+    url.searchParams.set('uid', window.currentUser?.uid || '');
+    url.searchParams.set('adminToken', ADMIN_SECRET);
+    const res = await fetch(url.toString());
+    return res.json();
+  }
+
+  let cachedStats = null;
+
+  // ============ TAB SİSTEMİ ============
+  const tabsEl = document.getElementById('fwTabs');
+  const contentEl = document.getElementById('fwContent');
+
+  tabsEl.querySelectorAll('.fw-tab').forEach(tab => {
+    tab.addEventListener('click', () => switchTab(tab.dataset.tab));
+    tab.addEventListener('touchend', (e) => { e.preventDefault(); switchTab(tab.dataset.tab); }, {passive:false});
+  });
+
+  function switchTab(name){
+    tabsEl.querySelectorAll('.fw-tab').forEach(t => t.classList.toggle('active', t.dataset.tab === name));
+    if(name === 'overview') renderOverview();
+    else if(name === 'moderation') renderModeration();
+    else if(name === 'users') renderUsers();
+    else if(name === 'settings') renderSettings();
+  }
+
+  // ============ GENEL BAKIŞ ============
+  async function renderOverview(){
+    contentEl.innerHTML = `<div class="fw-empty">Yükleniyor...</div>`;
+    try{
+      cachedStats = await adminFetch('/api/admin/stats');
+    }catch(e){
+      contentEl.innerHTML = `<div class="fw-empty">İstatistikler yüklenemedi.</div>`;
+      return;
+    }
+    const s = cachedStats;
+    const tokenPct = Math.min(100, Math.round((s.totalInputTokens + s.totalOutputTokens) / (s.dailyTokenLimitPerUser * Math.max(s.activeUsers,1)) * 100)) || 0;
+    const costWarn = s.estimatedCostUSD >= 8 ? '#ff6e78' : s.estimatedCostUSD >= 5 ? '#ffd700' : '#4dff96';
+
+    const maxHour = Math.max(...s.hourlyDistribution, 1);
+    const hourBars = s.hourlyDistribution.map((v,h) => `
+      <div class="fw-bar-row">
+        <div class="fw-bar-label">${String(h).padStart(2,'0')}:00</div>
+        <div class="fw-bar-track"><div class="fw-bar-fill" style="width:${(v/maxHour*100)||0}%"></div></div>
+        <div style="font-size:.62rem;color:rgba(255,255,255,.4);width:22px;text-align:right">${v}</div>
+      </div>`).join('');
+
+    contentEl.innerHTML = `
+      <div class="fw-card" style="border-color:${s.estimatedCostUSD>=8?'rgba(255,100,110,.3)':'rgba(255,255,255,.07)'}">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+          <span style="font-size:.7rem;color:rgba(255,255,255,.5);font-family:'Space Mono',monospace">💰 TAHMİNİ AYLIK MALİYET</span>
+          ${s.estimatedCostUSD >= 8 ? '<span class="fw-badge" style="background:rgba(255,100,110,.2);color:#ff6e78">⚠ YÜKSEK</span>' : ''}
+        </div>
+        <div style="font-size:1.8rem;font-weight:700;color:${costWarn};font-family:'Space Grotesk',sans-serif">$${s.estimatedCostUSD}</div>
+        <div style="font-size:.65rem;color:rgba(255,255,255,.35);margin-top:4px">Input: ${(s.totalInputTokens/1000).toFixed(1)}K · Output: ${(s.totalOutputTokens/1000).toFixed(1)}K token</div>
+      </div>
+
+      <div class="fw-stat-grid cols3">
+        <div class="fw-stat-box">
+          <div class="fw-stat-num" style="color:#6ee7ff">${s.activeUsers}</div>
+          <div class="fw-stat-label">AKTİF KULLANICI</div>
+        </div>
+        <div class="fw-stat-box">
+          <div class="fw-stat-num" style="color:#b46bff">${s.totalRequests}</div>
+          <div class="fw-stat-label">TOPLAM İSTEK</div>
+        </div>
+        <div class="fw-stat-box">
+          <div class="fw-stat-num" style="color:${s.errorRate > 5 ? '#ff6e78' : '#4dff96'}">${s.errorRate}%</div>
+          <div class="fw-stat-label">HATA ORANI</div>
+        </div>
+      </div>
+
+      <div class="fw-card">
+        <div style="font-size:.7rem;color:rgba(255,255,255,.5);font-family:'Space Mono',monospace;margin-bottom:10px">🕐 SAATLİK İSTEK DAĞILIMI (BUGÜN)</div>
+        ${hourBars}
+      </div>
+
+      <div class="fw-card" style="background:rgba(255,215,0,.03);border-color:rgba(255,215,0,.1)">
+        <div style="font-size:.7rem;color:rgba(255,215,0,.6);font-family:'Space Mono',monospace;margin-bottom:8px">⚡ AYRICALIKLAR</div>
+        <div style="font-size:.72rem;color:rgba(255,215,0,.8);line-height:1.8">
+          Sınırsız dosya · Sınırsız chat · Token limiti yok
+        </div>
+      </div>
+    `;
+  }
+
+  // ============ MODERASYON ============
+  async function renderModeration(){
+    contentEl.innerHTML = `<div class="fw-empty">Yükleniyor...</div>`;
+    if(!cachedStats){
+      try{ cachedStats = await adminFetch('/api/admin/stats'); }
+      catch(e){ contentEl.innerHTML = `<div class="fw-empty">Veri yüklenemedi.</div>`; return; }
+    }
+    const s = cachedStats;
+
+    const reportsHtml = s.abuseReports?.length
+      ? s.abuseReports.map(r => `
+        <div class="fw-list-item" style="flex-direction:column;align-items:flex-start;gap:4px">
+          <div style="display:flex;justify-content:space-between;width:100%">
+            <span class="fw-badge" style="background:rgba(255,100,110,.18);color:#ff6e78">${r.type === 'honeypot' ? '🍯 honeypot' : '⚡ rate_spike'}</span>
+            <span style="font-size:.6rem;color:rgba(255,255,255,.3)">${new Date(r.time).toLocaleString('tr-TR')}</span>
+          </div>
+          <div style="font-size:.7rem;color:rgba(255,255,255,.6)">IP: ${r.ip} ${r.uid && r.uid !== '-' ? '· UID: '+r.uid.slice(0,12)+'…' : ''}</div>
+          <div style="font-size:.68rem;color:rgba(255,255,255,.4)">${r.detail}</div>
+        </div>`).join('')
+      : `<div class="fw-empty">Şüpheli kullanım kaydı yok 👍</div>`;
+
+    const decksHtml = s.recentDecks?.length
+      ? s.recentDecks.map(d => `
+        <div class="fw-list-item">
+          <span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1">${(d.title||'').replace(/</g,'&lt;')}</span>
+          <span style="font-size:.6rem;color:rgba(255,255,255,.3);flex-shrink:0">${new Date(d.time).toLocaleTimeString('tr-TR',{hour:'2-digit',minute:'2-digit'})}</span>
+        </div>`).join('')
+      : `<div class="fw-empty">Henüz deck oluşturulmadı</div>`;
+
+    contentEl.innerHTML = `
+      <div class="fw-card">
+        <div style="font-size:.7rem;color:rgba(255,100,110,.7);font-family:'Space Mono',monospace;margin-bottom:10px">🚨 ŞÜPHELİ KULLANIM RAPORLARI</div>
+        ${reportsHtml}
+      </div>
+      <div class="fw-card">
+        <div style="font-size:.7rem;color:rgba(110,231,255,.7);font-family:'Space Mono',monospace;margin-bottom:10px">📑 SON OLUŞTURULAN DECK BAŞLIKLARI</div>
+        ${decksHtml}
+      </div>
+    `;
+  }
+
+  // ============ KULLANICILAR ============
+  async function renderUsers(){
+    contentEl.innerHTML = `<div class="fw-empty">Yükleniyor...</div>`;
+    if(!cachedStats){
+      try{ cachedStats = await adminFetch('/api/admin/stats'); }
+      catch(e){ contentEl.innerHTML = `<div class="fw-empty">Veri yüklenemedi.</div>`; return; }
+    }
+    const s = cachedStats;
+
+    const bannedHtml = s.bannedUsers?.length
+      ? s.bannedUsers.map(u => `
+        <div class="fw-list-item">
+          <div style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1">
+            <div style="font-size:.7rem">${u.uid.slice(0,16)}…</div>
+            <div style="font-size:.62rem;color:rgba(255,255,255,.35)">${u.reason}</div>
+          </div>
+          <button class="fw-btn fw-btn-green" data-unban="${u.uid}" style="padding:5px 10px;font-size:.65rem">Kaldır</button>
+        </div>`).join('')
+      : `<div class="fw-empty">Banlı kullanıcı yok</div>`;
+
+    const unlimitedHtml = s.unlimitedUsers?.length
+      ? s.unlimitedUsers.map(uid => `
+        <div class="fw-list-item">
+          <span style="font-size:.7rem">${uid.slice(0,16)}…</span>
+          <button class="fw-btn fw-btn-red" data-revoke="${uid}" style="padding:5px 10px;font-size:.65rem">Kaldır</button>
+        </div>`).join('')
+      : `<div class="fw-empty">Özel ayrıcalıklı kullanıcı yok</div>`;
+
+    contentEl.innerHTML = `
+      <div class="fw-card">
+        <div style="font-size:.7rem;color:rgba(255,255,255,.5);font-family:'Space Mono',monospace;margin-bottom:10px">🔍 KULLANICI YÖNETİMİ (UID ile)</div>
+        <input id="fwTargetUid" class="fw-input" placeholder="Kullanıcı UID'si yapıştır..." style="margin-bottom:8px">
+        <input id="fwBanReason" class="fw-input" placeholder="Ban sebebi (opsiyonel)" style="margin-bottom:10px">
+        <div style="display:flex;gap:8px;flex-wrap:wrap">
+          <button id="fwBanBtn" class="fw-btn fw-btn-red">🚫 Banla</button>
+          <button id="fwGrantBtn" class="fw-btn fw-btn-gold">⚡ Sınırsız Erişim Ver</button>
+        </div>
+      </div>
+
+      <div class="fw-card">
+        <div style="font-size:.7rem;color:rgba(255,100,110,.7);font-family:'Space Mono',monospace;margin-bottom:10px">🚫 BANLI KULLANICILAR</div>
+        ${bannedHtml}
+      </div>
+
+      <div class="fw-card">
+        <div style="font-size:.7rem;color:rgba(255,215,0,.7);font-family:'Space Mono',monospace;margin-bottom:10px">⚡ SINIRSIZ ERİŞİMLİ KULLANICILAR (Beta Testçiler)</div>
+        ${unlimitedHtml}
+      </div>
+    `;
+
+    document.getElementById('fwBanBtn').onclick = async () => {
+      const uid = document.getElementById('fwTargetUid').value.trim();
+      const reason = document.getElementById('fwBanReason').value.trim();
+      if(!uid) return;
+      await adminFetch('/api/admin/ban', { targetUid: uid, reason });
+      cachedStats = null;
+      renderUsers();
+    };
+    document.getElementById('fwGrantBtn').onclick = async () => {
+      const uid = document.getElementById('fwTargetUid').value.trim();
+      if(!uid) return;
+      await adminFetch('/api/admin/grant-unlimited', { targetUid: uid });
+      cachedStats = null;
+      renderUsers();
+    };
+    contentEl.querySelectorAll('[data-unban]').forEach(btn => {
+      btn.onclick = async () => {
+        await adminFetch('/api/admin/unban', { targetUid: btn.dataset.unban });
+        cachedStats = null;
+        renderUsers();
+      };
+    });
+    contentEl.querySelectorAll('[data-revoke]').forEach(btn => {
+      btn.onclick = async () => {
+        await adminFetch('/api/admin/revoke-unlimited', { targetUid: btn.dataset.revoke });
+        cachedStats = null;
+        renderUsers();
+      };
+    });
+  }
+
+  // ============ AYARLAR (duyuru + bakım modu) ============
+  function renderSettings(){
+    contentEl.innerHTML = `
+      <div class="fw-card">
+        <div style="font-size:.7rem;color:rgba(255,215,0,.7);font-family:'Space Mono',monospace;margin-bottom:8px">📢 DUYURU (boş = kapalı)</div>
+        <div style="display:flex;gap:8px">
+          <input id="founderAnn" class="fw-input" placeholder="Tüm kullanıcılara duyuru...">
+          <button id="founderAnnSave" class="fw-btn fw-btn-green">📤 Gönder</button>
+        </div>
+      </div>
+
+      <div class="fw-card" style="display:flex;align-items:center;justify-content:space-between">
+        <div style="font-size:.78rem;color:rgba(255,150,150,.9)">🔧 Bakım Modu</div>
+        <label style="display:flex;align-items:center;gap:8px;cursor:pointer">
+          <input type="checkbox" id="founderMaintenance" style="width:18px;height:18px;cursor:pointer">
+          <span style="font-size:.7rem;color:rgba(255,150,150,.7);font-family:'Space Mono',monospace" id="maintLabel">KAPALI</span>
+        </label>
+      </div>
+    `;
+
+    if(window.fbGetAnnouncement){
+      window.fbGetAnnouncement().then(ann => {
+        const inp = document.getElementById('founderAnn');
+        if(ann?.text && inp) inp.value = ann.text;
+      });
+    }
+    if(window.fbGetMaintenance){
+      window.fbGetMaintenance().then(active => {
+        const cb = document.getElementById('founderMaintenance');
+        if(cb){ cb.checked = active; document.getElementById('maintLabel').textContent = active ? 'AÇIK' : 'KAPALI'; }
+      });
+    }
+
+    async function handleAnnSave(){
+      const text = document.getElementById('founderAnn')?.value.trim();
+      if(window.fbSetAnnouncement) await window.fbSetAnnouncement(text);
+      const btn = document.getElementById('founderAnnSave');
+      if(btn) btn.textContent = '✓ Gönderildi';
+      setTimeout(()=>{ const b = document.getElementById('founderAnnSave'); if(b) b.textContent = '📤 Gönder'; }, 2000);
+      if(text) document.dispatchEvent(new CustomEvent('announcementReady', {detail: text}));
+    }
+    const annBtn = document.getElementById('founderAnnSave');
+    annBtn.addEventListener('click', handleAnnSave);
+    annBtn.addEventListener('touchend', (e)=>{ e.preventDefault(); handleAnnSave(); }, {passive:false});
+
+    document.getElementById('founderMaintenance').onchange = async (e) => {
+      const active = e.target.checked;
+      document.getElementById('maintLabel').textContent = active ? 'AÇIK' : 'KAPALI';
+      if(window.fbSetMaintenance) await window.fbSetMaintenance(active);
+    };
+  }
+
+  // İlk açılışta Genel Bakış sekmesi
+  renderOverview();
 }
+
 
 
 // Kozmik duyuru efekti
