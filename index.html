@@ -2545,6 +2545,15 @@
   const introOrb = document.getElementById('introOrb');
   if(!intro || !canvas) return;
 
+  // GÜVENLİK AĞI — ne olursa olsun (JS hatası, takılma, vs) 7 saniye
+  // sonra intro zorla kapatılır. Aksi halde z-index:9000 tüm tıklamaları
+  // sonsuza kadar bloke edebilir.
+  const introFailsafe = setTimeout(()=>{
+    intro.classList.add('fade-out');
+    intro.style.pointerEvents = 'none';
+    setTimeout(()=>{ try{ intro.remove(); }catch(e){} }, 800);
+  }, 7000);
+
   const ctx = canvas.getContext('2d');
   let W, H, stars = [];
   function resize(){
@@ -2635,6 +2644,14 @@
   rafId = requestAnimationFrame(frame);
 
   function flyOrbToSol(){
+    try{
+      _flyOrbToSolInner();
+    }catch(err){
+      finishIntro();
+    }
+  }
+
+  function _flyOrbToSolInner(){
     // solEl henüz pozisyonlandı mı kontrol et
     const solEl = document.querySelector('.sol');
     if(!solEl){ finishIntro(); return; }
@@ -2693,6 +2710,7 @@
   }
 
   function finishIntro(){
+    clearTimeout(introFailsafe);
     intro.classList.add('fade-out');
     // solEl'i göster
     const sol = document.querySelector('.sol');
