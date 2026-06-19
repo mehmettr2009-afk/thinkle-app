@@ -1283,8 +1283,12 @@
      MOBİL LAYOUT — tamamen yeniden yazıldı
      ===================================================== */
   @media (max-width: 860px){
-    html, body{ height:100%; width:100%; overflow:hidden; margin:0; padding:0; }
-    body{ display:flex; flex-direction:column; position:fixed; inset:0; }
+    html{ height:100%; }
+    body{
+      min-height:100vh; min-height:100dvh;
+      display:flex; flex-direction:column;
+      overflow:hidden; margin:0; padding:0;
+    }
 
     /* Eski sidebar tamamen gizli — yerine #mobileHeader kullanılıyor */
     .left-column{ display:none !important; }
@@ -1294,7 +1298,7 @@
       display:flex !important; align-items:center; justify-content:space-between;
       flex-shrink:0; width:100%; height:48px; padding:0 12px;
       background:rgba(7,10,24,.97); backdrop-filter:blur(12px);
-      border-bottom:1px solid var(--line); position:relative; z-index:30;
+      border-bottom:1px solid var(--line); position:sticky; top:0; z-index:30;
       box-sizing:border-box;
     }
     #mobileHeader .mh-left{
