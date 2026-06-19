@@ -1287,32 +1287,33 @@
     body{ display:flex; flex-direction:column; position:fixed; inset:0; }
 
     .left-column{
-      width:100%; flex-shrink:0; order:1;
+      width:100%; flex-shrink:0; order:1; height:auto; min-height:0;
       border-right:none; border-bottom:1px solid var(--line);
       background:rgba(7,10,24,.97); backdrop-filter:blur(12px);
       display:flex; flex-direction:column;
       position:relative; z-index:20; overflow:visible;
     }
     .sidebar{
-      flex-direction:row; align-items:center; padding:8px 12px;
-      flex-wrap:nowrap; border-bottom:none; gap:8px;
-      height:auto; max-height:none;
+      flex-direction:row; align-items:center; padding:6px 10px;
+      flex-wrap:nowrap; border-bottom:none; gap:6px;
+      height:auto; max-height:none; min-height:0;
     }
-    .brand{ flex:1; padding:0; border-bottom:none; margin:0; display:flex; align-items:center; gap:8px; min-width:0; }
-    .brand h1{ font-size:.85rem; margin:0; }
+    .brand{ flex:0 1 auto; padding:0; border-bottom:none; margin:0; display:flex; align-items:center; gap:6px; min-width:0; }
+    .brand h1{ font-size:.8rem; margin:0; white-space:nowrap; }
     .brand .util{ display:none; } /* tagline mobilde gizli — yer kaplamasın */
-    .brand-mark{ width:28px; height:28px; border-radius:8px; flex-shrink:0; }
+    .brand-mark{ width:24px; height:24px; border-radius:7px; flex-shrink:0; }
     .menu-toggle{
-      display:inline-flex; padding:6px 10px; font-size:.62rem;
+      display:inline-flex; padding:5px 8px; font-size:.6rem;
       border:1px solid var(--line); background:rgba(255,255,255,.06);
-      color:var(--ink); border-radius:8px; cursor:pointer;
+      color:var(--ink); border-radius:7px; cursor:pointer;
       touch-action:manipulation; white-space:nowrap; flex-shrink:0;
     }
-    /* userArea mobilde sidebar altında kompakt gösterilir (gizlenmez — giriş gerekli) */
-    #userArea{ flex-shrink:0; }
-    #userArea > div{ border-top:none !important; padding:0 !important; }
-    #userArea img{ width:24px !important; height:24px !important; }
-    #userArea button{ padding:5px 8px !important; font-size:.62rem !important; }
+    /* userArea mobilde sidebar'ın en sağında, kompakt — taşmasın diye sıkıştırıldı */
+    #userArea{ flex-shrink:1; min-width:0; max-width:120px; }
+    #userArea > div{ border-top:none !important; padding:0 !important; gap:4px !important; }
+    #userArea img{ width:20px !important; height:20px !important; }
+    #userArea button{ padding:4px 6px !important; font-size:.58rem !important; }
+    #userArea > div > div:nth-child(2){ display:none !important; } /* isim/email metnini gizle, sadece avatar+çıkış kalsın */
     .tabs{
       display:none; position:fixed; top:56px; left:0; right:0; bottom:0;
       max-height:none; overflow-y:auto; -webkit-overflow-scrolling:touch;
@@ -1375,7 +1376,7 @@
 
     .content{ flex:1; overflow-y:auto; overflow-x:hidden;
       -webkit-overflow-scrolling:touch; padding:12px; min-height:0; }
-    .content-inner{ min-height:100%; padding-bottom:90px; }
+    .content-inner{ min-height:100%; padding-bottom:140px; }
 
     .upload-screen{ padding-top:50px; margin:0 auto; }
     .upload-screen h1{ font-size:1.25rem; top:10px; left:12px; }
@@ -1396,7 +1397,7 @@
     .slide-nav #flashcardBtn{ justify-self:center; }
     .slide-nav .btn{ padding:8px 12px; font-size:.72rem; white-space:nowrap; }
 
-    .quiz-q{ padding:12px 10px; }
+    .quiz-q{ padding:12px 10px; scroll-margin-top:70px; }
     .quiz-opt{ padding:10px 12px; font-size:.82rem; touch-action:manipulation; }
     .quiz-result{ padding:16px 12px; }
     .quiz-result .score-num{ font-size:2rem; }
@@ -4151,7 +4152,7 @@ function startQuizWithDifficulty(){
       ${q.options.map((opt,oi)=>`<button class="quiz-opt" data-oi="${oi}">${escapeHtml(opt)}</button>`).join('')}
     </div>`;
   });
-  html += `<div id="quizResultSlot"></div>`;
+  html += `<div id="quizResultSlot"></div><div style="height:40px"></div>`;
   deckScreen.innerHTML = html;
   setTimeout(positionSolarSystem, 50);
   deckScreen.querySelectorAll('.quiz-q').forEach(qEl => {
