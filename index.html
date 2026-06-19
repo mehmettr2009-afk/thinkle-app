@@ -1334,7 +1334,6 @@
       -webkit-tap-highlight-color:rgba(110,231,255,.3);
       position:relative; z-index:31;
     }
-    #mobileHeader #mhSlidesBtn{ font-size:.85rem; padding:0 9px; }
 
     .tabs{
       display:none; position:fixed; top:48px; left:0; right:0; bottom:0;
@@ -2030,7 +2029,6 @@
   <div class="mh-right">
     <button id="mhLoginBtn" style="display:flex;color:#ffd27a;border-color:rgba(255,180,80,.4)">🔑 Giriş</button>
     <button id="mhLogoutBtn" style="display:none;color:#ff8fa3;border-color:rgba(255,110,140,.4)">↪ Çıkış</button>
-    <button id="mhSlidesBtn">☰</button>
     <button id="mobileActionsBtn">⋯</button>
   </div>
 </div>
@@ -2040,6 +2038,7 @@
     <button class="mam-lang-en" data-lang="en">EN</button>
   </div>
   <div class="mam-divider"></div>
+  <button id="mamSlides">📑 <span data-i18n="menuToggle">Slaytlar</span></button>
   <button id="mamRestart">↺ <span data-i18n="restartBtn">Yeni dosya</span></button>
   <button id="mamExport" disabled>⬇ <span data-i18n="exportBtn">.pptx indir</span></button>
   <div class="mam-divider" id="mamFounderDivider" style="display:none"></div>
@@ -2049,9 +2048,8 @@
 </div>
 
 <script>
-  // Mobil header — slayt menüsü ve aksiyon menüsü
+  // Mobil header — aksiyon menüsü
   (function(){
-    const slidesBtn   = document.getElementById('mhSlidesBtn');
     const actionsBtn  = document.getElementById('mobileActionsBtn');
     const actionsMenu = document.getElementById('mobileActionsMenu');
     const loginBtn    = document.getElementById('mhLoginBtn');
@@ -2073,17 +2071,6 @@
       });
     }
 
-    bindTap(slidesBtn, () => {
-      const tabsEl = document.getElementById('tabs');
-      if(!tabsEl || tabsEl.children.length === 0){
-        // Henüz slayt yok — kısa bir geri bildirim ver
-        slidesBtn.style.background = 'rgba(255,110,140,.25)';
-        setTimeout(()=>{ slidesBtn.style.background = ''; }, 300);
-        return;
-      }
-      tabsEl.classList.toggle('open');
-      actionsMenu?.classList.remove('open');
-    });
 
     bindTap(actionsBtn, () => {
       actionsMenu?.classList.toggle('open');
@@ -2120,6 +2107,13 @@
       });
     });
 
+    bindTap(document.getElementById('mamSlides'), () => {
+      const tabsEl = document.getElementById('tabs');
+      if(tabsEl && tabsEl.children.length > 0){
+        tabsEl.classList.add('open');
+      }
+      actionsMenu.classList.remove('open');
+    });
     bindTap(document.getElementById('mamRestart'), () => {
       document.getElementById('restartBtn')?.click();
       actionsMenu.classList.remove('open');
@@ -2290,9 +2284,9 @@
           </div>
           <div class="dropzone-label"><strong data-i18n="dzTitle">Dosya seçmek için tıkla</strong> <span data-i18n="dzOr" style="color:rgba(180,160,255,.7);font-weight:400">veya buraya sürükle</span></div>
           <div class="dropzone-sublabel">Yapay zeka dosyanı slayta ve quize dönüştürür</div>
-          <div class="small">.pdf &nbsp;·&nbsp; .docx &nbsp;·&nbsp; .txt &nbsp;·&nbsp; .xlsx &nbsp;·&nbsp; .csv</div>
+          <div class="small">.pdf &nbsp;·&nbsp; .docx &nbsp;·&nbsp; .txt &nbsp;·&nbsp; .xlsx &nbsp;·&nbsp; .csv &nbsp;·&nbsp; .jpg &nbsp;·&nbsp; .png</div>
           <div class="filename" id="fileName"></div>
-          <input type="file" id="fileInput" accept=".pdf,.docx,.txt,.xlsx,.xls,.csv">
+          <input type="file" id="fileInput" accept=".pdf,.docx,.txt,.xlsx,.xls,.csv,.jpg,.jpeg,.png">
         </div>
 
         <button class="btn primary go-btn" id="goBtn" data-i18n="goBtn">Çalışma kağıdı oluştur →</button>
@@ -3876,7 +3870,55 @@ async function extractText(file){
     });
     return text;
   }
+  if(name.endsWith('.jpg') || name.endsWith('.jpeg') || name.endsWith('.png')){
+    return await extractTextFromImage(file);
+  }
   throw new Error(t('unsupportedFile'));
+}
+
+// Görselden AI ile metin çıkarma (OCR benzeri)
+async function extractTextFromImage(file){
+  const base64 = await new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result.split(',')[1]);
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+  const mediaType = file.type || 'image/jpeg';
+
+  const response = await fetch(PROXY_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      model: 'google/gemini-2.5-flash',
+      max_tokens: 3000,
+      uid: window.currentUser?.uid || '',
+      sig: getRequestSignature(),
+      messages: [{
+        role: 'user',
+        content: [
+          { type: 'image_url', image_url: { url: `data:${mediaType};base64,${base64}` } },
+          { type: 'text', text: currentLang === 'tr'
+              ? 'Bu görseldeki tüm metni eksiksiz olarak çıkar. Sadece metni ver, başka açıklama ekleme.'
+              : 'Extract all text from this image completely. Only return the text, no extra commentary.' }
+        ]
+      }]
+    })
+  });
+
+  if(!response.ok){
+    throw new Error(currentLang === 'tr'
+      ? 'Görsel işlenirken hata oluştu.'
+      : 'Error processing image.');
+  }
+  const data = await response.json();
+  const text = data.content?.[0]?.text || '';
+  if(!text.trim()){
+    throw new Error(currentLang === 'tr'
+      ? 'Görselde metin bulunamadı.'
+      : 'No text found in image.');
+  }
+  return text;
 }
 
 // Attempts to parse the model's JSON output. If the response was cut off
@@ -4106,9 +4148,7 @@ function buildTabs(){
   qt.onclick = () => { renderQuiz(); markActiveTab(qt); tabsEl.classList.remove('open'); };
   tabsEl.appendChild(qt);
 
-  // Mobil ☰ butonunu aktif görünüme al — artık slayt listesi dolu
-  const mhSlides = document.getElementById('mhSlidesBtn');
-  if(mhSlides){ mhSlides.style.borderColor = 'rgba(110,231,255,.5)'; mhSlides.style.color = 'var(--accent)'; }
+  // Mobil ☰ butonu kaldırıldı — artık "Slaytlar" ⋯ menüsünde
 }
 
 function markActiveTab(activeEl){
