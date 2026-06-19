@@ -2605,6 +2605,7 @@ const FOUNDER_UID = 'l8Tih1awnjP7fRXnUsFVVAuXEZu2';
 
 document.addEventListener('authChanged', e => {
   const user = e.detail;
+  if(typeof updateLimitBadges === 'function') updateLimitBadges();
   const userArea = document.getElementById('userArea');
   if(!userArea) return;
   if(user){
@@ -4628,20 +4629,39 @@ updateLangClass();
 
 // Kullanım limitlerini göster
 async function updateLimitBadges(){
+  const FOUNDER_UID = 'l8Tih1awnjP7fRXnUsFVVAuXEZu2';
+  const isFounder = window.currentUser?.uid === FOUNDER_UID;
+
+  const deckBadge = document.getElementById('deckLimitBadge');
+  const deckText  = document.getElementById('deckLimitText');
+  const chatBadge = document.getElementById('chatLimitBadge');
+  const chatText  = document.getElementById('chatLimitText');
+
+  // Kurucu — sınırsız göster, API'ye gerek yok
+  if(isFounder){
+    if(deckBadge && deckText){
+      deckText.textContent = '∞';
+      deckBadge.style.display = 'block';
+      deckText.style.color = '#ffd700';
+    }
+    if(chatBadge && chatText){
+      chatText.textContent = '∞';
+      chatBadge.style.display = 'flex';
+      chatText.style.color = '#ffd700';
+    }
+    return;
+  }
+
   try{
     const r = await fetch('https://thinkle-proxy-518x.onrender.com/api/limit');
     if(!r.ok) return;
     const data = await r.json();
-    const deckBadge = document.getElementById('deckLimitBadge');
-    const deckText  = document.getElementById('deckLimitText');
     if(deckBadge && deckText){
       const left = Math.max(0, data.decks.limit - data.decks.used);
       deckText.textContent = left + ' / ' + data.decks.limit;
       deckBadge.style.display = 'block';
       deckText.style.color = left <= 2 ? '#ff6ec7' : 'rgba(110,231,255,.7)';
     }
-    const chatBadge = document.getElementById('chatLimitBadge');
-    const chatText  = document.getElementById('chatLimitText');
     if(chatBadge && chatText){
       const left = Math.max(0, data.chats.limit - data.chats.used);
       chatText.textContent = left + ' / ' + data.chats.limit;
