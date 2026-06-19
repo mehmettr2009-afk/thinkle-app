@@ -3425,6 +3425,9 @@ function t(key, ...args){
   return typeof val === 'function' ? val(...args) : val;
 }
 
+let lastSourceText = null;
+let deckLang = 'tr';
+
 function applyLanguage(lang){
   currentLang = lang;
   document.documentElement.lang = lang;
@@ -3444,12 +3447,44 @@ function applyLanguage(lang){
   });
   // re-render dynamic views if a deck is loaded
   if(deck){
+    // Eğer dil değiştiyse ve elimizde orijinal kaynak metin varsa, deck'i yeniden üret
+    if(lastSourceText && lang !== deckLang){
+      regenerateDeckForLanguage(lang);
+      return;
+    }
     const wasQuiz = !!deckScreen.querySelector('.quiz-q');
     buildTabs();
     if(wasQuiz){ renderQuiz(); markActiveTab(tabsEl.lastChild); }
     else renderSlide();
   } else {
     topTitle.textContent = t('topTitleDefault');
+  }
+}
+
+async function regenerateDeckForLanguage(lang){
+  currentLang = lang; // generateDeck içindeki langInstruction buna bakıyor
+  document.documentElement.lang = lang;
+
+  loadingScreen.classList.remove('hidden');
+  startLoadingAnimation();
+  solEl.style.visibility = 'hidden';
+  loadingText.textContent = t('loadingDesign');
+
+  try{
+    deck = await generateDeck(lastSourceText);
+    deckLang = lang;
+    currentSlide = 0;
+    quizAnswers = {};
+    buildTabs();
+    renderSlide();
+    if(window.fbLogUsage) window.fbLogUsage('decks');
+    updateLimitBadges();
+  }catch(err){
+    showError(lang === 'tr' ? 'Dil değiştirilirken hata oluştu.' : 'Error changing language.');
+  }finally{
+    loadingScreen.classList.add('hidden');
+    stopLoadingAnimation();
+    solEl.style.visibility = '';
   }
 }
 
@@ -3550,6 +3585,8 @@ async function handleFile(file){
     }
     loadingText.textContent = t('loadingDesign');
     deck = await generateDeck(text);
+    lastSourceText = text;   // dil değişiminde yeniden üretim için sakla
+    deckLang = currentLang;  // deck hangi dilde üretildi
     // Giriş yapmış kullanıcılar için geçmişi kaydet
     if(window.currentUser && deck){
       try{
