@@ -191,6 +191,32 @@
     --pink:#ff6ec7;
     --ok:#4dffb0;
   }
+
+  /* ===== TEMA UYUMLU SCROLLBAR — site genelinde ===== */
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: var(--accent2) rgba(255,255,255,.04);
+  }
+  *::-webkit-scrollbar{
+    width: 8px;
+    height: 8px;
+  }
+  *::-webkit-scrollbar-track{
+    background: rgba(255,255,255,.03);
+    border-radius: 10px;
+  }
+  *::-webkit-scrollbar-thumb{
+    background: linear-gradient(180deg, var(--accent), var(--accent2));
+    border-radius: 10px;
+    border: 1px solid rgba(0,0,0,.1);
+  }
+  *::-webkit-scrollbar-thumb:hover{
+    background: linear-gradient(180deg, var(--accent2), var(--pink));
+  }
+  *::-webkit-scrollbar-corner{
+    background: transparent;
+  }
+
   /* ---------- Biome variants (different black hole / space color themes) ---------- */
   body.biome-1{
     --accent:#6ee7ff; --accent2:#b46bff; --pink:#ff6ec7;
