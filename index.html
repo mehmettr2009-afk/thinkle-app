@@ -20,7 +20,7 @@
   import { getAuth, GoogleAuthProvider, signInWithPopup, signInWithRedirect,
            signInAnonymously, getRedirectResult, signOut, onAuthStateChanged }
     from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js';
-  import { getFirestore, doc, setDoc, getDoc, updateDoc, increment, collection, getDocs, orderBy, query, limit, onSnapshot }
+  import { getFirestore, doc, setDoc, getDoc, updateDoc, increment, collection, getDocs, orderBy, query, limit, onSnapshot, deleteDoc }
     from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
 
   const firebaseConfig = {
@@ -126,6 +126,77 @@
   window.fbGetMaintenance = async () => {
     try { const s = await getDoc(doc(db,'config','maintenance')); return s.exists()?s.data().active:false; }
     catch(e){ return false; }
+  };
+
+  // ============ GALAXY ÜYELİK BAŞVURU SİSTEMİ ============
+  // Kullanıcı başvuru yapar
+  window.fbApplyGalaxy = async (uid, displayName, email) => {
+    try {
+      const ref = doc(db, 'galaxyApplications', uid);
+      const existing = await getDoc(ref);
+      if(existing.exists() && existing.data().status === 'pending'){
+        return { ok:false, reason:'already_pending' };
+      }
+      if(existing.exists() && existing.data().status === 'approved'){
+        return { ok:false, reason:'already_member' };
+      }
+      await setDoc(ref, {
+        uid, displayName: displayName||'', email: email||'',
+        status: 'pending', appliedAt: new Date().toISOString()
+      });
+      return { ok:true };
+    } catch(e){ return { ok:false, reason:'error' }; }
+  };
+
+  // Kullanıcının kendi başvuru durumunu kontrol et
+  window.fbGetGalaxyStatus = async (uid) => {
+    try {
+      const s = await getDoc(doc(db, 'galaxyApplications', uid));
+      return s.exists() ? s.data().status : null;
+    } catch(e){ return null; }
+  };
+
+  // Kurucu: bekleyen başvuruları getir
+  window.fbGetGalaxyApplications = async () => {
+    try {
+      const q = query(collection(db, 'galaxyApplications'), orderBy('appliedAt','desc'));
+      const snap = await getDocs(q);
+      return snap.docs.map(d => d.data());
+    } catch(e){ return []; }
+  };
+
+  // Kurucu: başvuruyu onayla
+  window.fbApproveGalaxy = async (uid) => {
+    try {
+      await updateDoc(doc(db, 'galaxyApplications', uid), { status:'approved', decidedAt:new Date().toISOString() });
+      await setDoc(doc(db, 'users', uid), { galaxy: true }, { merge:true });
+      return true;
+    } catch(e){ return false; }
+  };
+
+  // Kurucu: başvuruyu reddet
+  window.fbRejectGalaxy = async (uid) => {
+    try {
+      await updateDoc(doc(db, 'galaxyApplications', uid), { status:'rejected', decidedAt:new Date().toISOString() });
+      return true;
+    } catch(e){ return false; }
+  };
+
+  // Kurucu: Galaxy üyeliğini kaldır
+  window.fbRevokeGalaxy = async (uid) => {
+    try {
+      await deleteDoc(doc(db, 'galaxyApplications', uid)).catch(()=>{});
+      await setDoc(doc(db, 'users', uid), { galaxy: false }, { merge:true });
+      return true;
+    } catch(e){ return false; }
+  };
+
+  // Kullanıcının galaxy rozeti var mı kontrol et
+  window.fbIsGalaxyMember = async (uid) => {
+    try {
+      const s = await getDoc(doc(db, 'users', uid));
+      return s.exists() ? !!s.data().galaxy : false;
+    } catch(e){ return false; }
   };
 
   // Duyuru listener — auth yüklendikten sonra başlat
@@ -2880,8 +2951,9 @@ document.addEventListener('authChanged', e => {
         <div style="display:flex;align-items:center;gap:8px;padding:12px 16px;">
           <img src="${user.photoURL||''}" style="width:28px;height:28px;border-radius:50%;border:1px solid rgba(180,107,255,.4)" onerror="this.style.display='none'">
           <div style="flex:1;min-width:0">
-            <div style="font-size:.75rem;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">
-              ${isFounder ? '👑 ' : ''}${user.displayName||user.email||'Ziyaretçi'}
+            <div style="font-size:.75rem;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:flex;align-items:center;gap:6px">
+              <span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${isFounder ? '👑 ' : ''}${user.displayName||user.email||'Ziyaretçi'}</span>
+              <span id="galaxyBadge" style="display:none;flex-shrink:0;font-family:'Orbitron',sans-serif;font-size:.58rem;font-weight:900;letter-spacing:.06em;padding:1px 6px;border-radius:5px;background:linear-gradient(135deg,#8a5cff,#5c8aff);color:#fff;box-shadow:0 0 8px rgba(140,110,255,.5)">GALAXY</span>
             </div>
             <div style="font-size:.62rem;color:${isFounder?'#ffd700':'var(--ink-soft)'}">
               ${isFounder ? '⚡ Kurucu' : '✓ '+(currentLang==='tr'?'Giriş yapıldı':'Signed in')}
@@ -2891,7 +2963,7 @@ document.addEventListener('authChanged', e => {
         </div>
         ${isFounder ? `
         <button onclick="showFounderWelcome()" style="
-          margin:0 12px 12px; padding:8px 12px; border-radius:10px; border:1px solid rgba(255,215,0,.3);
+          margin:0 12px 8px; padding:8px 12px; border-radius:10px; border:1px solid rgba(255,215,0,.3);
           background:rgba(255,215,0,.08); color:#ffd700; cursor:pointer; font-size:.75rem;
           font-family:'Space Mono',monospace; letter-spacing:.04em; touch-action:manipulation;
           display:flex; align-items:center; justify-content:center; gap:6px;
@@ -2899,10 +2971,13 @@ document.addEventListener('authChanged', e => {
         " onmouseover="this.style.background='rgba(255,215,0,.15)'" onmouseout="this.style.background='rgba(255,215,0,.08)'">
           👑 Yönetici Paneli
         </button>` : ''}
+        <div id="galaxyApplyArea" style="margin:0 12px 10px"></div>
       </div>`;
 
+    // Galaxy durumunu kontrol et ve uygun UI'yi göster
+    if(!isFounder && !user.isAnonymous) initGalaxyUI(user);
+
     // Kurucu paneli sadece butona basınca açılır
-    // if(isFounder) showFounderWelcome(); — kaldırıldı
   } else {
     userArea.innerHTML = `
       <div style="padding:10px 16px;border-top:1px solid var(--line)">
@@ -2912,6 +2987,68 @@ document.addEventListener('authChanged', e => {
       </div>`;
   }
 });
+
+// ============ GALAXY ÜYELİK UI ============
+async function initGalaxyUI(user){
+  const area = document.getElementById('galaxyApplyArea');
+  const badge = document.getElementById('galaxyBadge');
+  if(!area) return;
+
+  const isTr = currentLang === 'tr';
+
+  // Önce gerçekten üye mi kontrol et
+  const isMember = window.fbIsGalaxyMember ? await window.fbIsGalaxyMember(user.uid) : false;
+  if(isMember){
+    if(badge) badge.style.display = 'inline-block';
+    area.innerHTML = '';
+    return;
+  }
+  if(badge) badge.style.display = 'none';
+
+  // Başvuru durumunu kontrol et
+  const status = window.fbGetGalaxyStatus ? await window.fbGetGalaxyStatus(user.uid) : null;
+
+  if(status === 'pending'){
+    area.innerHTML = `
+      <div style="padding:9px 12px;border-radius:10px;border:1px solid rgba(140,110,255,.25);background:rgba(140,110,255,.06);text-align:center">
+        <div style="font-family:'Orbitron',sans-serif;font-size:.62rem;font-weight:700;background:linear-gradient(135deg,#8a5cff,#5c8aff);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;letter-spacing:.05em">⏳ ${isTr?'BAŞVURU BEKLENİYOR':'APPLICATION PENDING'}</div>
+        <div style="font-size:.62rem;color:rgba(180,160,255,.5);margin-top:3px">${isTr?'Onay bekleniyor':'Awaiting approval'}</div>
+      </div>`;
+    return;
+  }
+
+  if(status === 'rejected'){
+    area.innerHTML = `
+      <button id="galaxyApplyBtn" style="
+        width:100%; padding:9px 12px; border-radius:10px; border:1px solid rgba(140,110,255,.25);
+        background:rgba(140,110,255,.06); color:rgba(180,160,255,.7); cursor:pointer; font-size:.7rem;
+        font-family:'Space Grotesk',sans-serif; touch-action:manipulation;
+      ">🌌 ${isTr?'Tekrar Başvur':'Apply Again'}</button>`;
+  } else {
+    area.innerHTML = `
+      <button id="galaxyApplyBtn" style="
+        width:100%; padding:9px 12px; border-radius:10px; border:1px solid rgba(140,110,255,.3);
+        background:linear-gradient(135deg,rgba(140,92,255,.1),rgba(92,138,255,.1)); color:#a78bfa; cursor:pointer; font-size:.72rem;
+        font-family:'Space Grotesk',sans-serif; touch-action:manipulation; font-weight:600;
+      ">🌌 ${isTr?'Galaxy Üyesi Olmak İstiyorum':'I Want to Become a Galaxy Member'} <span style="opacity:.6;font-size:.62rem">(Beta)</span></button>`;
+  }
+
+  const btn = document.getElementById('galaxyApplyBtn');
+  async function handleApply(e){
+    if(e) e.preventDefault();
+    btn.disabled = true;
+    btn.textContent = isTr ? 'Gönderiliyor...' : 'Submitting...';
+    const result = await window.fbApplyGalaxy(user.uid, user.displayName, user.email);
+    if(result.ok){
+      initGalaxyUI(user); // pending durumuna güncelle
+    } else {
+      btn.disabled = false;
+      btn.textContent = isTr ? 'Tekrar dene' : 'Try again';
+    }
+  }
+  btn?.addEventListener('click', handleApply);
+  btn?.addEventListener('touchend', handleApply, {passive:false});
+}
 
 function showFounderWelcome(){
   const existing = document.getElementById('founderWelcome');
@@ -2934,6 +3071,7 @@ function showFounderWelcome(){
       <!-- Tabs -->
       <div id="fwTabs" style="display:flex;gap:4px;padding:10px 16px 0;flex-shrink:0;overflow-x:auto;-webkit-overflow-scrolling:touch">
         <button class="fw-tab active" data-tab="overview">📊 Genel</button>
+        <button class="fw-tab" data-tab="applications">🌌 Başvurular <span id="fwAppBadge" style="display:none;background:#ff6e78;color:#fff;border-radius:8px;padding:1px 5px;font-size:.58rem;margin-left:2px"></span></button>
         <button class="fw-tab" data-tab="moderation">🛡️ Moderasyon</button>
         <button class="fw-tab" data-tab="users">👥 Kullanıcılar</button>
         <button class="fw-tab" data-tab="settings">⚙️ Ayarlar</button>
@@ -3038,9 +3176,84 @@ function showFounderWelcome(){
   function switchTab(name){
     tabsEl.querySelectorAll('.fw-tab').forEach(t => t.classList.toggle('active', t.dataset.tab === name));
     if(name === 'overview') renderOverview();
+    else if(name === 'applications') renderApplications();
     else if(name === 'moderation') renderModeration();
     else if(name === 'users') renderUsers();
     else if(name === 'settings') renderSettings();
+  }
+
+  // Açılışta bekleyen başvuru sayısını rozet olarak göster
+  if(window.fbGetGalaxyApplications){
+    window.fbGetGalaxyApplications().then(apps => {
+      const pending = apps.filter(a => a.status === 'pending').length;
+      const badge = document.getElementById('fwAppBadge');
+      if(badge && pending > 0){ badge.textContent = pending; badge.style.display = 'inline-block'; }
+    });
+  }
+
+  // ============ GALAXY BAŞVURULARI ============
+  async function renderApplications(){
+    contentEl.innerHTML = `<div class="fw-empty">Yükleniyor...</div>`;
+    if(!window.fbGetGalaxyApplications){
+      contentEl.innerHTML = `<div class="fw-empty">Başvuru sistemi yüklenemedi.</div>`;
+      return;
+    }
+    const apps = await window.fbGetGalaxyApplications();
+    const pending  = apps.filter(a => a.status === 'pending');
+    const decided  = apps.filter(a => a.status !== 'pending').slice(0, 15);
+
+    const pendingHtml = pending.length ? pending.map(a => `
+      <div class="fw-card" style="border-color:rgba(140,110,255,.2);background:rgba(140,110,255,.04)">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px;margin-bottom:10px">
+          <div style="min-width:0">
+            <div style="font-size:.82rem;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${(a.displayName||'İsimsiz').replace(/</g,'&lt;')}</div>
+            <div style="font-size:.66rem;color:rgba(255,255,255,.4);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${(a.email||'').replace(/</g,'&lt;')}</div>
+            <div style="font-size:.6rem;color:rgba(140,110,255,.6);font-family:'Space Mono',monospace;margin-top:4px">${a.uid.slice(0,18)}…</div>
+          </div>
+          <span style="font-size:.6rem;color:rgba(255,255,255,.3);white-space:nowrap;flex-shrink:0">${new Date(a.appliedAt).toLocaleDateString('tr-TR')}</span>
+        </div>
+        <div style="display:flex;gap:8px">
+          <button class="fw-btn fw-btn-green" data-approve="${a.uid}" style="flex:1">✓ Onayla</button>
+          <button class="fw-btn fw-btn-red" data-reject="${a.uid}" style="flex:1">✕ Reddet</button>
+        </div>
+      </div>`).join('') : `<div class="fw-empty">Bekleyen başvuru yok 🌌</div>`;
+
+    const decidedHtml = decided.length ? decided.map(a => `
+      <div class="fw-list-item">
+        <span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1">${(a.displayName||a.uid.slice(0,12)).replace(/</g,'&lt;')}</span>
+        <span class="fw-badge" style="background:${a.status==='approved'?'rgba(77,255,150,.18)':'rgba(255,100,110,.18)'};color:${a.status==='approved'?'#4dff96':'#ff6e78'}">${a.status==='approved'?'✓ onaylandı':'✕ reddedildi'}</span>
+      </div>`).join('') : '';
+
+    contentEl.innerHTML = `
+      <div style="font-size:.7rem;color:rgba(140,110,255,.7);font-family:'Space Mono',monospace;margin-bottom:10px">🌌 BEKLEYEN BAŞVURULAR (${pending.length})</div>
+      ${pendingHtml}
+      ${decided.length ? `
+      <div style="font-size:.7rem;color:rgba(255,255,255,.4);font-family:'Space Mono',monospace;margin:16px 0 10px">📜 GEÇMİŞ KARARLAR</div>
+      <div class="fw-card">${decidedHtml}</div>` : ''}
+    `;
+
+    contentEl.querySelectorAll('[data-approve]').forEach(btn => {
+      btn.onclick = async () => {
+        btn.disabled = true; btn.textContent = '...';
+        const uid = btn.dataset.approve;
+        await window.fbApproveGalaxy(uid);
+        // server.js'e de sınırsız erişim olarak işaretle
+        try{
+          await fetch('https://thinkle-proxy-518x.onrender.com/api/admin/grant-unlimited', {
+            method:'POST', headers:{'Content-Type':'application/json'},
+            body: JSON.stringify({ uid: window.currentUser?.uid, adminToken: ADMIN_SECRET, targetUid: uid })
+          });
+        }catch(e){}
+        renderApplications();
+      };
+    });
+    contentEl.querySelectorAll('[data-reject]').forEach(btn => {
+      btn.onclick = async () => {
+        btn.disabled = true; btn.textContent = '...';
+        await window.fbRejectGalaxy(btn.dataset.reject);
+        renderApplications();
+      };
+    });
   }
 
   // ============ GENEL BAKIŞ ============
