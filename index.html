@@ -1302,8 +1302,17 @@
     }
     #mobileHeader .mh-logo{
       width:26px; height:26px; border-radius:8px; flex-shrink:0;
-      background:radial-gradient(circle at 35% 30%, #ffe9a8, #ff8a2b 55%, #b4308f 100%);
-      box-shadow:0 0 10px rgba(255,150,50,.4);
+      position:relative; overflow:hidden; background:#05030c;
+      box-shadow:0 0 14px rgba(110,231,255,.3);
+    }
+    #mobileHeader .mh-logo::before{
+      content:''; position:absolute; inset:-30%; border-radius:50%;
+      background:conic-gradient(from 0deg, var(--accent2), var(--accent), var(--pink), var(--accent2));
+      animation:bh-spin 5s linear infinite;
+    }
+    #mobileHeader .mh-logo::after{
+      content:''; position:absolute; inset:22%; border-radius:50%;
+      background:radial-gradient(circle at 35% 35%, #1a0b2e 0%, #000 70%);
     }
     #mobileHeader .mh-title{
       font-family:'Orbitron',sans-serif; font-size:.85rem; font-weight:700;
@@ -2038,10 +2047,13 @@
     const actionsBtn = document.getElementById('mobileActionsBtn');
     const actionsMenu = document.getElementById('mobileActionsMenu');
 
-    slidesBtn?.addEventListener('click', () => {
+    function toggleSlides(e){
+      e.preventDefault(); e.stopPropagation();
       document.getElementById('tabs')?.classList.toggle('open');
       actionsMenu?.classList.remove('open');
-    });
+    }
+    slidesBtn?.addEventListener('click', toggleSlides);
+    slidesBtn?.addEventListener('touchend', toggleSlides, {passive:false});
 
     function toggleActions(e){
       e.preventDefault(); e.stopPropagation();
@@ -2049,6 +2061,7 @@
       document.getElementById('tabs')?.classList.remove('open');
     }
     actionsBtn?.addEventListener('click', toggleActions);
+    actionsBtn?.addEventListener('touchend', toggleActions, {passive:false});
 
     document.addEventListener('click', (e) => {
       if(actionsMenu && !actionsMenu.contains(e.target) && e.target !== actionsBtn){
