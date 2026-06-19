@@ -1323,10 +1323,12 @@
     }
     #mobileHeader button{
       display:flex; align-items:center; justify-content:center;
-      height:32px; padding:0 10px; border-radius:8px;
+      height:34px; min-width:34px; padding:0 10px; border-radius:8px;
       border:1px solid var(--line); background:rgba(255,255,255,.05);
       color:var(--ink); font-size:.68rem; font-family:'Space Grotesk',sans-serif;
       cursor:pointer; touch-action:manipulation; white-space:nowrap;
+      -webkit-tap-highlight-color:rgba(110,231,255,.3);
+      position:relative; z-index:31;
     }
     #mobileHeader #mhSlidesBtn{ font-size:.85rem; padding:0 9px; }
 
@@ -2022,9 +2024,10 @@
     <div class="mh-title">Thinkle</div>
   </div>
   <div class="mh-right">
-    <button id="mhLoginBtn" style="display:flex;color:#ffd27a;border-color:rgba(255,180,80,.4)" onclick="if(typeof showAuthModal==='function')showAuthModal()">🔑 Giriş</button>
-    <button id="mhSlidesBtn" onclick="document.getElementById('tabs')&&document.getElementById('tabs').children.length>0&&document.getElementById('tabs').classList.toggle('open')">☰</button>
-    <button id="mobileActionsBtn" onclick="document.getElementById('mobileActionsMenu').classList.toggle('open')">⋯</button>
+    <button id="mhLoginBtn" style="display:flex;color:#ffd27a;border-color:rgba(255,180,80,.4)">🔑 Giriş</button>
+    <button id="mhLogoutBtn" style="display:none;color:#ff8fa3;border-color:rgba(255,110,140,.4)">↪ Çıkış</button>
+    <button id="mhSlidesBtn">☰</button>
+    <button id="mobileActionsBtn">⋯</button>
   </div>
 </div>
 <div id="mobileActionsMenu">
@@ -2044,49 +2047,79 @@
 <script>
   // Mobil header — slayt menüsü ve aksiyon menüsü
   (function(){
-    const slidesBtn = document.getElementById('mhSlidesBtn');
-    const actionsBtn = document.getElementById('mobileActionsBtn');
+    const slidesBtn   = document.getElementById('mhSlidesBtn');
+    const actionsBtn  = document.getElementById('mobileActionsBtn');
     const actionsMenu = document.getElementById('mobileActionsMenu');
+    const loginBtn    = document.getElementById('mhLoginBtn');
+    const logoutBtn   = document.getElementById('mhLogoutBtn');
 
-    function toggleSlides(e){
-      e.preventDefault(); e.stopPropagation();
+    // Tek bir merkezi tıklama bağlayıcı — hem touch hem mouse'ta garanti çalışır
+    function bindTap(el, handler){
+      if(!el) return;
+      let touched = false;
+      el.addEventListener('touchstart', () => { touched = true; }, {passive:true});
+      el.addEventListener('touchend', (e) => {
+        e.preventDefault();
+        handler(e);
+        setTimeout(()=>{ touched = false; }, 400);
+      }, {passive:false});
+      el.addEventListener('click', (e) => {
+        if(touched) return; // touchend zaten işledi, çift tetiklenmeyi önle
+        handler(e);
+      });
+    }
+
+    bindTap(slidesBtn, () => {
       const tabsEl = document.getElementById('tabs');
-      if(!tabsEl || tabsEl.children.length === 0) return; // henüz deck yok, slayt listesi boş
+      if(!tabsEl || tabsEl.children.length === 0) return;
       tabsEl.classList.toggle('open');
       actionsMenu?.classList.remove('open');
-    }
-    slidesBtn?.addEventListener('touchend', toggleSlides, {passive:false});
+    });
 
-    function toggleActions(e){
-      e.preventDefault(); e.stopPropagation();
+    bindTap(actionsBtn, () => {
       actionsMenu?.classList.toggle('open');
       document.getElementById('tabs')?.classList.remove('open');
-    }
-    actionsBtn?.addEventListener('touchend', toggleActions, {passive:false});
+    });
 
+    bindTap(loginBtn, () => {
+      if(typeof showAuthModal === 'function') showAuthModal();
+    });
+
+    bindTap(logoutBtn, () => {
+      if(typeof window.fbSignOut === 'function') window.fbSignOut();
+    });
+
+    // Menü dışına tıklayınca kapat
     document.addEventListener('click', (e) => {
-      if(actionsMenu && !actionsMenu.contains(e.target) && e.target !== actionsBtn){
+      if(actionsMenu && actionsMenu.classList.contains('open') &&
+         !actionsMenu.contains(e.target) && e.target !== actionsBtn){
         actionsMenu.classList.remove('open');
       }
     });
+    document.addEventListener('touchend', (e) => {
+      if(actionsMenu && actionsMenu.classList.contains('open') &&
+         !actionsMenu.contains(e.target) && e.target !== actionsBtn){
+        actionsMenu.classList.remove('open');
+      }
+    }, {passive:true});
 
     actionsMenu?.querySelectorAll('[data-lang]').forEach(b => {
-      b.addEventListener('click', () => {
+      bindTap(b, () => {
         if(typeof applyLanguage === 'function') applyLanguage(b.dataset.lang);
         actionsMenu.querySelectorAll('[data-lang]').forEach(x => x.classList.toggle('active', x.dataset.lang === b.dataset.lang));
         actionsMenu.classList.remove('open');
       });
     });
 
-    document.getElementById('mamRestart')?.addEventListener('click', () => {
+    bindTap(document.getElementById('mamRestart'), () => {
       document.getElementById('restartBtn')?.click();
       actionsMenu.classList.remove('open');
     });
-    document.getElementById('mamExport')?.addEventListener('click', () => {
+    bindTap(document.getElementById('mamExport'), () => {
       document.getElementById('exportBtn')?.click();
       actionsMenu.classList.remove('open');
     });
-    document.getElementById('mamFounderBtn')?.addEventListener('click', () => {
+    bindTap(document.getElementById('mamFounderBtn'), () => {
       if(typeof showFounderWelcome === 'function') showFounderWelcome();
       actionsMenu.classList.remove('open');
     });
@@ -2101,13 +2134,7 @@
       syncExport();
     }
 
-    // Giriş yapılmamışsa "🔑 Giriş" butonu göster
-    const loginBtn = document.getElementById('mhLoginBtn');
-    function openLogin(e){ e.preventDefault(); if(typeof showAuthModal === 'function') showAuthModal(); }
-    loginBtn?.addEventListener('click', openLogin);
-    loginBtn?.addEventListener('touchend', openLogin, {passive:false});
-
-    // Kurucu butonu + kullanıcı alanını menüye yansıt
+    // Auth durumuna göre giriş/çıkış butonlarını ve kurucu menüsünü güncelle
     document.addEventListener('authChanged', (e) => {
       const user = e.detail;
       const isFounder = user?.uid === 'l8Tih1awnjP7fRXnUsFVVAuXEZu2';
@@ -2116,19 +2143,10 @@
       if(fb) fb.style.display = isFounder ? 'flex' : 'none';
       if(fd) fd.style.display = isFounder ? 'block' : 'none';
 
-      // Giriş yapılmamışsa header'da uyarı butonu göster
-      if(loginBtn) loginBtn.style.display = user ? 'none' : 'flex';
-
-      // userArea içeriğini mamUserArea'ya kopyala (mobil menü içinde göster)
-      const src = document.getElementById('userArea');
-      const dst = document.getElementById('mamUserArea');
-      const ud = document.getElementById('mamUserDivider');
-      if(src && dst){
-        dst.innerHTML = src.innerHTML;
-        const hasContent = src.innerHTML.trim().length > 0;
-        if(ud) ud.style.display = hasContent ? 'block' : 'none';
-      }
+      if(loginBtn)  loginBtn.style.display  = user ? 'none' : 'flex';
+      if(logoutBtn) logoutBtn.style.display = user ? 'flex' : 'none';
     });
+
     // topTitle değiştiğinde mobil header başlığını da güncelle
     const topTitleEl = document.getElementById('topTitle');
     const mhTitleEl = document.querySelector('#mobileHeader .mh-title');
