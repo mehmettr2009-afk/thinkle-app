@@ -2022,8 +2022,9 @@
     <div class="mh-title">Thinkle</div>
   </div>
   <div class="mh-right">
-    <button id="mhSlidesBtn">☰</button>
-    <button id="mobileActionsBtn">⋯</button>
+    <button id="mhLoginBtn" style="display:flex;color:#ffd27a;border-color:rgba(255,180,80,.4)" onclick="if(typeof showAuthModal==='function')showAuthModal()">🔑 Giriş</button>
+    <button id="mhSlidesBtn" onclick="document.getElementById('tabs')&&document.getElementById('tabs').children.length>0&&document.getElementById('tabs').classList.toggle('open')">☰</button>
+    <button id="mobileActionsBtn" onclick="document.getElementById('mobileActionsMenu').classList.toggle('open')">⋯</button>
   </div>
 </div>
 <div id="mobileActionsMenu">
@@ -2049,10 +2050,11 @@
 
     function toggleSlides(e){
       e.preventDefault(); e.stopPropagation();
-      document.getElementById('tabs')?.classList.toggle('open');
+      const tabsEl = document.getElementById('tabs');
+      if(!tabsEl || tabsEl.children.length === 0) return; // henüz deck yok, slayt listesi boş
+      tabsEl.classList.toggle('open');
       actionsMenu?.classList.remove('open');
     }
-    slidesBtn?.addEventListener('click', toggleSlides);
     slidesBtn?.addEventListener('touchend', toggleSlides, {passive:false});
 
     function toggleActions(e){
@@ -2060,7 +2062,6 @@
       actionsMenu?.classList.toggle('open');
       document.getElementById('tabs')?.classList.remove('open');
     }
-    actionsBtn?.addEventListener('click', toggleActions);
     actionsBtn?.addEventListener('touchend', toggleActions, {passive:false});
 
     document.addEventListener('click', (e) => {
@@ -2100,6 +2101,12 @@
       syncExport();
     }
 
+    // Giriş yapılmamışsa "🔑 Giriş" butonu göster
+    const loginBtn = document.getElementById('mhLoginBtn');
+    function openLogin(e){ e.preventDefault(); if(typeof showAuthModal === 'function') showAuthModal(); }
+    loginBtn?.addEventListener('click', openLogin);
+    loginBtn?.addEventListener('touchend', openLogin, {passive:false});
+
     // Kurucu butonu + kullanıcı alanını menüye yansıt
     document.addEventListener('authChanged', (e) => {
       const user = e.detail;
@@ -2108,6 +2115,9 @@
       const fd = document.getElementById('mamFounderDivider');
       if(fb) fb.style.display = isFounder ? 'flex' : 'none';
       if(fd) fd.style.display = isFounder ? 'block' : 'none';
+
+      // Giriş yapılmamışsa header'da uyarı butonu göster
+      if(loginBtn) loginBtn.style.display = user ? 'none' : 'flex';
 
       // userArea içeriğini mamUserArea'ya kopyala (mobil menü içinde göster)
       const src = document.getElementById('userArea');
