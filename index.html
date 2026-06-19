@@ -2081,7 +2081,7 @@
 
         <button class="btn primary go-btn" id="goBtn" data-i18n="goBtn">Çalışma kağıdı oluştur →</button>
         <div id="deckLimitBadge" style="display:none;text-align:center;margin-top:8px;font-family:'Space Mono',monospace;font-size:.65rem;color:rgba(110,231,255,.6)">
-          <span id="deckLimitText">— / 10</span> <span style="color:rgba(180,160,255,.5)">dosya hakkı kaldı</span>
+          <span id="deckLimitText" style="font-size:.65rem">— / 10</span> <span id="deckLimitSuffix" style="color:rgba(180,160,255,.5)">dosya hakkı kaldı</span>
         </div>
 
         <div class="error hidden" id="uploadError"></div>
@@ -4677,17 +4677,25 @@ async function updateLimitBadges(){
   const chatBadge = document.getElementById('chatLimitBadge');
   const chatText  = document.getElementById('chatLimitText');
 
-  // Kurucu — sınırsız göster, API'ye gerek yok
+  // Kurucu — büyük ∞ / ∞ göster, açıklama metni gizlenir
   if(isFounder){
     if(deckBadge && deckText){
-      deckText.textContent = '∞';
+      deckText.textContent = '∞ / ∞';
+      deckText.style.fontSize = '1.3rem';
+      deckText.style.fontWeight = '700';
       deckBadge.style.display = 'block';
       deckText.style.color = '#ffd700';
+      const suffix = document.getElementById('deckLimitSuffix');
+      if(suffix) suffix.style.display = 'none';
     }
     if(chatBadge && chatText){
-      chatText.textContent = '∞';
+      chatText.textContent = '∞ / ∞';
+      chatText.style.fontSize = '1.3rem';
+      chatText.style.fontWeight = '700';
       chatBadge.style.display = 'flex';
       chatText.style.color = '#ffd700';
+      const chatSuffix = chatBadge.querySelector('div:last-child');
+      if(chatSuffix) chatSuffix.style.display = 'none';
     }
     return;
   }
@@ -4699,14 +4707,22 @@ async function updateLimitBadges(){
     if(deckBadge && deckText){
       const left = Math.max(0, data.decks.limit - data.decks.used);
       deckText.textContent = left + ' / ' + data.decks.limit;
+      deckText.style.fontSize = '.65rem';
+      deckText.style.fontWeight = '400';
       deckBadge.style.display = 'block';
       deckText.style.color = left <= 2 ? '#ff6ec7' : 'rgba(110,231,255,.7)';
+      const suffix = document.getElementById('deckLimitSuffix');
+      if(suffix) suffix.style.display = 'inline';
     }
     if(chatBadge && chatText){
       const left = Math.max(0, data.chats.limit - data.chats.used);
       chatText.textContent = left + ' / ' + data.chats.limit;
+      chatText.style.fontSize = '.6rem';
+      chatText.style.fontWeight = '400';
       chatBadge.style.display = 'flex';
       chatText.style.color = left <= 5 ? '#ff6ec7' : 'rgba(110,231,255,.7)';
+      const chatSuffix = chatBadge.querySelector('div:last-child');
+      if(chatSuffix) chatSuffix.style.display = 'block';
     }
   }catch(e){}
 }
