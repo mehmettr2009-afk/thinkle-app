@@ -40,13 +40,17 @@
 
   window.fbSignIn = async () => {
     try {
-      // Önce popup dene — mobilde de çalışabilir
-      await signInWithPopup(auth, provider);
+      if(isMobileDevice){
+        // Mobilde her zaman redirect — popup mobilde güvenilmez
+        await signInWithRedirect(auth, provider);
+      } else {
+        // Masaüstünde popup
+        await signInWithPopup(auth, provider);
+      }
     } catch(err){
-      // Popup bloke olduysa redirect'e geç
-      if(err.code === 'auth/popup-blocked' || err.code === 'auth/popup-closed-by-user' || isMobileDevice){
-        try { await signInWithRedirect(auth, provider); }
-        catch(e){ console.error('Sign in error:', e); }
+      // Popup bloke olduysa redirect'e düş
+      if(err.code === 'auth/popup-blocked' || err.code === 'auth/popup-closed-by-user'){
+        try { await signInWithRedirect(auth, provider); } catch(e){}
       }
     }
   };
@@ -182,16 +186,24 @@
     } catch(e){ return false; }
   };
 
-  // Kurucu: Galaxy üyeliğini kaldır
+  // Kurucu: Galaxy üyeliğini kaldır — sil değil, rejected yap (tekrar başvurabilsin)
   window.fbRevokeGalaxy = async (uid) => {
     try {
-      await deleteDoc(doc(db, 'galaxyApplications', uid)).catch(()=>{});
+      // Başvuruyu sil değil — 'revoked' durumuna al, tekrar başvurabilsin
+      const appRef = doc(db, 'galaxyApplications', uid);
+      const appSnap = await getDoc(appRef);
+      if(appSnap.exists()){
+        await updateDoc(appRef, { status:'revoked', decidedAt:new Date().toISOString() });
+      }
+      // Kullanıcı dokümanında galaxy:false
       await setDoc(doc(db, 'users', uid), { galaxy: false }, { merge:true });
+      // Global event yayınla — o kullanıcının UI'si de güncellensin
+      document.dispatchEvent(new CustomEvent('galaxyStatusChanged', { detail: { uid, status:'revoked' } }));
       return true;
     } catch(e){ return false; }
   };
 
-  // Kullanıcının galaxy rozeti var mı kontrol et
+  // Kullanıcının galaxy rozeti var mı — her zaman Firestore'dan taze oku
   window.fbIsGalaxyMember = async (uid) => {
     try {
       const s = await getDoc(doc(db, 'users', uid));
@@ -199,11 +211,43 @@
     } catch(e){ return false; }
   };
 
-  // Duyuru listener — auth yüklendikten sonra başlat
+  // Kullanıcının başvuru durumu — 'revoked' olanlar tekrar başvurabilir
+  window.fbGetGalaxyStatus = async (uid) => {
+    try {
+      const s = await getDoc(doc(db, 'galaxyApplications', uid));
+      if(!s.exists()) return null;
+      const status = s.data().status;
+      // revoked = silinmiş gibi davran, tekrar başvurabilsin
+      return status === 'revoked' ? null : status;
+    } catch(e){ return null; }
+  };
+
+  // Gerçek zamanlı Galaxy durumu — tek listener
+  let _galaxyUnsubscribe = null;
+
   onAuthStateChanged(auth, user => {
     window.currentUser = user;
-    if(user && !user.isAnonymous) window.fbLogUser(user.uid).catch(()=>{});
+
+    // Önceki galaxy listener'ı temizle
+    if(_galaxyUnsubscribe){ _galaxyUnsubscribe(); _galaxyUnsubscribe = null; }
+
+    if(user && !user.isAnonymous){
+      window.fbLogUser(user.uid).catch(()=>{});
+      // Galaxy durumunu gerçek zamanlı izle — hem rozet hem sidebar UI güncelle
+      _galaxyUnsubscribe = onSnapshot(doc(db, 'users', user.uid), (snap) => {
+        const isGalaxy = snap.exists() ? !!snap.data().galaxy : false;
+        const badge = document.getElementById('galaxyBadge');
+        if(badge) badge.style.display = isGalaxy ? 'inline-block' : 'none';
+        // Sidebar Galaxy butonunu da güncelle (üyelik kaldırılınca tekrar başvur butonu çıksın)
+        if(typeof initGalaxyUI === 'function') initGalaxyUI(user);
+        // Mobil menüyü de güncelle
+        document.dispatchEvent(new CustomEvent('galaxyStatusChanged', { detail: { uid: user.uid, isMember: isGalaxy } }));
+        if(typeof updateLimitBadges === 'function') updateLimitBadges();
+      }, ()=>{});
+    }
+
     document.dispatchEvent(new CustomEvent('authChanged', { detail: user }));
+  });
 
     // Auth yüklenince duyuru dinlemeye başla (ziyaretçi dahil herkes)
     if(!window._annListenerStarted){
@@ -2124,105 +2168,47 @@
     <div class="mh-title">Thinkle</div>
   </div>
   <div class="mh-right">
-    <button id="mhLoginBtn" style="display:flex;color:#ffd27a;border-color:rgba(255,180,80,.4)">🔑 Giriş</button>
-    <button id="mhLogoutBtn" style="display:none;color:#ff8fa3;border-color:rgba(255,110,140,.4)">↪ Çıkış</button>
-    <button id="mobileActionsBtn">⋯</button>
+    <button id="mhLoginBtn" style="display:flex;color:#ffd27a;border-color:rgba(255,180,80,.4)" onclick="if(typeof showAuthModal==='function')showAuthModal()">🔑 Giriş</button>
+    <button id="mhLogoutBtn" style="display:none;color:#ff8fa3;border-color:rgba(255,110,140,.4)" onclick="if(window.fbSignOut)window.fbSignOut()">↪ Çıkış</button>
+    <button id="mobileActionsBtn" onclick="document.getElementById('mobileActionsMenu').classList.toggle('open')">⋯</button>
   </div>
 </div>
 <div id="mobileActionsMenu">
   <div class="mam-lang">
-    <button class="mam-lang-tr active" data-lang="tr">TR</button>
-    <button class="mam-lang-en" data-lang="en">EN</button>
+    <button class="mam-lang-tr active" data-lang="tr" onclick="applyLanguage('tr');this.parentElement.querySelectorAll('[data-lang]').forEach(b=>b.classList.toggle('active',b.dataset.lang==='tr'))">TR</button>
+    <button class="mam-lang-en" data-lang="en" onclick="applyLanguage('en');this.parentElement.querySelectorAll('[data-lang]').forEach(b=>b.classList.toggle('active',b.dataset.lang==='en'))">EN</button>
   </div>
   <div class="mam-divider"></div>
-  <button id="mamSlides">📑 <span data-i18n="menuToggle">Slaytlar</span></button>
-  <button id="mamRestart">↺ <span data-i18n="restartBtn">Yeni dosya</span></button>
-  <button id="mamExport" disabled>⬇ <span data-i18n="exportBtn">.pptx indir</span></button>
+  <button id="mamSlides" onclick="var t=document.getElementById('tabs');if(t&&t.children.length>0)t.classList.add('open');document.getElementById('mobileActionsMenu').classList.remove('open')">📑 <span data-i18n="menuToggle">Slaytlar</span></button>
+  <button id="mamRestart" onclick="document.getElementById('restartBtn')?.click();document.getElementById('mobileActionsMenu').classList.remove('open')">↺ <span data-i18n="restartBtn">Yeni dosya</span></button>
+  <button id="mamExport" disabled onclick="document.getElementById('exportBtn')?.click();document.getElementById('mobileActionsMenu').classList.remove('open')">⬇ <span data-i18n="exportBtn">.pptx indir</span></button>
   <div class="mam-divider" id="mamFounderDivider" style="display:none"></div>
-  <button id="mamFounderBtn" style="display:none;color:#ffd700">👑 Yönetici Paneli</button>
+  <button id="mamFounderBtn" style="display:none;color:#ffd700" onclick="if(typeof showFounderWelcome==='function')showFounderWelcome();document.getElementById('mobileActionsMenu').classList.remove('open')">👑 Yönetici Paneli</button>
+  <div class="mam-divider" id="mamGalaxyDivider" style="display:none"></div>
+  <button id="mamGalaxyBtn" style="display:none;color:#a78bfa" onclick="(async()=>{var u=window.currentUser;if(!u||!window.fbApplyGalaxy)return;this.style.opacity='.5';this.style.pointerEvents='none';var r=await window.fbApplyGalaxy(u.uid,u.displayName,u.email);if(r&&r.ok){this.style.display='none';var p=document.getElementById('mamGalaxyPending');if(p)p.style.display='flex';}else{this.style.opacity='1';this.style.pointerEvents='';}document.getElementById('mobileActionsMenu').classList.remove('open');})()">🌌 Galaxy Üyesi Olmak İstiyorum <span style="opacity:.5;font-size:.65rem">(Beta)</span></button>
+  <button id="mamGalaxyPending" style="display:none;color:rgba(140,110,255,.6);font-size:.72rem;cursor:default">⏳ Başvuru beklemede</button>
+  <button id="mamGalaxyMember" style="display:none;font-size:.72rem;cursor:default">
+    <span style="font-family:'Orbitron',sans-serif;font-size:.6rem;font-weight:900;padding:1px 6px;border-radius:4px;background:linear-gradient(135deg,#8a5cff,#5c8aff);color:#fff">GALAXY</span>
+    <span style="color:rgba(255,255,255,.5);margin-left:4px">Üyesiniz</span>
+  </button>
   <div class="mam-divider" id="mamUserDivider" style="display:none"></div>
   <div id="mamUserArea"></div>
 </div>
 
 <script>
-  // Mobil header — aksiyon menüsü
+  // Mobil header — basit onclick tabanlı, touch karmaşası yok
   (function(){
-    const actionsBtn  = document.getElementById('mobileActionsBtn');
     const actionsMenu = document.getElementById('mobileActionsMenu');
-    const loginBtn    = document.getElementById('mhLoginBtn');
-    const logoutBtn   = document.getElementById('mhLogoutBtn');
-
-    // Tek bir merkezi tıklama bağlayıcı — hem touch hem mouse'ta garanti çalışır
-    function bindTap(el, handler){
-      if(!el) return;
-      let touched = false;
-      el.addEventListener('touchstart', () => { touched = true; }, {passive:true});
-      el.addEventListener('touchend', (e) => {
-        e.preventDefault();
-        handler(e);
-        setTimeout(()=>{ touched = false; }, 400);
-      }, {passive:false});
-      el.addEventListener('click', (e) => {
-        if(touched) return; // touchend zaten işledi, çift tetiklenmeyi önle
-        handler(e);
-      });
-    }
-
-
-    bindTap(actionsBtn, () => {
-      actionsMenu?.classList.toggle('open');
-      document.getElementById('tabs')?.classList.remove('open');
-    });
-
-    bindTap(loginBtn, () => {
-      if(typeof showAuthModal === 'function') showAuthModal();
-    });
-
-    bindTap(logoutBtn, () => {
-      if(typeof window.fbSignOut === 'function') window.fbSignOut();
-    });
 
     // Menü dışına tıklayınca kapat
     document.addEventListener('click', (e) => {
-      if(actionsMenu && actionsMenu.classList.contains('open') &&
-         !actionsMenu.contains(e.target) && e.target !== actionsBtn){
+      if(!actionsMenu) return;
+      const btn = document.getElementById('mobileActionsBtn');
+      if(!actionsMenu.contains(e.target) && e.target !== btn){
         actionsMenu.classList.remove('open');
       }
-    });
-    document.addEventListener('touchend', (e) => {
-      if(actionsMenu && actionsMenu.classList.contains('open') &&
-         !actionsMenu.contains(e.target) && e.target !== actionsBtn){
-        actionsMenu.classList.remove('open');
-      }
-    }, {passive:true});
-
-    actionsMenu?.querySelectorAll('[data-lang]').forEach(b => {
-      bindTap(b, () => {
-        if(typeof applyLanguage === 'function') applyLanguage(b.dataset.lang);
-        actionsMenu.querySelectorAll('[data-lang]').forEach(x => x.classList.toggle('active', x.dataset.lang === b.dataset.lang));
-        actionsMenu.classList.remove('open');
-      });
     });
 
-    bindTap(document.getElementById('mamSlides'), () => {
-      const tabsEl = document.getElementById('tabs');
-      if(tabsEl && tabsEl.children.length > 0){
-        tabsEl.classList.add('open');
-      }
-      actionsMenu.classList.remove('open');
-    });
-    bindTap(document.getElementById('mamRestart'), () => {
-      document.getElementById('restartBtn')?.click();
-      actionsMenu.classList.remove('open');
-    });
-    bindTap(document.getElementById('mamExport'), () => {
-      document.getElementById('exportBtn')?.click();
-      actionsMenu.classList.remove('open');
-    });
-    bindTap(document.getElementById('mamFounderBtn'), () => {
-      if(typeof showFounderWelcome === 'function') showFounderWelcome();
-      actionsMenu.classList.remove('open');
-    });
 
     const exportBtn = document.getElementById('exportBtn');
     if(exportBtn){
@@ -2245,6 +2231,39 @@
 
       if(loginBtn)  loginBtn.style.display  = user ? 'none' : 'flex';
       if(logoutBtn) logoutBtn.style.display = user ? 'flex' : 'none';
+
+      // Galaxy butonu — mobil menüde
+      const gDiv    = document.getElementById('mamGalaxyDivider');
+      const gBtn    = document.getElementById('mamGalaxyBtn');
+      const gPend   = document.getElementById('mamGalaxyPending');
+      const gMember = document.getElementById('mamGalaxyMember');
+      if(!user || user.isAnonymous || isFounder){
+        if(gDiv) gDiv.style.display = 'none';
+        return;
+      }
+      if(gDiv) gDiv.style.display = 'block';
+      // Galaxy durumunu çek
+      if(window.fbIsGalaxyMember && window.fbGetGalaxyStatus){
+        window.fbIsGalaxyMember(user.uid).then(isMember => {
+          if(isMember){
+            if(gBtn) gBtn.style.display = 'none';
+            if(gPend) gPend.style.display = 'none';
+            if(gMember) gMember.style.display = 'flex';
+            return;
+          }
+          window.fbGetGalaxyStatus(user.uid).then(status => {
+            if(status === 'pending'){
+              if(gBtn) gBtn.style.display = 'none';
+              if(gPend) gPend.style.display = 'flex';
+              if(gMember) gMember.style.display = 'none';
+            } else {
+              if(gBtn) gBtn.style.display = 'flex';
+              if(gPend) gPend.style.display = 'none';
+              if(gMember) gMember.style.display = 'none';
+            }
+          });
+        });
+      }
     });
 
     // topTitle değiştiğinde mobil header başlığını da güncelle
@@ -2255,6 +2274,40 @@
       new MutationObserver(syncTitle).observe(topTitleEl, { childList:true, characterData:true, subtree:true });
       syncTitle();
     }
+
+    // Galaxy üyeliği değişince (kaldırılınca) mobil menü butonlarını da güncelle
+    document.addEventListener('galaxyStatusChanged', () => {
+      const user = window.currentUser;
+      if(!user || user.isAnonymous) return;
+      const gBtn    = document.getElementById('mamGalaxyBtn');
+      const gPend   = document.getElementById('mamGalaxyPending');
+      const gMember = document.getElementById('mamGalaxyMember');
+      if(!gBtn) return;
+      if(window.fbIsGalaxyMember){
+        window.fbIsGalaxyMember(user.uid).then(isMember => {
+          if(isMember){
+            if(gBtn) gBtn.style.display = 'none';
+            if(gPend) gPend.style.display = 'none';
+            if(gMember) gMember.style.display = 'flex';
+            return;
+          }
+          if(window.fbGetGalaxyStatus){
+            window.fbGetGalaxyStatus(user.uid).then(status => {
+              if(status === 'pending'){
+                if(gBtn) gBtn.style.display = 'none';
+                if(gPend) gPend.style.display = 'flex';
+                if(gMember) gMember.style.display = 'none';
+              } else {
+                // revoked veya null — başvur butonu göster
+                if(gBtn) gBtn.style.display = 'flex';
+                if(gPend) gPend.style.display = 'none';
+                if(gMember) gMember.style.display = 'none';
+              }
+            });
+          }
+        });
+      }
+    });
   })();
 </script>
 
@@ -2421,6 +2474,10 @@
           <div class="loading-texts">
             <div class="loading-title">Thinkle</div>
             <div class="loading-msg" id="loadingText">Dosyan okunuyor…</div>
+            <!-- Yükleme barı -->
+            <div id="loadingProgressWrap" style="width:200px;height:4px;background:rgba(255,255,255,.08);border-radius:4px;margin:10px auto 0;overflow:hidden">
+              <div id="loadingProgressBar" style="height:100%;width:0%;background:linear-gradient(90deg,var(--accent),var(--accent2));border-radius:4px;transition:width .3s ease"></div>
+            </div>
             <div class="loading-dots"><span></span><span></span><span></span></div>
           </div>
           <!-- Parçacıklar JS ile eklenir -->
@@ -2841,96 +2898,63 @@ function showAuthModal(onSuccess){
 
   const modal = document.createElement('div');
   modal.id = 'authModal';
-  modal.style.cssText = `
-    position:fixed; inset:0; z-index:99000;
-    background:rgba(3,2,15,.88); backdrop-filter:blur(12px);
-    display:flex; align-items:center; justify-content:center;
-    animation:auth-appear .3s ease both;
-  `;
-  modal.innerHTML = `
-    <div style="
-      background:rgba(14,10,36,.96); border:1px solid rgba(180,107,255,.3);
-      border-radius:24px; padding:40px 36px; max-width:380px; width:90%;
-      text-align:center; box-shadow:0 20px 60px rgba(0,0,0,.6);
-      animation:auth-slide .4s cubic-bezier(.16,1,.3,1) both;
-    ">
-      <!-- Logo -->
-      <div style="width:56px;height:56px;border-radius:16px;background:linear-gradient(135deg,#b46bff,#8855cc,#ff6ec7);display:flex;align-items:center;justify-content:center;margin:0 auto 16px;box-shadow:0 0 20px rgba(180,107,255,.4)">
-        <div style="width:52%;height:52%;border-radius:50%;background:#080410"></div>
-      </div>
-      <h2 style="font-family:'Space Mono',monospace;font-size:1.3rem;margin:0 0 6px;background:linear-gradient(135deg,#fff8e0,#ffb347,#ff6ec7);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text">Thinkle</h2>
-      <p style="color:rgba(180,160,255,.8);font-size:.88rem;margin:0 0 28px;line-height:1.5">
-        ${currentLang==='tr'
-          ? 'Bu özelliği kullanmak için Google hesabınla giriş yap.'
-          : 'Sign in with your Google account to use this feature.'}
-      </p>
-      <button id="authGoogleBtn" style="
-        width:100%; padding:14px; border-radius:12px; border:1px solid rgba(255,255,255,.15);
-        background:rgba(255,255,255,.06); color:#fff; font-family:'Space Grotesk',sans-serif;
-        font-size:.95rem; font-weight:600; cursor:pointer; display:flex; align-items:center;
-        justify-content:center; gap:12px; transition:.2s; touch-action:manipulation;
-      ">
-        <svg width="20" height="20" viewBox="0 0 48 48"><path fill="#EA4335" d="M24 9.5c3.5 0 6.6 1.2 9.1 3.2l6.8-6.8C35.8 2.2 30.2 0 24 0 14.6 0 6.6 5.4 2.7 13.3l7.9 6.1C12.4 13.1 17.7 9.5 24 9.5z"/><path fill="#4285F4" d="M46.1 24.5c0-1.6-.1-3.1-.4-4.5H24v8.5h12.4c-.5 2.8-2.1 5.1-4.4 6.7l6.9 5.4c4-3.7 6.2-9.2 6.2-16.1z"/><path fill="#FBBC05" d="M10.6 28.6A14.9 14.9 0 0 1 9.5 24c0-1.6.3-3.1.7-4.6l-7.9-6.1A23.9 23.9 0 0 0 0 24c0 3.9.9 7.5 2.7 10.7l7.9-6.1z"/><path fill="#34A853" d="M24 48c6.2 0 11.4-2 15.2-5.5l-6.9-5.4c-2 1.4-4.6 2.2-8.3 2.2-6.3 0-11.6-3.6-13.4-9.1l-7.9 6.1C6.6 42.6 14.6 48 24 48z"/></svg>
-        ${currentLang==='tr' ? 'Google ile Giriş Yap' : 'Sign in with Google'}
-      </button>
-      <button id="authCancelBtn" style="
-        margin-top:12px; background:none; border:none; color:rgba(180,160,255,.5);
-        font-size:.8rem; cursor:pointer; padding:8px; touch-action:manipulation;
-      ">${currentLang==='tr' ? 'Vazgeç' : 'Cancel'}</button>
-      <div style="margin-top:16px;padding-top:16px;border-top:1px solid rgba(255,255,255,.07)">
-        <button id="authGuestBtn" style="
-          width:100%; background:rgba(255,255,255,.04); border:1px solid rgba(255,255,255,.1);
-          border-radius:10px; color:rgba(180,160,255,.7); font-size:.82rem;
-          cursor:pointer; padding:12px 16px; touch-action:manipulation;
-          font-family:'Space Grotesk',sans-serif;
-        ">${currentLang==='tr' ? '👤 Ziyaretçi olarak devam et' : '👤 Continue as guest'}</button>
-      </div>
-    </div>
-  `;
+  modal.style.cssText = 'position:fixed;inset:0;z-index:99000;background:rgba(3,2,15,.88);backdrop-filter:blur(12px);display:flex;align-items:center;justify-content:center;padding:20px;box-sizing:border-box;';
 
-  const style = document.createElement('style');
-  style.textContent = `
-    @keyframes auth-appear{ from{opacity:0} to{opacity:1} }
-    @keyframes auth-slide{ from{opacity:0;transform:translateY(30px) scale(.96)} to{opacity:1;transform:translateY(0) scale(1)} }
-    #authGoogleBtn:hover{ background:rgba(255,255,255,.12); border-color:rgba(180,107,255,.5); }
-  `;
-  document.head.appendChild(style);
+  const isTr = currentLang === 'tr';
+  modal.innerHTML = `
+    <div style="background:rgba(14,10,36,.97);border:1px solid rgba(180,107,255,.3);border-radius:24px;padding:36px 28px;max-width:360px;width:100%;text-align:center;">
+      <div style="width:52px;height:52px;border-radius:14px;background:linear-gradient(135deg,#b46bff,#ff6ec7);margin:0 auto 14px;display:flex;align-items:center;justify-content:center;">
+        <div style="width:50%;height:50%;border-radius:50%;background:#080410"></div>
+      </div>
+      <h2 style="font-family:'Space Mono',monospace;font-size:1.1rem;margin:0 0 6px;color:#fff">Thinkle</h2>
+      <p style="color:rgba(180,160,255,.8);font-size:.85rem;margin:0 0 22px">${isTr?'Devam etmek için giriş yap':'Sign in to continue'}</p>
+      <button id="authGoogleBtn" style="width:100%;padding:14px;border-radius:12px;border:1px solid rgba(255,255,255,.15);background:rgba(255,255,255,.08);color:#fff;font-size:.9rem;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:10px;font-family:'Space Grotesk',sans-serif;touch-action:manipulation;">
+        <svg width="18" height="18" viewBox="0 0 48 48"><path fill="#EA4335" d="M24 9.5c3.5 0 6.6 1.2 9.1 3.2l6.8-6.8C35.8 2.2 30.2 0 24 0 14.6 0 6.6 5.4 2.7 13.3l7.9 6.1C12.4 13.1 17.7 9.5 24 9.5z"/><path fill="#4285F4" d="M46.1 24.5c0-1.6-.1-3.1-.4-4.5H24v8.5h12.4c-.5 2.8-2.1 5.1-4.4 6.7l6.9 5.4c4-3.7 6.2-9.2 6.2-16.1z"/><path fill="#FBBC05" d="M10.6 28.6A14.9 14.9 0 0 1 9.5 24c0-1.6.3-3.1.7-4.6l-7.9-6.1A23.9 23.9 0 0 0 0 24c0 3.9.9 7.5 2.7 10.7l7.9-6.1z"/><path fill="#34A853" d="M24 48c6.2 0 11.4-2 15.2-5.5l-6.9-5.4c-2 1.4-4.6 2.2-8.3 2.2-6.3 0-11.6-3.6-13.4-9.1l-7.9 6.1C6.6 42.6 14.6 48 24 48z"/></svg>
+        ${isTr?'Google ile Giriş Yap':'Sign in with Google'}
+      </button>
+      <div style="margin-top:10px;padding-top:12px;border-top:1px solid rgba(255,255,255,.07)">
+        <button id="authGuestBtn" style="width:100%;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.1);border-radius:10px;color:rgba(180,160,255,.7);font-size:.82rem;cursor:pointer;padding:12px 16px;touch-action:manipulation;font-family:'Space Grotesk',sans-serif;">
+          👤 ${isTr?'Ziyaretçi olarak devam et':'Continue as guest'}
+        </button>
+      </div>
+      <button id="authCancelBtn" style="margin-top:10px;background:none;border:none;color:rgba(180,160,255,.4);font-size:.78rem;cursor:pointer;padding:8px;touch-action:manipulation;width:100%;">
+        ${isTr?'Vazgeç':'Cancel'}
+      </button>
+    </div>`;
+
   document.body.appendChild(modal);
 
+  function close(){ modal.remove(); }
+
+  document.getElementById('authCancelBtn').onclick = close;
+  modal.onclick = (e) => { if(e.target === modal) close(); };
+
   document.getElementById('authGoogleBtn').onclick = async () => {
-    if(window.fbSignIn){
-      await window.fbSignIn();
-      if(window.currentUser){
-        modal.remove(); style.remove();
-        if(onSuccess) onSuccess();
+    const btn = document.getElementById('authGoogleBtn');
+    if(btn){ btn.innerHTML = '⏳ ' + (currentLang==='tr' ? 'Yönlendiriliyor...' : 'Redirecting...'); btn.disabled = true; }
+    try {
+      if(window.fbSignIn) await window.fbSignIn();
+      // Popup başarılıysa (masaüstü) — redirect'te sayfa zaten yenilenir
+      if(window.currentUser){ close(); if(onSuccess) onSuccess(); }
+    } catch(e){
+      // Hata varsa butonu sıfırla
+      if(btn){
+        btn.disabled = false;
+        btn.innerHTML = `<svg width="18" height="18" viewBox="0 0 48 48"><path fill="#EA4335" d="M24 9.5c3.5 0 6.6 1.2 9.1 3.2l6.8-6.8C35.8 2.2 30.2 0 24 0 14.6 0 6.6 5.4 2.7 13.3l7.9 6.1C12.4 13.1 17.7 9.5 24 9.5z"/><path fill="#4285F4" d="M46.1 24.5c0-1.6-.1-3.1-.4-4.5H24v8.5h12.4c-.5 2.8-2.1 5.1-4.4 6.7l6.9 5.4c4-3.7 6.2-9.2 6.2-16.1z"/><path fill="#FBBC05" d="M10.6 28.6A14.9 14.9 0 0 1 9.5 24c0-1.6.3-3.1.7-4.6l-7.9-6.1A23.9 23.9 0 0 0 0 24c0 3.9.9 7.5 2.7 10.7l7.9-6.1z"/><path fill="#34A853" d="M24 48c6.2 0 11.4-2 15.2-5.5l-6.9-5.4c-2 1.4-4.6 2.2-8.3 2.2-6.3 0-11.6-3.6-13.4-9.1l-7.9 6.1C6.6 42.6 14.6 48 24 48z"/></svg> ${currentLang==='tr'?'Tekrar dene':'Try again'}`;
       }
     }
   };
-  document.getElementById('authCancelBtn').onclick = () => { modal.remove(); style.remove(); };
-  
-  function handleGuest(e){
-    if(e) e.preventDefault();
-    modal.remove(); style.remove();
-    // Anonim oturum aç — sorunsuz ziyaretçi girişi
-    if(window.fbGuestSignIn){
-      window.fbGuestSignIn().then(user => {
-        if(user && onSuccess) onSuccess();
-        else if(onSuccess) onSuccess();
-      });
-    } else {
-      setTimeout(()=>{ if(onSuccess) onSuccess(); }, 50);
-    }
-  }
-  const guestBtn = document.getElementById('authGuestBtn');
-  guestBtn.addEventListener('touchend', handleGuest, {passive:false});
-  guestBtn.addEventListener('click', (e)=>{ 
-    // touchend zaten tetiklendiyse click'i yoksay
-    if(e.detail === 0) return; // klavye ile basış
-    handleGuest(e); 
-  });
+
+  document.getElementById('authGuestBtn').onclick = async () => {
+    const btn = document.getElementById('authGuestBtn');
+    if(btn){ btn.textContent = '⏳'; btn.disabled = true; }
+    if(window.fbGuestSignIn) await window.fbGuestSignIn();
+    close();
+    if(onSuccess) onSuccess();
+  };
 }
 
-// Auth gerekli mi kontrol et
+
 function requireAuth(callback){
   if(window.currentUser){ callback(); return; }
   showAuthModal(callback);
@@ -2939,8 +2963,22 @@ function requireAuth(callback){
 // Auth değişince sidebar kullanıcı bilgisini güncelle
 const FOUNDER_UID = 'l8Tih1awnjP7fRXnUsFVVAuXEZu2';
 
-document.addEventListener('authChanged', e => {
-  const user = e.detail;
+// Galaxy üyeliği değişince UI'yi anında güncelle
+document.addEventListener('galaxyStatusChanged', (e) => {
+  const user = window.currentUser;
+  if(!user) return;
+  // Kendi UID'imizse rozetleri temizle
+  if(e.detail?.uid === user.uid || !e.detail?.uid){
+    const badge = document.getElementById('galaxyBadge');
+    if(badge) badge.style.display = 'none';
+    // Galaxy area'yı da güncelle
+    if(typeof initGalaxyUI === 'function') initGalaxyUI(user);
+    // Limit badge'ini güncelle
+    if(typeof updateLimitBadges === 'function') updateLimitBadges();
+  }
+});
+
+document.addEventListener('authChanged', e => {  const user = e.detail;
   if(typeof updateLimitBadges === 'function') updateLimitBadges();
   const userArea = document.getElementById('userArea');
   if(!userArea) return;
@@ -2953,7 +2991,7 @@ document.addEventListener('authChanged', e => {
           <div style="flex:1;min-width:0">
             <div style="font-size:.75rem;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:flex;align-items:center;gap:6px">
               <span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${isFounder ? '👑 ' : ''}${user.displayName||user.email||'Ziyaretçi'}</span>
-              <span id="galaxyBadge" style="display:none;flex-shrink:0;font-family:'Orbitron',sans-serif;font-size:.58rem;font-weight:900;letter-spacing:.06em;padding:1px 6px;border-radius:5px;background:linear-gradient(135deg,#8a5cff,#5c8aff);color:#fff;box-shadow:0 0 8px rgba(140,110,255,.5)">GALAXY</span>
+              <span id="galaxyBadge" style="display:none;flex-shrink:0;font-family:'Orbitron',sans-serif;font-size:.55rem;font-weight:900;letter-spacing:.1em;padding:2px 8px;border-radius:6px;background:linear-gradient(135deg,#6d28d9,#2563eb);color:#e0d7ff;box-shadow:0 0 10px rgba(109,40,217,.5),0 0 20px rgba(37,99,235,.3)">GALAXY</span>
             </div>
             <div style="font-size:.62rem;color:${isFounder?'#ffd700':'var(--ink-soft)'}">
               ${isFounder ? '⚡ Kurucu' : '✓ '+(currentLang==='tr'?'Giriş yapıldı':'Signed in')}
@@ -3000,7 +3038,13 @@ async function initGalaxyUI(user){
   const isMember = window.fbIsGalaxyMember ? await window.fbIsGalaxyMember(user.uid) : false;
   if(isMember){
     if(badge) badge.style.display = 'inline-block';
-    area.innerHTML = '';
+    area.innerHTML = `
+      <div style="padding:8px 12px;border-radius:10px;border:1px solid rgba(140,110,255,.2);background:rgba(140,110,255,.05);text-align:center">
+        <div style="font-family:'Orbitron',sans-serif;font-size:.58rem;font-weight:900;background:linear-gradient(135deg,#8a5cff,#5c8aff);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;letter-spacing:.06em">✦ GALAXY ÜYESİ ✦</div>
+        <div style="font-size:.6rem;color:rgba(180,160,255,.45);margin-top:2px">${isTr?'Sınırsız erişim aktif':'Unlimited access active'}</div>
+      </div>`;
+    // Sınırsız badge'ini de güncelle
+    if(typeof updateLimitBadges === 'function') updateLimitBadges();
     return;
   }
   if(badge) badge.style.display = 'none';
@@ -3034,20 +3078,25 @@ async function initGalaxyUI(user){
   }
 
   const btn = document.getElementById('galaxyApplyBtn');
+  if(!btn) return;
+  let applyBusy = false;
   async function handleApply(e){
     if(e) e.preventDefault();
+    if(applyBusy) return;
+    applyBusy = true;
     btn.disabled = true;
     btn.textContent = isTr ? 'Gönderiliyor...' : 'Submitting...';
     const result = await window.fbApplyGalaxy(user.uid, user.displayName, user.email);
     if(result.ok){
-      initGalaxyUI(user); // pending durumuna güncelle
+      initGalaxyUI(user);
     } else {
       btn.disabled = false;
       btn.textContent = isTr ? 'Tekrar dene' : 'Try again';
+      applyBusy = false;
     }
   }
-  btn?.addEventListener('click', handleApply);
-  btn?.addEventListener('touchend', handleApply, {passive:false});
+  // Sadece onclick — touch+click çakışması yok
+  btn.onclick = handleApply;
 }
 
 function showFounderWelcome(){
@@ -3366,6 +3415,15 @@ function showFounderWelcome(){
     }
     const s = cachedStats;
 
+    // Onaylanmış Galaxy üyelerini Firestore'dan çek (isim/email görmek için)
+    let galaxyMembers = [];
+    if(window.fbGetGalaxyApplications){
+      try{
+        const apps = await window.fbGetGalaxyApplications();
+        galaxyMembers = apps.filter(a => a.status === 'approved');
+      }catch(e){}
+    }
+
     const bannedHtml = s.bannedUsers?.length
       ? s.bannedUsers.map(u => `
         <div class="fw-list-item">
@@ -3373,17 +3431,34 @@ function showFounderWelcome(){
             <div style="font-size:.7rem">${u.uid.slice(0,16)}…</div>
             <div style="font-size:.62rem;color:rgba(255,255,255,.35)">${u.reason}</div>
           </div>
-          <button class="fw-btn fw-btn-green" data-unban="${u.uid}" style="padding:5px 10px;font-size:.65rem">Kaldır</button>
+          <button class="fw-btn fw-btn-green" data-unban="${u.uid}" style="padding:5px 10px;font-size:.65rem">🔓 Banı Kaldır</button>
         </div>`).join('')
       : `<div class="fw-empty">Banlı kullanıcı yok</div>`;
 
-    const unlimitedHtml = s.unlimitedUsers?.length
-      ? s.unlimitedUsers.map(uid => `
+    const galaxyHtml = galaxyMembers.length
+      ? galaxyMembers.map(m => `
+        <div class="fw-list-item">
+          <div style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1">
+            <div style="font-size:.7rem;display:flex;align-items:center;gap:6px">
+              ${(m.displayName||'İsimsiz').replace(/</g,'&lt;')}
+              <span style="font-family:'Orbitron',sans-serif;font-size:.55rem;font-weight:900;padding:1px 5px;border-radius:4px;background:linear-gradient(135deg,#8a5cff,#5c8aff);color:#fff">GALAXY</span>
+            </div>
+            <div style="font-size:.6rem;color:rgba(140,110,255,.5);font-family:'Space Mono',monospace">${m.uid.slice(0,16)}…</div>
+          </div>
+          <button class="fw-btn fw-btn-red" data-revoke-galaxy="${m.uid}" style="padding:5px 10px;font-size:.65rem">Çıkar</button>
+        </div>`).join('')
+      : `<div class="fw-empty">Henüz onaylanmış Galaxy üyesi yok</div>`;
+
+    // Manuel sınırsız erişim verilenler (galaxy başvurusu olmayan, doğrudan UID ile eklenenler)
+    const galaxyUids = new Set(galaxyMembers.map(m => m.uid));
+    const manualUnlimited = (s.unlimitedUsers || []).filter(uid => !galaxyUids.has(uid));
+    const unlimitedHtml = manualUnlimited.length
+      ? manualUnlimited.map(uid => `
         <div class="fw-list-item">
           <span style="font-size:.7rem">${uid.slice(0,16)}…</span>
           <button class="fw-btn fw-btn-red" data-revoke="${uid}" style="padding:5px 10px;font-size:.65rem">Kaldır</button>
         </div>`).join('')
-      : `<div class="fw-empty">Özel ayrıcalıklı kullanıcı yok</div>`;
+      : `<div class="fw-empty">Manuel eklenmiş özel kullanıcı yok</div>`;
 
     contentEl.innerHTML = `
       <div class="fw-card">
@@ -3392,7 +3467,7 @@ function showFounderWelcome(){
         <input id="fwBanReason" class="fw-input" placeholder="Ban sebebi (opsiyonel)" style="margin-bottom:10px">
         <div style="display:flex;gap:8px;flex-wrap:wrap">
           <button id="fwBanBtn" class="fw-btn fw-btn-red">🚫 Banla</button>
-          <button id="fwGrantBtn" class="fw-btn fw-btn-gold">⚡ Sınırsız Erişim Ver</button>
+          <button id="fwGrantBtn" class="fw-btn" style="background:linear-gradient(135deg,rgba(138,92,255,.25),rgba(92,138,255,.25));color:#a78bfa;border:1px solid rgba(138,92,255,.4)">🌌 GALAXY Ver</button>
         </div>
       </div>
 
@@ -3402,9 +3477,10 @@ function showFounderWelcome(){
       </div>
 
       <div class="fw-card">
-        <div style="font-size:.7rem;color:rgba(255,215,0,.7);font-family:'Space Mono',monospace;margin-bottom:10px">⚡ SINIRSIZ ERİŞİMLİ KULLANICILAR (Beta Testçiler)</div>
-        ${unlimitedHtml}
+        <div style="font-size:.7rem;color:#a78bfa;font-family:'Space Mono',monospace;margin-bottom:10px">🌌 GALAXY ÜYELERİ</div>
+        ${galaxyHtml}
       </div>
+
     `;
 
     document.getElementById('fwBanBtn').onclick = async () => {
@@ -3418,20 +3494,46 @@ function showFounderWelcome(){
     document.getElementById('fwGrantBtn').onclick = async () => {
       const uid = document.getElementById('fwTargetUid').value.trim();
       if(!uid) return;
+      const btn = document.getElementById('fwGrantBtn');
+      btn.disabled = true; btn.textContent = '⏳ Veriliyor...';
+      // Server'da sınırsız erişim
       await adminFetch('/api/admin/grant-unlimited', { targetUid: uid });
-      cachedStats = null;
-      renderUsers();
+      // Firestore'da GALAXY rozeti
+      if(window.fbApproveGalaxy) await window.fbApproveGalaxy(uid);
+      btn.textContent = '✓ Verildi'; btn.style.color = '#4dff96';
+      setTimeout(()=>{ btn.disabled=false; btn.textContent='🌌 GALAXY Ver'; btn.style.color=''; cachedStats=null; renderUsers(); }, 1500);
     };
+    // Banı kaldır — kişi tekrar normal limitlerle kullanmaya devam edebilir
     contentEl.querySelectorAll('[data-unban]').forEach(btn => {
       btn.onclick = async () => {
+        btn.disabled = true; btn.textContent = '...';
         await adminFetch('/api/admin/unban', { targetUid: btn.dataset.unban });
         cachedStats = null;
         renderUsers();
       };
     });
+    // Manuel sınırsız erişimi kaldır
     contentEl.querySelectorAll('[data-revoke]').forEach(btn => {
       btn.onclick = async () => {
+        btn.disabled = true; btn.textContent = '...';
         await adminFetch('/api/admin/revoke-unlimited', { targetUid: btn.dataset.revoke });
+        cachedStats = null;
+        renderUsers();
+      };
+    });
+    // Galaxy üyeliğini kaldır — hem server'daki sınırsız erişimi hem Firestore rozetini kaldırır
+    contentEl.querySelectorAll('[data-revoke-galaxy]').forEach(btn => {
+      btn.onclick = async () => {
+        btn.disabled = true; btn.textContent = '...';
+        const uid = btn.dataset.revokeGalaxy;
+        if(window.fbRevokeGalaxy) await window.fbRevokeGalaxy(uid);
+        await adminFetch('/api/admin/revoke-unlimited', { targetUid: uid });
+        // Eğer mevcut kullanıcı oysa rozetini kaldır
+        if(window.currentUser?.uid === uid){
+          const badge = document.getElementById('galaxyBadge');
+          if(badge) badge.style.display = 'none';
+          if(typeof initGalaxyUI === 'function') initGalaxyUI(window.currentUser);
+        }
         cachedStats = null;
         renderUsers();
       };
@@ -5307,6 +5409,17 @@ function startLoadingAnimation(){
   const particles = document.getElementById('loadingParticles');
   if(!canvas) return;
 
+  // Progress bar sıfırla ve başlat
+  const pbar = document.getElementById('loadingProgressBar');
+  if(pbar){ pbar.style.width = '0%'; pbar.style.transition = 'width .3s ease'; }
+  let progress = 0;
+  const progressInterval = setInterval(()=>{
+    // Yavaş yavaş ilerle — gerçek tamamlanma ile senkronize değil, sadece görsel
+    if(progress < 85){ progress += Math.random() * 8; }
+    if(pbar) pbar.style.width = Math.min(progress, 85) + '%';
+  }, 400);
+  window._loadingProgressInterval = progressInterval;
+
   // Loading güneş göz takibi
   const lgPL = document.getElementById('lgPupilL');
   const lgPR = document.getElementById('lgPupilR');
@@ -5327,6 +5440,9 @@ function startLoadingAnimation(){
   const origStop = stopLoadingAnimation;
   stopLoadingAnimation = function(){
     window.removeEventListener('mousemove', trackLoadingEyes);
+    clearInterval(window._loadingProgressInterval);
+    // %100'e tamamla
+    if(pbar){ pbar.style.transition='width .2s ease'; pbar.style.width='100%'; }
     stopLoadingAnimation = origStop;
     origStop();
   };
@@ -5460,7 +5576,7 @@ async function updateLimitBadges(){
   const chatBadge = document.getElementById('chatLimitBadge');
   const chatText  = document.getElementById('chatLimitText');
 
-  // Kurucu — büyük ∞ / ∞ göster, açıklama metni gizlenir
+  // Kurucu — büyük ∞ / ∞ göster (altın), açıklama metni gizlenir
   if(isFounder){
     if(deckBadge && deckText){
       deckText.textContent = '∞ / ∞';
@@ -5483,6 +5599,38 @@ async function updateLimitBadges(){
     return;
   }
 
+  // Galaxy üyesi — büyük ∞ / ∞ göster (mor-mavi)
+  const isGalaxy = window.currentUser && window.fbIsGalaxyMember
+    ? await window.fbIsGalaxyMember(window.currentUser.uid)
+    : false;
+  if(isGalaxy){
+    if(deckBadge && deckText){
+      deckText.textContent = '∞ / ∞';
+      deckText.style.fontSize = '1.3rem';
+      deckText.style.fontWeight = '700';
+      deckBadge.style.display = 'block';
+      deckText.style.background = 'linear-gradient(135deg,#8a5cff,#5c8aff)';
+      deckText.style.webkitBackgroundClip = 'text';
+      deckText.style.webkitTextFillColor = 'transparent';
+      deckText.style.backgroundClip = 'text';
+      const suffix = document.getElementById('deckLimitSuffix');
+      if(suffix) suffix.style.display = 'none';
+    }
+    if(chatBadge && chatText){
+      chatText.textContent = '∞ / ∞';
+      chatText.style.fontSize = '1.3rem';
+      chatText.style.fontWeight = '700';
+      chatBadge.style.display = 'flex';
+      chatText.style.background = 'linear-gradient(135deg,#8a5cff,#5c8aff)';
+      chatText.style.webkitBackgroundClip = 'text';
+      chatText.style.webkitTextFillColor = 'transparent';
+      chatText.style.backgroundClip = 'text';
+      const chatSuffix = chatBadge.querySelector('div:last-child');
+      if(chatSuffix) chatSuffix.style.display = 'none';
+    }
+    return;
+  }
+
   try{
     const r = await fetch('https://thinkle-proxy-518x.onrender.com/api/limit');
     if(!r.ok) return;
@@ -5492,6 +5640,8 @@ async function updateLimitBadges(){
       deckText.textContent = left + ' / ' + data.decks.limit;
       deckText.style.fontSize = '.65rem';
       deckText.style.fontWeight = '400';
+      deckText.style.background = 'none';
+      deckText.style.webkitTextFillColor = '';
       deckBadge.style.display = 'block';
       deckText.style.color = left <= 2 ? '#ff6ec7' : 'rgba(110,231,255,.7)';
       const suffix = document.getElementById('deckLimitSuffix');
@@ -5502,6 +5652,8 @@ async function updateLimitBadges(){
       chatText.textContent = left + ' / ' + data.chats.limit;
       chatText.style.fontSize = '.6rem';
       chatText.style.fontWeight = '400';
+      chatText.style.background = 'none';
+      chatText.style.webkitTextFillColor = '';
       chatBadge.style.display = 'flex';
       chatText.style.color = left <= 5 ? '#ff6ec7' : 'rgba(110,231,255,.7)';
       const chatSuffix = chatBadge.querySelector('div:last-child');
