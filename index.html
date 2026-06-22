@@ -36,21 +36,25 @@
   const auth = getAuth(app);
   const db = getFirestore(app);
   const provider = new GoogleAuthProvider();
+  provider.setCustomParameters({ prompt: 'select_account' });
   const isMobileDevice = /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent);
 
   window.fbSignIn = async () => {
     try {
       if(isMobileDevice){
-        // Mobilde her zaman redirect — popup mobilde güvenilmez
+        // Redirect öncesi flag set et — geri dönünce intro atlanır
+        sessionStorage.setItem('firebase_redirect_pending', '1');
         await signInWithRedirect(auth, provider);
       } else {
-        // Masaüstünde popup
         await signInWithPopup(auth, provider);
       }
     } catch(err){
-      // Popup bloke olduysa redirect'e düş
+      sessionStorage.removeItem('firebase_redirect_pending');
       if(err.code === 'auth/popup-blocked' || err.code === 'auth/popup-closed-by-user'){
-        try { await signInWithRedirect(auth, provider); } catch(e){}
+        try {
+          sessionStorage.setItem('firebase_redirect_pending', '1');
+          await signInWithRedirect(auth, provider);
+        } catch(e){ sessionStorage.removeItem('firebase_redirect_pending'); }
       }
     }
   };
@@ -61,12 +65,17 @@
   };
 
   window.fbSignOut = () => signOut(auth);
+
+  // Redirect sonrası geri dönünce oturumu yakala
   getRedirectResult(auth).then(result => {
     if(result?.user){
       window.currentUser = result.user;
       document.dispatchEvent(new CustomEvent('authChanged', { detail: result.user }));
     }
-  }).catch(()=>{});
+  }).catch((err) => {
+    // Hata varsa konsola yaz — debug için
+    console.warn('getRedirectResult error:', err?.code, err?.message);
+  });
 
   // İstatistik kaydet
   window.fbLogUsage = async (type) => {
@@ -2716,6 +2725,16 @@
   const introHello = document.getElementById('introHello');
   const introOrb = document.getElementById('introOrb');
   if(!intro || !canvas) return;
+
+  // Google redirect'ten döndükten sonra intro'yu atla
+  // sessionStorage'da redirect flag varsa intro'yu anında kapat
+  if(sessionStorage.getItem('firebase_redirect_pending')){
+    sessionStorage.removeItem('firebase_redirect_pending');
+    intro.classList.add('fade-out');
+    intro.style.pointerEvents = 'none';
+    setTimeout(()=>{ try{ intro.remove(); }catch(e){} }, 100);
+    return;
+  }
 
   // GÜVENLİK AĞI — ne olursa olsun (JS hatası, takılma, vs) 7 saniye
   // sonra intro zorla kapatılır. Aksi halde z-index:9000 tüm tıklamaları
