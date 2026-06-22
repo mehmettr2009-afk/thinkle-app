@@ -40,13 +40,17 @@
 
   window.fbSignIn = async () => {
     try {
-      // Önce popup dene — mobilde de çalışabilir
-      await signInWithPopup(auth, provider);
+      if(isMobileDevice){
+        // Mobilde her zaman redirect — popup mobilde güvenilmez
+        await signInWithRedirect(auth, provider);
+      } else {
+        // Masaüstünde popup
+        await signInWithPopup(auth, provider);
+      }
     } catch(err){
-      // Popup bloke olduysa redirect'e geç
-      if(err.code === 'auth/popup-blocked' || err.code === 'auth/popup-closed-by-user' || isMobileDevice){
-        try { await signInWithRedirect(auth, provider); }
-        catch(e){ console.error('Sign in error:', e); }
+      // Popup bloke olduysa redirect'e düş
+      if(err.code === 'auth/popup-blocked' || err.code === 'auth/popup-closed-by-user'){
+        try { await signInWithRedirect(auth, provider); } catch(e){}
       }
     }
   };
@@ -2971,8 +2975,15 @@ function showAuthModal(onSuccess){
   modal.onclick = (e) => { if(e.target === modal) close(); };
 
   document.getElementById('authGoogleBtn').onclick = async () => {
-    if(window.fbSignIn) await window.fbSignIn();
-    if(window.currentUser){ close(); if(onSuccess) onSuccess(); }
+    const btn = document.getElementById('authGoogleBtn');
+    if(btn){ btn.textContent = '⏳ Yönlendiriliyor...'; btn.disabled = true; }
+    try {
+      if(window.fbSignIn) await window.fbSignIn();
+      // Popup başarılıysa (masaüstü)
+      if(window.currentUser){ close(); if(onSuccess) onSuccess(); }
+    } catch(e){
+      // Redirect başladı — sayfa zaten yenileniyor, hata normal
+    }
   };
 
   document.getElementById('authGuestBtn').onclick = async () => {
