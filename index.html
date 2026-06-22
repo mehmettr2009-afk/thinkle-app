@@ -182,16 +182,24 @@
     } catch(e){ return false; }
   };
 
-  // Kurucu: Galaxy üyeliğini kaldır
+  // Kurucu: Galaxy üyeliğini kaldır — sil değil, rejected yap (tekrar başvurabilsin)
   window.fbRevokeGalaxy = async (uid) => {
     try {
-      await deleteDoc(doc(db, 'galaxyApplications', uid)).catch(()=>{});
+      // Başvuruyu sil değil — 'revoked' durumuna al, tekrar başvurabilsin
+      const appRef = doc(db, 'galaxyApplications', uid);
+      const appSnap = await getDoc(appRef);
+      if(appSnap.exists()){
+        await updateDoc(appRef, { status:'revoked', decidedAt:new Date().toISOString() });
+      }
+      // Kullanıcı dokümanında galaxy:false
       await setDoc(doc(db, 'users', uid), { galaxy: false }, { merge:true });
+      // Global event yayınla — o kullanıcının UI'si de güncellensin
+      document.dispatchEvent(new CustomEvent('galaxyStatusChanged', { detail: { uid, status:'revoked' } }));
       return true;
     } catch(e){ return false; }
   };
 
-  // Kullanıcının galaxy rozeti var mı kontrol et
+  // Kullanıcının galaxy rozeti var mı — her zaman Firestore'dan taze oku
   window.fbIsGalaxyMember = async (uid) => {
     try {
       const s = await getDoc(doc(db, 'users', uid));
@@ -199,11 +207,38 @@
     } catch(e){ return false; }
   };
 
-  // Duyuru listener — auth yüklendikten sonra başlat
+  // Kullanıcının başvuru durumu — 'revoked' olanlar tekrar başvurabilir
+  window.fbGetGalaxyStatus = async (uid) => {
+    try {
+      const s = await getDoc(doc(db, 'galaxyApplications', uid));
+      if(!s.exists()) return null;
+      const status = s.data().status;
+      // revoked = silinmiş gibi davran, tekrar başvurabilsin
+      return status === 'revoked' ? null : status;
+    } catch(e){ return null; }
+  };
+
+  // Gerçek zamanlı Galaxy durumu izleyici — kaldırılınca anında rozet gider
   onAuthStateChanged(auth, user => {
     window.currentUser = user;
     if(user && !user.isAnonymous) window.fbLogUser(user.uid).catch(()=>{});
+
+    // Galaxy durumunu gerçek zamanlı izle
+    if(user && !user.isAnonymous){
+      onSnapshot(doc(db, 'users', user.uid), (snap) => {
+        const isGalaxy = snap.exists() ? !!snap.data().galaxy : false;
+        const badge = document.getElementById('galaxyBadge');
+        if(badge) badge.style.display = isGalaxy ? 'inline-block' : 'none';
+        if(!isGalaxy){
+          // Rozet gitti — başvur butonunu göster
+          document.dispatchEvent(new CustomEvent('galaxyStatusChanged', { detail: { uid: user.uid, status: isGalaxy ? 'approved' : 'revoked' } }));
+        }
+        if(typeof updateLimitBadges === 'function') updateLimitBadges();
+      }, ()=>{});
+    }
+
     document.dispatchEvent(new CustomEvent('authChanged', { detail: user }));
+  });
 
     // Auth yüklenince duyuru dinlemeye başla (ziyaretçi dahil herkes)
     if(!window._annListenerStarted){
@@ -2998,8 +3033,22 @@ function requireAuth(callback){
 // Auth değişince sidebar kullanıcı bilgisini güncelle
 const FOUNDER_UID = 'l8Tih1awnjP7fRXnUsFVVAuXEZu2';
 
-document.addEventListener('authChanged', e => {
-  const user = e.detail;
+// Galaxy üyeliği değişince UI'yi anında güncelle
+document.addEventListener('galaxyStatusChanged', (e) => {
+  const user = window.currentUser;
+  if(!user) return;
+  // Kendi UID'imizse rozetleri temizle
+  if(e.detail?.uid === user.uid || !e.detail?.uid){
+    const badge = document.getElementById('galaxyBadge');
+    if(badge) badge.style.display = 'none';
+    // Galaxy area'yı da güncelle
+    if(typeof initGalaxyUI === 'function') initGalaxyUI(user);
+    // Limit badge'ini güncelle
+    if(typeof updateLimitBadges === 'function') updateLimitBadges();
+  }
+});
+
+document.addEventListener('authChanged', e => {  const user = e.detail;
   if(typeof updateLimitBadges === 'function') updateLimitBadges();
   const userArea = document.getElementById('userArea');
   if(!userArea) return;
