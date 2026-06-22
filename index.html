@@ -138,12 +138,13 @@
     try {
       const ref = doc(db, 'galaxyApplications', uid);
       const existing = await getDoc(ref);
-      if(existing.exists() && existing.data().status === 'pending'){
-        return { ok:false, reason:'already_pending' };
+      if(existing.exists()){
+        const status = existing.data().status;
+        if(status === 'pending')  return { ok:false, reason:'already_pending' };
+        if(status === 'approved') return { ok:false, reason:'already_member' };
+        // revoked veya rejected — üzerine yaz (setDoc ile tam yenile)
       }
-      if(existing.exists() && existing.data().status === 'approved'){
-        return { ok:false, reason:'already_member' };
-      }
+      // setDoc ile yeni başvuru yaz (yoksa oluşturur, varsa tamamen üzerine yazar)
       await setDoc(ref, {
         uid, displayName: displayName||'', email: email||'',
         status: 'pending', appliedAt: new Date().toISOString()
@@ -2228,6 +2229,9 @@
       if(fb) fb.style.display = isFounder ? 'flex' : 'none';
       if(fd) fd.style.display = isFounder ? 'block' : 'none';
 
+      // Header login/logout butonları — her seferinde DOM'dan al
+      const loginBtn  = document.getElementById('mhLoginBtn');
+      const logoutBtn = document.getElementById('mhLogoutBtn');
       if(loginBtn)  loginBtn.style.display  = user ? 'none' : 'flex';
       if(logoutBtn) logoutBtn.style.display = user ? 'flex' : 'none';
 
