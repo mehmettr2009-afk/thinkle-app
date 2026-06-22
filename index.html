@@ -22,7 +22,6 @@
     from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js';
   import { getFirestore, doc, setDoc, getDoc, updateDoc, increment, collection, getDocs, orderBy, query, limit, onSnapshot, deleteDoc }
     from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
-
   const firebaseConfig = {
     apiKey: "AIzaSyBfq73MikECswm01iEAB8X-_vgxaHrEAvQ",
     authDomain: "thinkle-space.firebaseapp.com",
@@ -31,13 +30,11 @@
     messagingSenderId: "116189378023",
     appId: "1:116189378023:web:4c16d2bac82e192455b942"
   };
-
   const app = initializeApp(firebaseConfig);
   const auth = getAuth(app);
   const db = getFirestore(app);
   const provider = new GoogleAuthProvider();
   const isMobileDevice = /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent);
-
   window.fbSignIn = async () => {
     try {
       // Önce popup dene — mobilde de çalışabilir
@@ -50,12 +47,10 @@
       }
     }
   };
-
   window.fbGuestSignIn = async () => {
     try { return (await signInAnonymously(auth)).user; }
     catch(err){ return null; }
   };
-
   window.fbSignOut = () => signOut(auth);
   getRedirectResult(auth).then(result => {
     if(result?.user){
@@ -63,7 +58,6 @@
       document.dispatchEvent(new CustomEvent('authChanged', { detail: result.user }));
     }
   }).catch(()=>{});
-
   // İstatistik kaydet
   window.fbLogUsage = async (type) => {
     try {
@@ -74,7 +68,6 @@
       await updateDoc(ref, { [type]: increment(1) });
     } catch(e){}
   };
-
   // Kullanıcı girişini kaydet
   window.fbLogUser = async (uid) => {
     try {
@@ -92,7 +85,6 @@
       }
     } catch(e){}
   };
-
   // İstatistikleri getir (son 7 gün)
   window.fbGetStats = async () => {
     try {
@@ -101,13 +93,11 @@
       return snap.docs.map(d => d.data());
     } catch(e){ return []; }
   };
-
   // Toplam kullanıcı sayısı
   window.fbGetUserCount = async () => {
     try { return (await getDocs(collection(db, 'users'))).size; }
     catch(e){ return 0; }
   };
-
   // Duyuru yönetimi
   window.fbSetAnnouncement = async (text) => {
     try { await setDoc(doc(db, 'config', 'announcement'), { text, active:!!text, updatedAt:new Date().toISOString() }); }
@@ -117,7 +107,6 @@
     try { const s = await getDoc(doc(db, 'config','announcement')); return s.exists()?s.data():null; }
     catch(e){ return null; }
   };
-
   // Bakım modu
   window.fbSetMaintenance = async (active) => {
     try { await setDoc(doc(db,'config','maintenance'),{active,updatedAt:new Date().toISOString()}); }
@@ -127,7 +116,6 @@
     try { const s = await getDoc(doc(db,'config','maintenance')); return s.exists()?s.data().active:false; }
     catch(e){ return false; }
   };
-
   // ============ GALAXY ÜYELİK BAŞVURU SİSTEMİ ============
   // Kullanıcı başvuru yapar
   window.fbApplyGalaxy = async (uid, displayName, email) => {
@@ -147,7 +135,6 @@
       return { ok:true };
     } catch(e){ return { ok:false, reason:'error' }; }
   };
-
   // Kullanıcının kendi başvuru durumunu kontrol et
   window.fbGetGalaxyStatus = async (uid) => {
     try {
@@ -155,7 +142,6 @@
       return s.exists() ? s.data().status : null;
     } catch(e){ return null; }
   };
-
   // Kurucu: bekleyen başvuruları getir
   window.fbGetGalaxyApplications = async () => {
     try {
@@ -164,7 +150,6 @@
       return snap.docs.map(d => d.data());
     } catch(e){ return []; }
   };
-
   // Kurucu: başvuruyu onayla
   window.fbApproveGalaxy = async (uid) => {
     try {
@@ -173,7 +158,6 @@
       return true;
     } catch(e){ return false; }
   };
-
   // Kurucu: başvuruyu reddet
   window.fbRejectGalaxy = async (uid) => {
     try {
@@ -181,7 +165,6 @@
       return true;
     } catch(e){ return false; }
   };
-
   // Kurucu: Galaxy üyeliğini kaldır
   window.fbRevokeGalaxy = async (uid) => {
     try {
@@ -190,7 +173,6 @@
       return true;
     } catch(e){ return false; }
   };
-
   // Kullanıcının galaxy rozeti var mı kontrol et
   window.fbIsGalaxyMember = async (uid) => {
     try {
@@ -198,13 +180,16 @@
       return s.exists() ? !!s.data().galaxy : false;
     } catch(e){ return false; }
   };
-
+  window.fbWatchUserGalaxy = (uid, callback) => {
+    return onSnapshot(doc(db, 'users', uid), (snap) => {
+      callback(snap.exists() ? !!snap.data().galaxy : false);
+    }, () => {});
+  };
   // Duyuru listener — auth yüklendikten sonra başlat
   onAuthStateChanged(auth, user => {
     window.currentUser = user;
     if(user && !user.isAnonymous) window.fbLogUser(user.uid).catch(()=>{});
     document.dispatchEvent(new CustomEvent('authChanged', { detail: user }));
-
     // Auth yüklenince duyuru dinlemeye başla (ziyaretçi dahil herkes)
     if(!window._annListenerStarted){
       window._annListenerStarted = true;
@@ -220,10 +205,8 @@
       }, ()=>{});
     }
   });
-
   // Sayfa ziyaretini kaydet
   window.fbLogUsage('visits');
-
   // Gerçek zamanlı duyuru — sadece aktif duyuru varsa banner göster, otomatik tetiklemez
   let lastAnnText = null;
   onSnapshot(doc(db, 'config', 'announcement'), (snap) => {
@@ -234,7 +217,6 @@
     }
     // Otomatik banner yok — sadece kaydet butonundan tetiklenir
   }, ()=>{});
-
   // Gerçek zamanlı bakım modu — kurucu ASLA etkilenmez
   const FOUNDER = 'l8Tih1awnjP7fRXnUsFVVAuXEZu2';
   onSnapshot(doc(db, 'config', 'maintenance'), (snap) => {
@@ -262,7 +244,6 @@
     --pink:#ff6ec7;
     --ok:#4dffb0;
   }
-
   /* ===== TEMA UYUMLU SCROLLBAR — site genelinde ===== */
   * {
     scrollbar-width: thin;
@@ -287,7 +268,6 @@
   *::-webkit-scrollbar-corner{
     background: transparent;
   }
-
   /* ---------- Biome variants (different black hole / space color themes) ---------- */
   body.biome-1{
     --accent:#6ee7ff; --accent2:#b46bff; --pink:#ff6ec7;
@@ -322,7 +302,6 @@
     touch-action: manipulation;
   }
   .util{font-family:'Space Mono',monospace; letter-spacing:.04em;}
-
   #space{
     position:fixed; inset:0; z-index:0; pointer-events:none;
     background:
@@ -347,7 +326,6 @@
   #galaxy{
     position:fixed; inset:0; pointer-events:none; z-index:0;
   }
-
   /* ============================================================
      GALAKSİ — SVG tabanlı, çekirdek + spiral parıltılar JS ile eklenir
      ============================================================ */
@@ -377,7 +355,6 @@
     0%{   opacity:.78; }
     100%{ opacity:1; }
   }
-
   /* ---------- Laser beam fired at planets: lightsaber-style glowing beam ---------- */
   #laserBeams{ position:fixed; inset:0; z-index:3; pointer-events:none; }
   .laser-beam{
@@ -423,7 +400,6 @@
     60%{ opacity:1; transform: scale(1.2); }
     100%{ opacity:1; transform: scale(1); }
   }
-
   /* ---------- Black hole swallowing a ship or planet ---------- */
   .swallowed{
     animation: swallow-in 1.4s ease-in forwards !important;
@@ -456,7 +432,6 @@
     from{ transform: rotate(0deg) translateX(var(--or-r)) rotate(var(--or-tilt)); }
     to{ transform: rotate(360deg) translateX(var(--or-r)) rotate(var(--or-tilt)); }
   }
-
   /* ---------- Asteroids — gerçekçi taşlı, pütürlü ---------- */
   .asteroid{
     position:fixed; pointer-events:none; z-index:2;
@@ -469,7 +444,6 @@
     94%{  opacity:var(--ast-op,.85); transform:translate(var(--ast-dx,400px),var(--ast-dy,60px)) rotate(var(--ast-rot,360deg)); }
     100%{ opacity:0;   transform:translate(var(--ast-dx,400px),var(--ast-dy,60px)) rotate(var(--ast-rot,360deg)); }
   }
-
   /* ===== ARKA PLAN GEZEGENLERİ — büyük, şeffaf, uzak perspektif ===== */
   .bg-planet{
     position:fixed; border-radius:50%; pointer-events:none; z-index:0;
@@ -490,12 +464,10 @@
     pointer-events:none;
     transform:translate(-50%,-50%);
   }
-
   @keyframes sol-pulse{
     0%{ box-shadow:0 0 28px 10px rgba(255,180,0,.55), 0 0 70px 28px rgba(255,100,0,.3); }
     100%{ box-shadow:0 0 38px 16px rgba(255,200,0,.7), 0 0 90px 38px rgba(255,120,0,.4); }
   }
-
   /* Güneş yüzü */
   .sol-face{
     position:absolute; inset:0; border-radius:50%;
@@ -542,11 +514,9 @@
   }
   .sol-brow.left { left:18%; transform:rotate(-5deg); }
   .sol-brow.right{ left:50%; transform:rotate(5deg); }
-
   /* 😡 SİNİRLİ */
     50%{     transform:translate(-50%,-50%) rotate(1.5deg) scale(.98); }
   }
-
   /* 😢 AĞLIYOR */
   @keyframes sol-sad-bob{
     0%,100%{ transform:translate(-50%,-50%) translateY(0); }
@@ -558,7 +528,6 @@
     60%{  height:130%; opacity:.9; }
     100%{ height:160%; opacity:0; transform:translateY(40%); }
   }
-
   /* 🤪 ÇILGIN */
   @keyframes sol-crazy-spin{
     0%{   transform:translate(-50%,-50%) rotate(0deg) scale(1); }
@@ -567,7 +536,6 @@
     75%{  transform:translate(-50%,-50%) rotate(270deg) scale(1.06); }
     100%{ transform:translate(-50%,-50%) rotate(360deg) scale(1); }
   }
-
   /* 😍 ŞAŞIRMIŞ / mutlu tıklama */
   @keyframes sol-surprised-bounce{
     0%{   transform:translate(-50%,-50%) scale(1); }
@@ -575,14 +543,12 @@
     70%{  transform:translate(-50%,-50%) scale(.92); }
     100%{ transform:translate(-50%,-50%) scale(1); }
   }
-
   /* Göz kırpma */
   @keyframes sol-blink{
     0%,88%,100%{ height:28%; }
     93%{ height:4%; }
   }
   .sol-eye.blinking{ animation: sol-blink 3.8s ease-in-out infinite; }
-
   /* Güneş upload ekranında TAMAMEN SABİT — hiçbir JS değiştiremez */
   .sol.upload-fixed{
     position: fixed !important;
@@ -599,7 +565,6 @@
       top: 36vh !important;
     }
   }
-
   /* Quiz modunda güneş küçük, sağ alt köşede */
   .sol.quiz-mode{
     width:36px !important; height:36px !important;
@@ -634,7 +599,6 @@
     box-shadow:0 0 6px 2px rgba(220,190,120,.2); pointer-events:none;
   }
   .planet .atmo{ position:absolute; inset:-4px; border-radius:50%; pointer-events:none; }
-
   /* ---------- Space ships / satellites ---------- */
   .space-ship{
     position:fixed; z-index:5; pointer-events:none; width:10px;
@@ -659,7 +623,6 @@
     80%{  opacity:.3; transform:translate(calc(var(--bh-dx)*.9), calc(var(--bh-dy)*.9)) scale(.18) rotate(360deg); filter:brightness(.3) blur(1px); }
     100%{ opacity:0;  transform:translate(var(--bh-dx), var(--bh-dy)) scale(0) rotate(520deg); filter:blur(4px); }
   }
-
   /* ---------- Asteroids ---------- */
   .asteroid{
     position:fixed; pointer-events:none; z-index:2;
@@ -672,7 +635,6 @@
     94%{  opacity:.85; transform:translate(var(--ast-dx,400px), var(--ast-dy,100px)) rotate(var(--ast-rot,360deg)) scale(var(--ast-scale,1)); }
     100%{ opacity:0;   transform:translate(var(--ast-dx,400px), var(--ast-dy,100px)) rotate(var(--ast-rot,360deg)) scale(var(--ast-scale,1)); }
   }
-
   /* ---------- Solar system planets drifting ---------- */
   .planets{ position:fixed; inset:0; z-index:1; pointer-events:none; overflow:hidden; }
   .planet.exploding .body{ animation:planet-explode .6s ease-out forwards; }
@@ -682,7 +644,6 @@
     30%{opacity:1;transform:scale(1.6);filter:brightness(3) saturate(2);}
     100%{opacity:0;transform:scale(2.6);filter:brightness(4);}
   }
-
   /* ---------- Logo intro: fades in, then gets sucked into black hole ---------- */
   .logo-intro{
     position:relative;
@@ -698,7 +659,6 @@
     60%{ opacity:.6; transform: translateY(40px) scale(.4) rotate(120deg); filter:blur(1px); }
     100%{ opacity:0; transform: translateY(70px) scale(0) rotate(280deg); filter:blur(3px); }
   }
-
   /* ---------- File-eating animation ---------- */
   .file-eaten{
     animation: file-suck 1.4s ease-in forwards;
@@ -708,7 +668,6 @@
     40%{ opacity:.7; transform: scale(.85) translateY(10px) rotate(15deg); filter:blur(.5px); }
     100%{ opacity:.08; transform: scale(.15) translateY(120px) rotate(540deg); filter:blur(4px); }
   }
-
   /* ---------- Laser eye inside black hole core ---------- */
   .laser-eye{
     position:absolute; inset:0; border-radius:50%;
@@ -731,13 +690,11 @@
     99%       { opacity:0;   transform:scale(.6); }
     100%      { opacity:0;   transform:scale(.6); }
   }
-
   /* Invisible anchor at the black hole's center, used as the laser origin point */
   #mainLaserEye{
     position:absolute; left:50%; top:50%; width:1px; height:1px;
     pointer-events:none;
   }
-
   .left-column{
     width:300px; flex-shrink:0; position:relative; z-index:10;
     background:rgba(16,22,58,.55);
@@ -746,14 +703,12 @@
     display:flex; flex-direction:column;
     max-height:100vh; overflow-y:auto;
   }
-
   .sidebar{
     flex-shrink:0; position:relative;
     display:flex; flex-direction:column;
     padding:8px 0 0;
     border-bottom:1px solid var(--line);
   }
-
   /* ---------- AI question/answer side panel ---------- */
   .ai-panel{
     flex:1; min-height:240px; position:relative;
@@ -863,7 +818,6 @@
   }
   .tab .num{font-family:'Space Mono',monospace; font-size:.7rem; opacity:.6;}
   .tab.quiz-tab{border-top:1px dashed var(--line); margin-top:6px; padding-top:14px;}
-
   .main{flex:1; display:flex; flex-direction:column; min-width:0; position:relative; z-index:2;}
   .topbar{
     display:flex; align-items:center; justify-content:space-between;
@@ -884,10 +838,8 @@
   .btn.primary{background:linear-gradient(135deg, var(--accent), var(--accent2)); border:none; color:#070a18; font-weight:700;}
   .btn.primary:hover{box-shadow:0 0 22px rgba(110,231,255,.5); color:#070a18;}
   .btn:disabled{opacity:.35; cursor:not-allowed; box-shadow:none;}
-
   .content{flex:1; overflow-y:auto; padding:40px 60px; display:flex; justify-content:center; position:relative;}
   .content-inner{max-width:760px; width:100%;}
-
   .upload-screen{
     max-width:580px; margin:40px auto; text-align:center;
     padding-top:120px;
@@ -1059,7 +1011,6 @@
     to{   transform:rotate(-4deg) skewX(4deg) scale(.92) translateX(-6px); }
   }
   input[type=file]{display:none;}
-
   .api-key-row{margin-top:24px; text-align:left;}
   .api-key-row label{font-size:.7rem; font-family:'Space Mono',monospace; color:var(--ink-soft); display:block; margin-bottom:6px;}
   .api-key-row input{
@@ -1067,9 +1018,7 @@
     font-family:'Space Mono',monospace; font-size:.8rem; background:rgba(255,255,255,.03); color:var(--ink);
   }
   .api-key-row input:focus{outline:none; border-color:var(--accent);}
-
   .go-btn{margin-top:18px; width:100%; padding:14px; font-size:.85rem; border-radius:10px;}
-
   .slide-card{
     background:rgba(16,22,58,.55); backdrop-filter: blur(10px);
     border:1px solid var(--line); border-radius:18px;
@@ -1111,14 +1060,12 @@
     font-family:'Space Mono',monospace; font-size:.68rem; color:var(--accent2);
     text-transform:uppercase; letter-spacing:.16em; margin-bottom:6px; font-weight:700;
   }
-
   .slide-nav{
     display:flex; justify-content:space-between; align-items:center; margin-top:24px;
   }
   .progress{font-family:'Space Mono',monospace; font-size:.78rem; color:var(--ink-soft);}
   .progress-bar{height:3px; background:var(--line); border-radius:3px; margin-top:18px; overflow:hidden;}
   .progress-bar-fill{height:100%; background:linear-gradient(90deg, var(--accent), var(--accent2)); transition:width .4s ease;}
-
   .quiz-q{
     background:rgba(16,22,58,.55); backdrop-filter: blur(10px);
     border:1px solid var(--line); border-radius:16px;
@@ -1134,7 +1081,6 @@
   .quiz-opt:hover{border-color:var(--accent); background:rgba(110,231,255,.06);}
   .quiz-opt.correct{border-color:var(--ok); background:rgba(77,255,176,.1); font-weight:600; color:var(--ok);}
   .quiz-opt.wrong{border-color:var(--pink); background:rgba(255,110,199,.1); color:var(--pink);}
-
   /* ---------- Quiz result card ---------- */
   .quiz-result{
     background:rgba(16,22,58,.55); backdrop-filter: blur(10px);
@@ -1158,7 +1104,6 @@
   .quiz-result .score-msg.pass{ color:var(--ok); }
   .quiz-result .score-msg.fail{ color:var(--pink); }
   .quiz-result .retry-btn{ margin-top:24px; }
-
   /* ---------- Full-screen black hole "swallow everything" transition ---------- */
   /* Biome geçişi — hızlı ama yumuşak */
   body{
@@ -1171,7 +1116,6 @@
   .galaxy-core, .spiral-glow{
     transition: opacity 0.4s ease;
   }
-
   /* ======== LOADING — Tam ekran galaksi geçişi ======== */
   .loading{
     position:fixed !important; inset:0 !important;
@@ -1230,7 +1174,6 @@
   .lg-ring.r3::after{ background:#ff6ec7; box-shadow:0 0 12px 4px #ff6ec7; }
   .lg-ring.r4::after{ background:#ffc850; box-shadow:0 0 10px 3px #ffc850; }
   @keyframes lg-spin{ to{ transform:rotate(360deg); } }
-
   /* Merkez çekirdek */
   .lg-core{
     position:absolute; inset:72px; border-radius:50%;
@@ -1247,7 +1190,6 @@
     0%,100%{ transform:scale(1); opacity:.8; }
     50%{ transform:scale(1.15); opacity:.3; }
   }
-
   /* Yörüngedeki gezegenler */
   .lg-planet{
     position:absolute; border-radius:50%;
@@ -1287,7 +1229,6 @@
     from{ transform:rotate(240deg) translateX(60px) rotate(-240deg); }
     to{   transform:rotate(600deg) translateX(60px) rotate(-600deg); }
   }
-
   /* Metinler */
   .loading-texts{ text-align:center; }
   .loading-title{
@@ -1326,13 +1267,11 @@
     0%{ transform:translate(0,0) scale(1); opacity:var(--op,.6); }
     100%{ transform:translate(var(--dx,20px),var(--dy,-30px)) scale(var(--sc,1.2)); opacity:calc(var(--op,.6)*.4); }
   }
-
   .error{
     background:rgba(255,110,199,.08); border:1px solid var(--pink); border-radius:12px;
     padding:14px 18px; color:var(--pink); font-size:.88rem; margin-top:16px;
   }
   .hidden{display:none !important;}
-
   /* ---------- Toast notification (for errors outside the upload screen) ---------- */
   .toast{
     position:fixed; bottom:24px; right:24px; z-index:60;
@@ -1344,7 +1283,6 @@
   }
   @keyframes toast-in{ from{ opacity:0; transform:translateY(12px); } to{ opacity:1; transform:translateY(0); } }
   @keyframes toast-out{ to{ opacity:0; transform:translateY(12px); } }
-
   /* ---------- Language toggle ---------- */
   .lang-toggle{
     display:flex; border:1px solid var(--line); border-radius:8px; overflow:hidden;
@@ -1359,10 +1297,8 @@
     background:linear-gradient(135deg, var(--accent), var(--accent2)); color:#070a18;
   }
   .lang-opt:not(.active):hover{color:var(--ink);}
-
   /* ---------- Mobile menu toggle (hidden on desktop) ---------- */
   .menu-toggle{display:none;}
-
   @media (max-width: 860px){
     /* Ağır animasyonları kapat — pil/ısınma sorunu */
     .galaxy-core{ animation:none !important; }
@@ -1375,7 +1311,6 @@
     }
     .star{ animation-duration: 6s !important; }
   }
-
   /* =====================================================
      MOBİL LAYOUT — tamamen yeniden yazıldı
      ===================================================== */
@@ -1386,10 +1321,8 @@
       display:flex; flex-direction:column;
       overflow:hidden; margin:0; padding:0;
     }
-
     /* Eski sidebar tamamen gizli — yerine #mobileHeader kullanılıyor */
     .left-column{ display:none !important; }
-
     /* ===== YENİ MOBİL HEADER — sıfırdan, sade ===== */
     #mobileHeader{
       display:flex !important; align-items:center; justify-content:space-between;
@@ -1431,7 +1364,6 @@
       -webkit-tap-highlight-color:rgba(110,231,255,.3);
       position:relative; z-index:31;
     }
-
     .tabs{
       display:none; position:fixed; top:48px; left:0; right:0; bottom:0;
       max-height:none; overflow-y:auto; -webkit-overflow-scrolling:touch;
@@ -1440,15 +1372,11 @@
     }
     .tabs.open{ display:block; }
     .tab{ padding:14px 16px !important; font-size:.9rem !important; margin-bottom:4px; }
-
     /* AI paneli mobilde gizle — floating buton olarak gelecek */
     .ai-panel{ display:none !important; }
-
     .main{ flex:1; display:flex; flex-direction:column; order:2; overflow:hidden; min-height:0; position:relative; z-index:5; }
-
     /* Eski .topbar tamamen gizli — #mobileHeader onu değiştirdi */
     .topbar{ display:none !important; }
-
     /* Mobil aksiyon menüsü — #mobileHeader'a bağlı, ⋯ ile açılır */
     #mobileActionsMenu{
       display:none; position:fixed; top:52px; right:8px; z-index:200;
@@ -1475,16 +1403,13 @@
     #mobileActionsMenu .mam-lang button.active{
       background:linear-gradient(135deg,var(--accent),var(--accent2)); color:#070a18; font-weight:700; border:none;
     }
-
     .content{ flex:1; overflow-y:auto; overflow-x:hidden;
       -webkit-overflow-scrolling:touch; padding:12px; min-height:0; }
     .content-inner{ min-height:100%; padding-bottom:140px; }
-
     .upload-screen{ padding-top:50px; margin:0 auto; }
     .upload-screen h1{ font-size:1.25rem; top:10px; left:12px; }
     .dropzone{ padding:22px 14px; touch-action:manipulation; cursor:pointer;
       -webkit-tap-highlight-color:transparent; position:relative; z-index:10; }
-
     .slide-card{ padding:14px 12px; min-height:auto; }
     .slide-card h2{ font-size:1rem; }
     .bullets li{ font-size:.85rem; padding-left:22px; }
@@ -1498,17 +1423,14 @@
     .slide-nav #nextBtn{ justify-self:end; }
     .slide-nav #flashcardBtn{ justify-self:center; }
     .slide-nav .btn{ padding:8px 12px; font-size:.72rem; white-space:nowrap; }
-
     .quiz-q{ padding:12px 10px; scroll-margin-top:70px; }
     .quiz-opt{ padding:10px 12px; font-size:.82rem; touch-action:manipulation; }
     .quiz-result{ padding:16px 12px; }
     .quiz-result .score-num{ font-size:2rem; }
-
     #space{ z-index:0 !important; }
     .sol{ width:30px !important; height:30px !important; }
     .orbit-container{ z-index:6 !important; }
   }
-
   @media (max-width: 480px){
     .upload-screen h1{ font-size:1.05rem; }
     .logo-swim{ width:55px; height:55px; }
@@ -1542,11 +1464,9 @@
     transition: opacity .7s ease, visibility .7s ease;
   }
   #intro.fade-out{ opacity:0; visibility:hidden; pointer-events:none; }
-
   #introCanvas{
     position:absolute; inset:0; width:100%; height:100%;
   }
-
   #introContent{
     position:relative; z-index:2;
     display:flex; flex-direction:column; align-items:center; gap:28px;
@@ -1556,7 +1476,6 @@
     0%{ opacity:0; transform:translateY(30px); }
     100%{ opacity:1; transform:translateY(0); }
   }
-
   #introLogo{
     position:relative; width:100px; height:100px;
   }
@@ -1589,7 +1508,6 @@
     background:radial-gradient(circle, rgba(255,120,0,.15) 0%, transparent 70%);
     animation:intro-orb-pulse 1.8s ease-in-out infinite alternate;
   }
-
   #introText{ text-align:center; }
   #introTitle{
     font-family:'Space Mono',monospace; font-size:clamp(2rem,8vw,3.2rem);
@@ -1615,7 +1533,6 @@
     from{ opacity:0; transform:translateY(8px); }
     to{ opacity:1; transform:translateY(0); }
   }
-
   #introBar{
     width:clamp(160px,40vw,280px); height:3px;
     background:rgba(255,255,255,.08); border-radius:4px; overflow:hidden;
@@ -1697,18 +1614,15 @@
     /* Sadece JS spawn'lu CPU döngüleri kapat */
     .space-ship, .asteroid { display:none !important; }
     .dropzone-ring, .dropzone::before { display:none !important; }
-
     /* Blur — en büyük FPS katili */
     .footer-inner { backdrop-filter:none !important; background:rgba(8,6,20,.97) !important; }
     .slide-card { backdrop-filter:none !important; }
     .auth-modal-box { backdrop-filter:none !important; }
-
     /* Gezegenler ve yıldızlar kalır ama daha yavaş döner */
     .orbiter { animation-duration: calc(var(--orbit-dur,30s) * 1.8) !important; }
     .spiral-glow { animation-duration:80s !important; }
     .bg-planet { animation:none !important; }
     .sol { animation:none !important; }
-
     /* will-change kaldır */
     *, *::before, *::after { will-change:auto !important; }
   }
@@ -1726,7 +1640,6 @@
   }
   /* Sadece upload ekranında görünsün */
   #siteFooter.hidden-footer{ display:none; }
-
   .footer-inner{
     background: rgba(8,6,20,.88);
     backdrop-filter: blur(18px);
@@ -1737,7 +1650,6 @@
     margin: 0 auto;
     box-shadow: 0 0 60px rgba(100,50,200,.12), 0 0 0 1px rgba(255,255,255,.04) inset;
   }
-
   .footer-top{
     display: flex; align-items: flex-start; justify-content: space-between;
     gap: 20px; flex-wrap: wrap;
@@ -1753,7 +1665,6 @@
     -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text;
   }
   .footer-sub{ display:block; font-size:.68rem; color:rgba(180,160,255,.7); margin-top:2px; }
-
   .footer-nav{ display:flex; gap:20px; flex-wrap:wrap; align-items:center; }
   .footer-nav a{
     font-family:'Space Mono',monospace; font-size:.7rem; letter-spacing:.04em;
@@ -1761,7 +1672,6 @@
     transition:color .2s;
   }
   .footer-nav a:hover{ color:var(--accent2); }
-
   .footer-cols{
     display:grid;
     grid-template-columns:repeat(3,1fr);
@@ -1778,7 +1688,6 @@
   .footer-col p{
     font-size:.78rem; line-height:1.65; color:rgba(200,190,220,.72); margin:0;
   }
-
   .footer-terms{
     background:rgba(255,255,255,.03); border-radius:12px;
     padding:14px 18px; margin-bottom:22px;
@@ -1788,7 +1697,6 @@
     font-size:.73rem; line-height:1.6; color:rgba(180,170,200,.65); margin:0;
   }
   .footer-terms strong{ color:rgba(210,200,255,.8); }
-
   .footer-bottom{
     display:flex; align-items:center; justify-content:space-between;
     flex-wrap:wrap; gap:10px;
@@ -1802,7 +1710,6 @@
     transition:color .2s;
   }
   .footer-mail:hover{ color:var(--accent); }
-
   @media(max-width:860px){
     .footer-inner{ padding:28px 18px 20px; border-radius:16px; }
     .footer-cols{ grid-template-columns:1fr; gap:20px; }
@@ -1960,7 +1867,6 @@
   .footer-acc-body p{
     font-size:.8rem; line-height:1.65; color:rgba(200,190,220,.75); margin:0;
   }
-
   /* Dil gösterimi */
   body.lang-tr .en-text{ display:none; }
   body.lang-en .tr-text{ display:none; }
@@ -1983,14 +1889,12 @@
       /* Genel uzay rengi */
       radial-gradient(ellipse 100% 100% at 50% 50%, #0d1035 0%, #080620 40%, #040212 70%, #020108 100%);
   }
-
   /* Sadece 1 hafif pulse animasyonu — galaksi çekirdeği için */
   @keyframes galaxy-pulse{
     0%,100%{ opacity:.85; }
     50%{ opacity:1; }
   }
   #staticBg{ animation:galaxy-pulse 8s ease-in-out infinite; }
-
   /* Visibility change — sayfadan çıkınca animasyon dur */
   #staticBg.paused{ animation-play-state:paused; }  /* ===== FLASHCARD MODU ===== */
   .flashcard-wrap{
@@ -2041,7 +1945,6 @@
     color:rgba(180,160,255,.5);margin:12px 0;
   }
   .flashcard-nav{ display:flex;gap:12px;justify-content:center;margin-top:12px; }
-
   /* ===== ZORLUK SEVİYESİ ===== */
   .difficulty-select{
     display:flex;gap:10px;justify-content:center;margin:16px 0;
@@ -2056,11 +1959,9 @@
   .diff-btn.active-easy{ background:rgba(77,255,176,.15);border-color:rgba(77,255,176,.5);color:#4dffb0; }
   .diff-btn.active-medium{ background:rgba(255,200,0,.15);border-color:rgba(255,200,0,.5);color:#ffc800; }
   .diff-btn.active-hard{ background:rgba(255,100,100,.15);border-color:rgba(255,100,100,.5);color:#ff6464; }
-
 </style>
 </head>
 <body>
-
 <!-- ============ INTRO EKRANI ============ -->
 <div id="intro">
   <canvas id="introCanvas"></canvas>
@@ -2088,16 +1989,13 @@
     <div id="introBar"><div id="introBarFill"></div></div>
   </div>
 </div>
-
 <div id="space">
   <!-- Andromeda tarzı galaksi katmanları -->
   <!-- Statik uzay arka planı — CSS only, sıfır JS yük -->
   <div id="staticBg"></div>
   <div class="stars" id="stars"></div>
   <div id="orbitContainer" class="orbit-container"></div>
-
 </div>
-
 <!-- Mobil floating AI butonu --><!-- Mobil floating AI butonu -->
 <button class="ai-float-btn" id="aiFloatBtn" style="display:none">💬</button>
 <div class="ai-float-panel" id="aiFloatPanel">
@@ -2116,7 +2014,6 @@
     <button class="ai-send-btn" id="aiSendBtnMobile" style="padding:0 14px">→</button>
   </div>
 </div>
-
 <!-- Mobil Header — sade, sıfırdan tasarlandı -->
 <div id="mobileHeader">
   <div class="mh-left">
@@ -2142,8 +2039,9 @@
   <button id="mamFounderBtn" style="display:none;color:#ffd700">👑 Yönetici Paneli</button>
   <div class="mam-divider" id="mamUserDivider" style="display:none"></div>
   <div id="mamUserArea"></div>
+  <div class="mam-divider" id="mamGalaxyDivider" style="display:none"></div>
+  <div id="mamGalaxyArea" style="padding:0 4px 4px"></div>
 </div>
-
 <script>
   // Mobil header — aksiyon menüsü
   (function(){
@@ -2151,7 +2049,6 @@
     const actionsMenu = document.getElementById('mobileActionsMenu');
     const loginBtn    = document.getElementById('mhLoginBtn');
     const logoutBtn   = document.getElementById('mhLogoutBtn');
-
     // Tek bir merkezi tıklama bağlayıcı — hem touch hem mouse'ta garanti çalışır
     function bindTap(el, handler){
       if(!el) return;
@@ -2167,21 +2064,16 @@
         handler(e);
       });
     }
-
-
     bindTap(actionsBtn, () => {
       actionsMenu?.classList.toggle('open');
       document.getElementById('tabs')?.classList.remove('open');
     });
-
     bindTap(loginBtn, () => {
       if(typeof showAuthModal === 'function') showAuthModal();
     });
-
     bindTap(logoutBtn, () => {
       if(typeof window.fbSignOut === 'function') window.fbSignOut();
     });
-
     // Menü dışına tıklayınca kapat
     document.addEventListener('click', (e) => {
       if(actionsMenu && actionsMenu.classList.contains('open') &&
@@ -2195,7 +2087,6 @@
         actionsMenu.classList.remove('open');
       }
     }, {passive:true});
-
     actionsMenu?.querySelectorAll('[data-lang]').forEach(b => {
       bindTap(b, () => {
         if(typeof applyLanguage === 'function') applyLanguage(b.dataset.lang);
@@ -2203,7 +2094,6 @@
         actionsMenu.classList.remove('open');
       });
     });
-
     bindTap(document.getElementById('mamSlides'), () => {
       const tabsEl = document.getElementById('tabs');
       if(tabsEl && tabsEl.children.length > 0){
@@ -2223,7 +2113,6 @@
       if(typeof showFounderWelcome === 'function') showFounderWelcome();
       actionsMenu.classList.remove('open');
     });
-
     const exportBtn = document.getElementById('exportBtn');
     if(exportBtn){
       const syncExport = () => {
@@ -2233,7 +2122,6 @@
       new MutationObserver(syncExport).observe(exportBtn, { attributes:true, attributeFilter:['disabled'] });
       syncExport();
     }
-
     // Auth durumuna göre giriş/çıkış butonlarını ve kurucu menüsünü güncelle
     document.addEventListener('authChanged', (e) => {
       const user = e.detail;
@@ -2242,11 +2130,9 @@
       const fd = document.getElementById('mamFounderDivider');
       if(fb) fb.style.display = isFounder ? 'flex' : 'none';
       if(fd) fd.style.display = isFounder ? 'block' : 'none';
-
       if(loginBtn)  loginBtn.style.display  = user ? 'none' : 'flex';
       if(logoutBtn) logoutBtn.style.display = user ? 'flex' : 'none';
     });
-
     // topTitle değiştiğinde mobil header başlığını da güncelle
     const topTitleEl = document.getElementById('topTitle');
     const mhTitleEl = document.querySelector('#mobileHeader .mh-title');
@@ -2257,7 +2143,6 @@
     }
   })();
 </script>
-
 <div class="left-column" id="leftColumn">
   <div class="sidebar" id="sidebar">
     <div class="brand">
@@ -2271,7 +2156,6 @@
     <div class="tabs" id="tabs"></div>
     <div id="userArea"></div>
   </div>
-
   <div class="ai-panel" id="aiPanel">
     <div class="ai-panel-header">
       <div style="flex:1">
@@ -2292,7 +2176,6 @@
     </div>
   </div>
 </div>
-
 <div class="main">
   <div class="topbar">
     <h2 id="topTitle" data-i18n="topTitleDefault">Başlamak için bir dosya yükle</h2>
@@ -2305,17 +2188,14 @@
       <button class="btn primary" id="exportBtn" disabled data-i18n="exportBtn">⬇ .pptx indir</button>
     </div>
   </div>
-
   <div class="content">
     <div class="content-inner" id="contentInner">
-
       <div class="upload-screen" id="uploadScreen">
         <div class="logo-intro" id="logoIntro">
           <div class="logo-swim"><div class="mini-disk"></div><div class="mini-disk d2"></div><div class="mini-core"></div><div class="laser-eye"></div></div>
         </div>
         <h1 data-i18n="heroTitle">Bilgiyi yutar,<br>ders olarak kusar.</h1>
         <p data-i18n="heroDesc">Word, PDF ya da metin dosyası yükle. Konu aynı kalır — Thinkle içeriği net slaytlara dönüştürür, açıklamalar ve önemli noktalar ekler, öğrendiklerini test edecek bir quiz hazırlar.</p>
-
         <div class="dropzone" id="dropzone">
           <!-- Arka plan efektleri -->
           <div class="dropzone-stars"></div>
@@ -2325,7 +2205,6 @@
             <div class="dropzone-ring"></div>
           </div>
           <div class="dropzone-glow"></div>
-
           <div class="icon rocket-icon">
             <svg viewBox="0 0 100 140" xmlns="http://www.w3.org/2000/svg">
               <defs>
@@ -2351,29 +2230,23 @@
                   <stop offset="100%" stop-color="transparent"/>
                 </linearGradient>
               </defs>
-
               <!-- exhaust flame -->
               <g class="rocket-flame">
                 <path d="M38 108 L50 138 L62 108 Z" fill="url(#flameGrad)"/>
                 <path d="M43 108 L50 126 L57 108 Z" fill="#fff" opacity="0.85"/>
               </g>
-
               <!-- side fins -->
               <path d="M30 75 L6 102 L30 100 Z" fill="url(#finGrad)"/>
               <path d="M70 75 L94 102 L70 100 Z" fill="url(#finGrad)"/>
               <path d="M30 75 L6 102 L30 100 Z" fill="none" stroke="#1a0b2e" stroke-width="1.5" opacity="0.4"/>
               <path d="M70 75 L94 102 L70 100 Z" fill="none" stroke="#1a0b2e" stroke-width="1.5" opacity="0.4"/>
-
               <!-- main hull: sharp angular body -->
               <path d="M50 2 L72 38 L74 88 L66 108 L34 108 L26 88 L28 38 Z" fill="url(#hullGrad)" stroke="#1a0b2e" stroke-width="2"/>
-
               <!-- nose accent stripe -->
               <path d="M50 2 L60 36 L40 36 Z" fill="var(--accent2)" opacity="0.9"/>
-
               <!-- hull panel lines -->
               <line x1="29" y1="60" x2="71" y2="60" stroke="#1a0b2e" stroke-width="1" opacity="0.25"/>
               <line x1="28" y1="80" x2="72" y2="80" stroke="#1a0b2e" stroke-width="1" opacity="0.25"/>
-
               <!-- cockpit window -->
               <circle cx="50" cy="48" r="13" fill="url(#windowGrad)" stroke="#1a0b2e" stroke-width="2"/>
               <circle cx="46" cy="44" r="3.5" fill="#fff" opacity="0.7"/>
@@ -2385,15 +2258,12 @@
           <div class="filename" id="fileName"></div>
           <input type="file" id="fileInput" accept=".pdf,.docx,.txt,.xlsx,.xls,.csv,.jpg,.jpeg,.png">
         </div>
-
         <button class="btn primary go-btn" id="goBtn" data-i18n="goBtn">Çalışma kağıdı oluştur →</button>
         <div id="deckLimitBadge" style="display:none;text-align:center;margin-top:8px;font-family:'Space Mono',monospace;font-size:.65rem;color:rgba(110,231,255,.6)">
           <span id="deckLimitText" style="font-size:.65rem">— / 10</span> <span id="deckLimitSuffix" style="color:rgba(180,160,255,.5)">dosya hakkı kaldı</span>
         </div>
-
         <div class="error hidden" id="uploadError"></div>
       </div>
-
       <div class="loading hidden" id="loadingScreen">
         <canvas id="loadingCanvas"></canvas>
         <div class="loading-center">
@@ -2427,13 +2297,10 @@
           <div class="loading-particles" id="loadingParticles"></div>
         </div>
       </div>
-
       <div id="deckScreen" class="hidden"></div>
-
       <!-- FOOTER — scroll edince slayt gibi gelir -->
       <footer id="siteFooter">
         <div class="footer-inner">
-
           <!-- Üst bölüm: logo + nav -->
           <div class="footer-top">
             <div class="footer-brand">
@@ -2464,10 +2331,8 @@
               </a>
             </nav>
           </div>
-
           <!-- Accordion bölümler -->
           <div class="footer-accordions">
-
             <div class="footer-acc">
               <button class="footer-acc-btn">
                 <span>⭐ <span class="tr-text">Premium Planlar — Yakında</span><span class="en-text">Premium Plans — Coming Soon</span></span>
@@ -2478,7 +2343,6 @@
                 <p class="en-text">Thinkle will soon offer premium subscription plans. Take your learning experience to the next level with more file uploads, unlimited AI chat and exclusive features. To be notified about plans and pricing, send an email to <a href="mailto:thinklespace@gmail.com" style="color:rgba(110,231,255,.8);text-decoration:none">thinklespace@gmail.com</a> with the subject "Premium".</p>
               </div>
             </div>
-
             <div class="footer-acc" id="acc-how">
               <button class="footer-acc-btn">
                 <span>🚀 <span class="tr-text">Nasıl Çalışır?</span><span class="en-text">How It Works</span></span>
@@ -2489,7 +2353,6 @@
                 <p class="en-text">Upload a PDF, Word, Excel, CSV, text file, or photo (.jpg/.png). Thinkle uses AI to analyze the content, break it into slides, and explain each topic. Before the quiz, you can choose an Easy/Medium/Hard difficulty level. You can also switch to 🃏 Flashcard mode to review by flipping cards. You can download the result as .pptx and use it anywhere. You can also use Thinkle as a "Guest" without creating an account.</p>
               </div>
             </div>
-
             <div class="footer-acc" id="acc-privacy">
               <button class="footer-acc-btn">
                 <span>🔒 <span class="tr-text">Gizlilik &amp; Güvenlik</span><span class="en-text">Privacy &amp; Security</span></span>
@@ -2500,7 +2363,6 @@
                 <p class="en-text">Your uploaded files (including photos) are processed only momentarily for content generation, are not stored on our servers, and are not shared with third parties. When you upload a photo, the text in the image is sent to an AI service (OpenRouter/Google Gemini) for processing and is not retained afterward. All data transfers occur over HTTPS encrypted connections. User account information (login date, usage statistics) is securely stored in Google Firebase Firestore. To prevent abuse (spam, requests exceeding limits), titles of generated content and anonymous usage statistics (IP, timestamp) may be temporarily logged for security purposes; these logs are accessible only to the founder and are periodically cleared.</p>
               </div>
             </div>
-
             <div class="footer-acc" id="acc-kvkk">
               <button class="footer-acc-btn">
                 <span>📋 KVKK <span class="tr-text">Aydınlatma</span><span class="en-text">Disclosure</span></span>
@@ -2511,7 +2373,6 @@
                 <p class="en-text">Under Law No. 6698 (KVKK): Thinkle does not collect or store personal data on its servers. If you sign in with Google, only your study history titles are saved locally on your own device. Uploaded documents are used only for instant AI processing and deleted after the operation.</p>
               </div>
             </div>
-
             <div class="footer-acc">
               <button class="footer-acc-btn">
                 <span>⚙️ <span class="tr-text">Teknik Bilgi</span><span class="en-text">Technical Info</span></span>
@@ -2522,7 +2383,6 @@
                 <p class="en-text">Thinkle runs on large language models (LLMs). Supported formats: .pdf, .docx, .txt, .xlsx, .xls, .csv, .jpg, .jpeg, .png. Text in images is automatically read using AI (OCR). Maximum file size 20 MB. Generated slides and questions are automatically created based on your file's content. You can choose between Easy/Medium/Hard difficulty levels, and use 🃏 Flashcard mode to review by flipping cards. User data is securely stored in Google Firebase Firestore.<br><br><strong style="color:rgba(180,160,255,.9)">Usage Limits:</strong> You can upload a maximum of 10 files per day. You have 30 AI chat messages per day. Limits reset at midnight. These limits exist to keep the service fair and sustainable for everyone.</p>
               </div>
             </div>
-
             <div class="footer-acc">
               <button class="footer-acc-btn">
                 <span>📚 <span class="tr-text">Kullanım Alanları</span><span class="en-text">Use Cases</span></span>
@@ -2533,7 +2393,6 @@
                 <p class="en-text">Ideal for summarizing lecture notes, exam preparation, creating presentations, topic review, research paper analysis, spreadsheet/data analysis (Excel/CSV), and team training. Also useful for digitizing handwritten notes or photos of whiteboards. Flashcard mode enables quick review, while difficulty levels support gradual learning. Designed for students, teachers and professionals.</p>
               </div>
             </div>
-
             <div class="footer-acc">
               <button class="footer-acc-btn">
                 <span>🇪🇺 GDPR <span class="tr-text">Uyumluluğu</span><span class="en-text">Compliance</span></span>
@@ -2544,7 +2403,6 @@
                 <p class="en-text">Thinkle respects your rights under the EU General Data Protection Regulation (GDPR). We do not collect or store personal data on our servers. If you sign in with Google, only study history titles are stored locally on your own device. Uploaded files are used only for instant processing and deleted afterwards. As an EU citizen, your rights to access, erasure and objection are preserved. For inquiries: <a href="mailto:thinklespace@gmail.com" style="color:rgba(110,231,255,.8);text-decoration:none">thinklespace@gmail.com</a></p>
               </div>
             </div>
-
             <div class="footer-acc">
               <button class="footer-acc-btn">
                 <span>🍪 <span class="tr-text">Çerez Politikası</span><span class="en-text">Cookie Policy</span></span>
@@ -2555,7 +2413,6 @@
                 <p class="en-text">Thinkle does not use cookies for advertising, tracking, or marketing purposes. Only essential technical cookies/local storage from Google Firebase Authentication are used to keep you signed in — required for the "Sign In" feature to work. No third-party advertising or analytics cookie services are integrated.</p>
               </div>
             </div>
-
             <div class="footer-acc">
               <button class="footer-acc-btn">
                 <span>⚖️ <span class="tr-text">Sorumluluk Reddi</span><span class="en-text">Disclaimer</span></span>
@@ -2566,7 +2423,6 @@
                 <p class="en-text">Content generated by Thinkle is for informational purposes only and no guarantee of accuracy is provided. Generated slides and questions are based on the source document; however, AI may make errors. For critical academic, medical, legal or financial decisions, please verify generated content with expert opinion. Thinkle cannot be held liable for any damages arising from the use of this content.</p>
               </div>
             </div>
-
             <div class="footer-acc">
               <button class="footer-acc-btn">
                 <span>📄 <span class="tr-text">Telif Hakkı &amp; Fikri Mülkiyet</span><span class="en-text">Copyright &amp; IP</span></span>
@@ -2577,7 +2433,6 @@
                 <p class="en-text">Users may only upload documents they own or have permission to use. Uploading copyrighted materials without authorization is entirely the user's responsibility. Thinkle accepts no liability in this regard. The Thinkle brand, logo and interface are protected under intellectual property rights.</p>
               </div>
             </div>
-
             <div class="footer-acc">
               <button class="footer-acc-btn">
                 <span>🔞 <span class="tr-text">Yaş Sınırı</span><span class="en-text">Age Restriction</span></span>
@@ -2588,7 +2443,6 @@
                 <p class="en-text">Thinkle is designed for users aged 13 and above. Users between 13-18 must use the service with parental or legal guardian consent. Use by children under 13 is prohibited.</p>
               </div>
             </div>
-
             <div class="footer-acc">
               <button class="footer-acc-btn">
                 <span>🌍 <span class="tr-text">Uygulanacak Hukuk</span><span class="en-text">Governing Law</span></span>
@@ -2599,7 +2453,6 @@
                 <p class="en-text">This platform is subject to the laws of the Republic of Turkey. For Turkish users, Law No. 6698 (KVKK) applies; for EU users, GDPR applies. Turkish courts have jurisdiction in disputes. EU users may also contact their national data protection authority.</p>
               </div>
             </div>
-
             <div class="footer-acc">
               <button class="footer-acc-btn">
                 <span>👤 <span class="tr-text">Hesap &amp; Erişim</span><span class="en-text">Account &amp; Access</span></span>
@@ -2610,7 +2463,6 @@
                 <p class="en-text">You can use Thinkle by signing in with your Google account or as a "Guest" (without creating an account). In guest mode, your history is not saved. Accounts that violate fair use rules (automated bot traffic, attempts to bypass limits) may be temporarily or permanently restricted without prior notice. If you believe your account was restricted in error, you can contact us to appeal.</p>
               </div>
             </div>
-
             <div class="footer-acc" id="acc-contact">
               <button class="footer-acc-btn">
                 <span>📬 <span class="tr-text">İletişim &amp; Destek</span><span class="en-text">Contact &amp; Support</span></span>
@@ -2623,29 +2475,23 @@
                 <a href="mailto:thinklespace@gmail.com" style="color:rgba(110,231,255,.9);text-decoration:none;font-family:'Space Mono',monospace;font-size:.85rem">✉️ thinklespace@gmail.com</a></p>
               </div>
             </div>
-
           </div>
-
           <!-- Kullanım koşulları -->
           <div class="footer-terms">
             <p class="tr-text"><strong>Yasal Özet:</strong> Thinkle eğitim amaçlı bir yapay zeka platformudur. Sunucu tarafında kişisel veri toplamaz (KVKK &amp; GDPR uyumlu). Giriş yapan kullanıcıların geçmişi yalnızca kendi cihazında saklanır. Yüklenen dosyalar işlem sonrası silinir. Telif hakkı sorumluluğu kullanıcıya aittir. Yapay zeka çıktıları bilgi amaçlıdır, kesin doğruluk garantisi verilmez. Hizmet "olduğu gibi" sunulur. 13 yaş altı kullanım yasaktır.</p>
             <p class="en-text"><strong>Legal Summary:</strong> Thinkle is an AI-powered educational platform. No personal data is stored on servers (KVKK &amp; GDPR compliant). Signed-in users' history is stored only on their own device. Uploaded files are deleted after processing. Copyright responsibility belongs to the user. AI outputs are for informational purposes only, no accuracy guarantee is provided. Service is provided "as is". Use by children under 13 is prohibited.</p>
           </div>
-
           <!-- Alt: copyright -->
           <div class="footer-bottom">
             <span>© 2026 Thinkle · <span class="tr-text">Tüm hakları saklıdır</span><span class="en-text">All rights reserved</span></span>
             <span class="footer-made"><span class="tr-text">Yapay zeka destekli öğrenme platformu</span><span class="en-text">AI-powered learning platform</span> 🌌</span>
             <a href="mailto:thinklespace@gmail.com" class="footer-mail">thinklespace@gmail.com</a>
           </div>
-
         </div>
       </footer>
-
     </div>
   </div>
 </div>
-
 <script>
 // ============ INTRO ============
 (function(){
@@ -2655,7 +2501,6 @@
   const introHello = document.getElementById('introHello');
   const introOrb = document.getElementById('introOrb');
   if(!intro || !canvas) return;
-
   // GÜVENLİK AĞI — ne olursa olsun (JS hatası, takılma, vs) 7 saniye
   // sonra intro zorla kapatılır. Aksi halde z-index:9000 tüm tıklamaları
   // sonsuza kadar bloke edebilir.
@@ -2664,7 +2509,6 @@
     intro.style.pointerEvents = 'none';
     setTimeout(()=>{ try{ intro.remove(); }catch(e){} }, 800);
   }, 7000);
-
   const ctx = canvas.getContext('2d');
   let W, H, stars = [];
   function resize(){
@@ -2673,7 +2517,6 @@
   }
   resize();
   window.addEventListener('resize', resize);
-
   const starCount = window.innerWidth <= 860 ? 80 : 160;
   for(let i=0;i<starCount;i++){
     stars.push({
@@ -2686,7 +2529,6 @@
       vy:(Math.random()-.5)*.15,
     });
   }
-
   let t=0;
   function draw(){
     ctx.clearRect(0,0,W,H);
@@ -2714,11 +2556,9 @@
     }
     ctx.restore();
   }
-
   const DURATION = 3200;
   const start = performance.now();
   let rafId;
-
   // 1.8s'de hoşgeldin — Türkçe/İngilizce dönüşümlü
   const TR_HELLO = '😊 Hoş geldin! Hazırım, hadi başlayalım.';
   const EN_HELLO = '😊 Welcome! Ready to go, let\'s start.';
@@ -2739,7 +2579,6 @@
       setTimeout(()=> clearInterval(helloInterval), DURATION + 500);
     }
   }, 1800);
-
   function frame(now){
     const elapsed = now - start;
     const pct = Math.min(100,(elapsed/DURATION)*100);
@@ -2753,7 +2592,6 @@
     }
   }
   rafId = requestAnimationFrame(frame);
-
   function flyOrbToSol(){
     try{
       _flyOrbToSolInner();
@@ -2761,22 +2599,18 @@
       finishIntro();
     }
   }
-
   function _flyOrbToSolInner(){
     // solEl henüz pozisyonlandı mı kontrol et
     const solEl = document.querySelector('.sol');
     if(!solEl){ finishIntro(); return; }
-
     const orbRect = introOrb.getBoundingClientRect();
     const solRect = solEl.getBoundingClientRect();
-
     const startX = orbRect.left + orbRect.width/2;
     const startY = orbRect.top + orbRect.height/2;
     const endX   = solRect.left + solRect.width/2;
     const endY   = solRect.top + solRect.height/2;
     const startSize = orbRect.width;
     const endSize   = solRect.width;
-
     // Özel uçan güneş elementi
     const flyEl = document.createElement('div');
     flyEl.style.cssText = `
@@ -2791,21 +2625,17 @@
                   opacity .3s ease .4s;
     `;
     document.body.appendChild(flyEl);
-
     // introContent fade
     document.getElementById('introContent').style.transition='opacity .3s ease';
     document.getElementById('introContent').style.opacity='0';
-
     // solEl geçici gizle
     solEl.style.opacity='0';
-
     requestAnimationFrame(()=>{
       requestAnimationFrame(()=>{
         flyEl.style.left = (endX - endSize/2)+'px';
         flyEl.style.top  = (endY - endSize/2)+'px';
         flyEl.style.width  = endSize+'px';
         flyEl.style.height = endSize+'px';
-
         setTimeout(()=>{
           flyEl.style.opacity='0';
           solEl.style.transition='opacity .2s ease';
@@ -2819,7 +2649,6 @@
       });
     });
   }
-
   function finishIntro(){
     clearTimeout(introFailsafe);
     intro.classList.add('fade-out');
@@ -2829,16 +2658,12 @@
     setTimeout(()=>intro.remove(), 750);
   }
 })();
-
 document.body.classList.add('biome-1');
-
 // ============ AUTH SİSTEMİ ============
 let authRequired = false; // true olunca giriş zorunlu
-
 function showAuthModal(onSuccess){
   const existing = document.getElementById('authModal');
   if(existing) existing.remove();
-
   const modal = document.createElement('div');
   modal.id = 'authModal';
   modal.style.cssText = `
@@ -2887,7 +2712,6 @@ function showAuthModal(onSuccess){
       </div>
     </div>
   `;
-
   const style = document.createElement('style');
   style.textContent = `
     @keyframes auth-appear{ from{opacity:0} to{opacity:1} }
@@ -2896,7 +2720,6 @@ function showAuthModal(onSuccess){
   `;
   document.head.appendChild(style);
   document.body.appendChild(modal);
-
   document.getElementById('authGoogleBtn').onclick = async () => {
     if(window.fbSignIn){
       await window.fbSignIn();
@@ -2929,16 +2752,13 @@ function showAuthModal(onSuccess){
     handleGuest(e); 
   });
 }
-
 // Auth gerekli mi kontrol et
 function requireAuth(callback){
   if(window.currentUser){ callback(); return; }
   showAuthModal(callback);
 }
-
 // Auth değişince sidebar kullanıcı bilgisini güncelle
 const FOUNDER_UID = 'l8Tih1awnjP7fRXnUsFVVAuXEZu2';
-
 document.addEventListener('authChanged', e => {
   const user = e.detail;
   if(typeof updateLimitBadges === 'function') updateLimitBadges();
@@ -2973,10 +2793,8 @@ document.addEventListener('authChanged', e => {
         </button>` : ''}
         <div id="galaxyApplyArea" style="margin:0 12px 10px"></div>
       </div>`;
-
     // Galaxy durumunu kontrol et ve uygun UI'yi göster
     if(!isFounder && !user.isAnonymous) initGalaxyUI(user);
-
     // Kurucu paneli sadece butona basınca açılır
   } else {
     userArea.innerHTML = `
@@ -2987,87 +2805,96 @@ document.addEventListener('authChanged', e => {
       </div>`;
   }
 });
-
 // ============ GALAXY ÜYELİK UI ============
+let _galaxyWatcherUnsub = null;
 async function initGalaxyUI(user){
-  const area = document.getElementById('galaxyApplyArea');
-  const badge = document.getElementById('galaxyBadge');
-  if(!area) return;
-
+  const area     = document.getElementById('galaxyApplyArea');
+  const mamArea  = document.getElementById('mamGalaxyArea');
+  const mamDiv   = document.getElementById('mamGalaxyDivider');
+  const badge    = document.getElementById('galaxyBadge');
+  if(!area && !mamArea) return;
   const isTr = currentLang === 'tr';
 
-  // Önce gerçekten üye mi kontrol et
   const isMember = window.fbIsGalaxyMember ? await window.fbIsGalaxyMember(user.uid) : false;
+
   if(isMember){
     if(badge) badge.style.display = 'inline-block';
-    area.innerHTML = '';
+    if(area)    area.innerHTML = '';
+    if(mamArea){ mamArea.innerHTML = `<div style="padding:8px 12px;text-align:center;font-size:.72rem;color:#a78bfa">🌌 Galaxy Üyesisin</div>`; }
+    if(mamDiv)  mamDiv.style.display = 'block';
+    if(_galaxyWatcherUnsub){ _galaxyWatcherUnsub(); _galaxyWatcherUnsub = null; }
+    if(window.fbWatchUserGalaxy){
+      _galaxyWatcherUnsub = window.fbWatchUserGalaxy(user.uid, (isGalaxy) => {
+        if(!isGalaxy){
+          if(_galaxyWatcherUnsub){ _galaxyWatcherUnsub(); _galaxyWatcherUnsub = null; }
+          if(badge) badge.style.display = 'none';
+          initGalaxyUI(user);
+        }
+      });
+    }
     return;
   }
+
+  if(_galaxyWatcherUnsub){ _galaxyWatcherUnsub(); _galaxyWatcherUnsub = null; }
   if(badge) badge.style.display = 'none';
 
-  // Başvuru durumunu kontrol et
   const status = window.fbGetGalaxyStatus ? await window.fbGetGalaxyStatus(user.uid) : null;
 
-  if(status === 'pending'){
-    area.innerHTML = `
-      <div style="padding:9px 12px;border-radius:10px;border:1px solid rgba(140,110,255,.25);background:rgba(140,110,255,.06);text-align:center">
+  function buildHTML(btnId){
+    if(status === 'pending'){
+      return `<div style="padding:9px 12px;border-radius:10px;border:1px solid rgba(140,110,255,.25);background:rgba(140,110,255,.06);text-align:center">
         <div style="font-family:'Orbitron',sans-serif;font-size:.62rem;font-weight:700;background:linear-gradient(135deg,#8a5cff,#5c8aff);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;letter-spacing:.05em">⏳ ${isTr?'BAŞVURU BEKLENİYOR':'APPLICATION PENDING'}</div>
         <div style="font-size:.62rem;color:rgba(180,160,255,.5);margin-top:3px">${isTr?'Onay bekleniyor':'Awaiting approval'}</div>
       </div>`;
-    return;
+    }
+    const label = status === 'rejected'
+      ? `🌌 ${isTr?'Tekrar Başvur':'Apply Again'}`
+      : `🌌 ${isTr?'Galaxy Üyesi Olmak İstiyorum':'Become a Galaxy Member'} <span style="opacity:.6;font-size:.62rem">(Beta)</span>`;
+    return `<button id="${btnId}" style="width:100%;padding:9px 12px;border-radius:10px;border:1px solid rgba(140,110,255,.3);background:linear-gradient(135deg,rgba(140,92,255,.1),rgba(92,138,255,.1));color:#a78bfa;cursor:pointer;font-size:.72rem;font-family:'Space Grotesk',sans-serif;touch-action:manipulation;font-weight:600">${label}</button>`;
   }
 
-  if(status === 'rejected'){
-    area.innerHTML = `
-      <button id="galaxyApplyBtn" style="
-        width:100%; padding:9px 12px; border-radius:10px; border:1px solid rgba(140,110,255,.25);
-        background:rgba(140,110,255,.06); color:rgba(180,160,255,.7); cursor:pointer; font-size:.7rem;
-        font-family:'Space Grotesk',sans-serif; touch-action:manipulation;
-      ">🌌 ${isTr?'Tekrar Başvur':'Apply Again'}</button>`;
-  } else {
-    area.innerHTML = `
-      <button id="galaxyApplyBtn" style="
-        width:100%; padding:9px 12px; border-radius:10px; border:1px solid rgba(140,110,255,.3);
-        background:linear-gradient(135deg,rgba(140,92,255,.1),rgba(92,138,255,.1)); color:#a78bfa; cursor:pointer; font-size:.72rem;
-        font-family:'Space Grotesk',sans-serif; touch-action:manipulation; font-weight:600;
-      ">🌌 ${isTr?'Galaxy Üyesi Olmak İstiyorum':'I Want to Become a Galaxy Member'} <span style="opacity:.6;font-size:.62rem">(Beta)</span></button>`;
-  }
-
-  const btn = document.getElementById('galaxyApplyBtn');
-  async function handleApply(e){
-    if(e) e.preventDefault();
+  async function handleApply(btn){
+    if(!btn || btn.disabled) return;
     btn.disabled = true;
     btn.textContent = isTr ? 'Gönderiliyor...' : 'Submitting...';
     const result = await window.fbApplyGalaxy(user.uid, user.displayName, user.email);
-    if(result.ok){
-      initGalaxyUI(user); // pending durumuna güncelle
-    } else {
-      btn.disabled = false;
-      btn.textContent = isTr ? 'Tekrar dene' : 'Try again';
+    if(result.ok){ initGalaxyUI(user); }
+    else { btn.disabled = false; btn.textContent = isTr ? 'Tekrar dene' : 'Try again'; }
+  }
+
+  if(area){
+    area.innerHTML = buildHTML('galaxyApplyBtn');
+    const btn = document.getElementById('galaxyApplyBtn');
+    if(btn && status !== 'pending'){
+      btn.addEventListener('click', () => handleApply(btn));
+      btn.addEventListener('touchend', (e)=>{ e.preventDefault(); handleApply(btn); }, {passive:false});
     }
   }
-  btn?.addEventListener('click', handleApply);
-  btn?.addEventListener('touchend', handleApply, {passive:false});
-}
 
+  if(mamArea){
+    mamArea.innerHTML = buildHTML('galaxyApplyBtnMam');
+    if(mamDiv) mamDiv.style.display = 'block';
+    const mamBtn = document.getElementById('galaxyApplyBtnMam');
+    if(mamBtn && status !== 'pending'){
+      mamBtn.addEventListener('click', ()=>{ document.getElementById('mobileActionsMenu')?.classList.remove('open'); handleApply(mamBtn); });
+      mamBtn.addEventListener('touchend', (e)=>{ e.preventDefault(); document.getElementById('mobileActionsMenu')?.classList.remove('open'); handleApply(mamBtn); }, {passive:false});
+    }
+  }
+}
 function showFounderWelcome(){
   const existing = document.getElementById('founderWelcome');
   if(existing){ existing.remove(); return; }
-
   const el = document.createElement('div');
   el.id = 'founderWelcome';
   el.style.cssText = 'position:fixed;inset:0;z-index:99999;display:flex;align-items:center;justify-content:center;background:rgba(3,2,15,.94);backdrop-filter:blur(14px);animation:fw-appear .4s ease both;overflow-y:auto;padding:16px;';
-
   el.innerHTML = `
     <div id="fwPanel" style="text-align:left;padding:0;max-width:600px;width:100%;max-height:92vh;display:flex;flex-direction:column;background:rgba(12,9,32,.98);border:1px solid rgba(255,215,0,.25);border-radius:24px;box-shadow:0 0 90px rgba(255,215,0,.12),0 24px 70px rgba(0,0,0,.65);animation:fw-slide .5s cubic-bezier(.16,1,.3,1) both;overflow:hidden;">
-
       <!-- Header -->
       <div style="padding:22px 24px 14px;text-align:center;border-bottom:1px solid rgba(255,255,255,.06);flex-shrink:0">
         <div style="font-size:2.2rem;margin-bottom:4px;animation:fw-crown 1s ease-in-out infinite alternate">👑</div>
         <div style="font-family:'Orbitron',sans-serif;font-size:1.25rem;font-weight:900;background:linear-gradient(135deg,#ffd700,#ffaa00,#ff6ec7);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;">Yönetici Paneli</div>
         <button id="founderCloseBtn" style="position:absolute;top:18px;right:18px;width:30px;height:30px;border-radius:9px;border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.05);color:#ccc;cursor:pointer;font-size:.9rem;touch-action:manipulation">✕</button>
       </div>
-
       <!-- Tabs -->
       <div id="fwTabs" style="display:flex;gap:4px;padding:10px 16px 0;flex-shrink:0;overflow-x:auto;-webkit-overflow-scrolling:touch">
         <button class="fw-tab active" data-tab="overview">📊 Genel</button>
@@ -3076,12 +2903,10 @@ function showFounderWelcome(){
         <button class="fw-tab" data-tab="users">👥 Kullanıcılar</button>
         <button class="fw-tab" data-tab="settings">⚙️ Ayarlar</button>
       </div>
-
       <!-- Content -->
       <div id="fwContent" style="flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:16px 20px 24px"></div>
     </div>
   `;
-
   const style = document.createElement('style');
   style.textContent = `
     @keyframes fw-appear{from{opacity:0}to{opacity:1}}
@@ -3135,16 +2960,13 @@ function showFounderWelcome(){
   `;
   document.head.appendChild(style);
   document.body.appendChild(el);
-
   document.getElementById('founderCloseBtn').onclick = () => {
     el.style.animation = 'fw-appear .25s ease reverse both';
     setTimeout(()=>{ el.remove(); style.remove(); }, 250);
   };
-
   // ============ ADMIN API ÇAĞRISI ============
   const ADMIN_SECRET = 'thinkle-admin-' + 'l8Tih1aw'; // founder UID'in ilk 8 karakteri
   const PROXY_BASE = 'https://thinkle-proxy-518x.onrender.com';
-
   async function adminFetch(path, body){
     if(body){
       const res = await fetch(PROXY_BASE + path, {
@@ -3161,18 +2983,14 @@ function showFounderWelcome(){
     const res = await fetch(url.toString());
     return res.json();
   }
-
   let cachedStats = null;
-
   // ============ TAB SİSTEMİ ============
   const tabsEl = document.getElementById('fwTabs');
   const contentEl = document.getElementById('fwContent');
-
   tabsEl.querySelectorAll('.fw-tab').forEach(tab => {
     tab.addEventListener('click', () => switchTab(tab.dataset.tab));
     tab.addEventListener('touchend', (e) => { e.preventDefault(); switchTab(tab.dataset.tab); }, {passive:false});
   });
-
   function switchTab(name){
     tabsEl.querySelectorAll('.fw-tab').forEach(t => t.classList.toggle('active', t.dataset.tab === name));
     if(name === 'overview') renderOverview();
@@ -3181,7 +2999,6 @@ function showFounderWelcome(){
     else if(name === 'users') renderUsers();
     else if(name === 'settings') renderSettings();
   }
-
   // Açılışta bekleyen başvuru sayısını rozet olarak göster
   if(window.fbGetGalaxyApplications){
     window.fbGetGalaxyApplications().then(apps => {
@@ -3190,7 +3007,6 @@ function showFounderWelcome(){
       if(badge && pending > 0){ badge.textContent = pending; badge.style.display = 'inline-block'; }
     });
   }
-
   // ============ GALAXY BAŞVURULARI ============
   async function renderApplications(){
     contentEl.innerHTML = `<div class="fw-empty">Yükleniyor...</div>`;
@@ -3201,7 +3017,6 @@ function showFounderWelcome(){
     const apps = await window.fbGetGalaxyApplications();
     const pending  = apps.filter(a => a.status === 'pending');
     const decided  = apps.filter(a => a.status !== 'pending').slice(0, 15);
-
     const pendingHtml = pending.length ? pending.map(a => `
       <div class="fw-card" style="border-color:rgba(140,110,255,.2);background:rgba(140,110,255,.04)">
         <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px;margin-bottom:10px">
@@ -3217,13 +3032,11 @@ function showFounderWelcome(){
           <button class="fw-btn fw-btn-red" data-reject="${a.uid}" style="flex:1">✕ Reddet</button>
         </div>
       </div>`).join('') : `<div class="fw-empty">Bekleyen başvuru yok 🌌</div>`;
-
     const decidedHtml = decided.length ? decided.map(a => `
       <div class="fw-list-item">
         <span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1">${(a.displayName||a.uid.slice(0,12)).replace(/</g,'&lt;')}</span>
         <span class="fw-badge" style="background:${a.status==='approved'?'rgba(77,255,150,.18)':'rgba(255,100,110,.18)'};color:${a.status==='approved'?'#4dff96':'#ff6e78'}">${a.status==='approved'?'✓ onaylandı':'✕ reddedildi'}</span>
       </div>`).join('') : '';
-
     contentEl.innerHTML = `
       <div style="font-size:.7rem;color:rgba(140,110,255,.7);font-family:'Space Mono',monospace;margin-bottom:10px">🌌 BEKLEYEN BAŞVURULAR (${pending.length})</div>
       ${pendingHtml}
@@ -3231,7 +3044,6 @@ function showFounderWelcome(){
       <div style="font-size:.7rem;color:rgba(255,255,255,.4);font-family:'Space Mono',monospace;margin:16px 0 10px">📜 GEÇMİŞ KARARLAR</div>
       <div class="fw-card">${decidedHtml}</div>` : ''}
     `;
-
     contentEl.querySelectorAll('[data-approve]').forEach(btn => {
       btn.onclick = async () => {
         btn.disabled = true; btn.textContent = '...';
@@ -3255,7 +3067,6 @@ function showFounderWelcome(){
       };
     });
   }
-
   // ============ GENEL BAKIŞ ============
   async function renderOverview(){
     contentEl.innerHTML = `<div class="fw-empty">Yükleniyor...</div>`;
@@ -3268,7 +3079,6 @@ function showFounderWelcome(){
     const s = cachedStats;
     const tokenPct = Math.min(100, Math.round((s.totalInputTokens + s.totalOutputTokens) / (s.dailyTokenLimitPerUser * Math.max(s.activeUsers,1)) * 100)) || 0;
     const costWarn = s.estimatedCostUSD >= 8 ? '#ff6e78' : s.estimatedCostUSD >= 5 ? '#ffd700' : '#4dff96';
-
     const maxHour = Math.max(...s.hourlyDistribution, 1);
     const hourBars = s.hourlyDistribution.map((v,h) => `
       <div class="fw-bar-row">
@@ -3276,7 +3086,6 @@ function showFounderWelcome(){
         <div class="fw-bar-track"><div class="fw-bar-fill" style="width:${(v/maxHour*100)||0}%"></div></div>
         <div style="font-size:.62rem;color:rgba(255,255,255,.4);width:22px;text-align:right">${v}</div>
       </div>`).join('');
-
     contentEl.innerHTML = `
       <div class="fw-card" style="border-color:${s.estimatedCostUSD>=8?'rgba(255,100,110,.3)':'rgba(255,255,255,.07)'}">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
@@ -3286,7 +3095,6 @@ function showFounderWelcome(){
         <div style="font-size:1.8rem;font-weight:700;color:${costWarn};font-family:'Space Grotesk',sans-serif">$${s.estimatedCostUSD}</div>
         <div style="font-size:.65rem;color:rgba(255,255,255,.35);margin-top:4px">Input: ${(s.totalInputTokens/1000).toFixed(1)}K · Output: ${(s.totalOutputTokens/1000).toFixed(1)}K token</div>
       </div>
-
       <div class="fw-stat-grid cols3">
         <div class="fw-stat-box">
           <div class="fw-stat-num" style="color:#6ee7ff">${s.activeUsers}</div>
@@ -3301,12 +3109,10 @@ function showFounderWelcome(){
           <div class="fw-stat-label">HATA ORANI</div>
         </div>
       </div>
-
       <div class="fw-card">
         <div style="font-size:.7rem;color:rgba(255,255,255,.5);font-family:'Space Mono',monospace;margin-bottom:10px">🕐 SAATLİK İSTEK DAĞILIMI (BUGÜN)</div>
         ${hourBars}
       </div>
-
       <div class="fw-card" style="background:rgba(255,215,0,.03);border-color:rgba(255,215,0,.1)">
         <div style="font-size:.7rem;color:rgba(255,215,0,.6);font-family:'Space Mono',monospace;margin-bottom:8px">⚡ AYRICALIKLAR</div>
         <div style="font-size:.72rem;color:rgba(255,215,0,.8);line-height:1.8">
@@ -3315,7 +3121,6 @@ function showFounderWelcome(){
       </div>
     `;
   }
-
   // ============ MODERASYON ============
   async function renderModeration(){
     contentEl.innerHTML = `<div class="fw-empty">Yükleniyor...</div>`;
@@ -3324,7 +3129,6 @@ function showFounderWelcome(){
       catch(e){ contentEl.innerHTML = `<div class="fw-empty">Veri yüklenemedi.</div>`; return; }
     }
     const s = cachedStats;
-
     const reportsHtml = s.abuseReports?.length
       ? s.abuseReports.map(r => `
         <div class="fw-list-item" style="flex-direction:column;align-items:flex-start;gap:4px">
@@ -3336,7 +3140,6 @@ function showFounderWelcome(){
           <div style="font-size:.68rem;color:rgba(255,255,255,.4)">${r.detail}</div>
         </div>`).join('')
       : `<div class="fw-empty">Şüpheli kullanım kaydı yok 👍</div>`;
-
     const decksHtml = s.recentDecks?.length
       ? s.recentDecks.map(d => `
         <div class="fw-list-item">
@@ -3344,7 +3147,6 @@ function showFounderWelcome(){
           <span style="font-size:.6rem;color:rgba(255,255,255,.3);flex-shrink:0">${new Date(d.time).toLocaleTimeString('tr-TR',{hour:'2-digit',minute:'2-digit'})}</span>
         </div>`).join('')
       : `<div class="fw-empty">Henüz deck oluşturulmadı</div>`;
-
     contentEl.innerHTML = `
       <div class="fw-card">
         <div style="font-size:.7rem;color:rgba(255,100,110,.7);font-family:'Space Mono',monospace;margin-bottom:10px">🚨 ŞÜPHELİ KULLANIM RAPORLARI</div>
@@ -3356,7 +3158,6 @@ function showFounderWelcome(){
       </div>
     `;
   }
-
   // ============ KULLANICILAR ============
   async function renderUsers(){
     contentEl.innerHTML = `<div class="fw-empty">Yükleniyor...</div>`;
@@ -3365,7 +3166,6 @@ function showFounderWelcome(){
       catch(e){ contentEl.innerHTML = `<div class="fw-empty">Veri yüklenemedi.</div>`; return; }
     }
     const s = cachedStats;
-
     const bannedHtml = s.bannedUsers?.length
       ? s.bannedUsers.map(u => `
         <div class="fw-list-item">
@@ -3376,7 +3176,6 @@ function showFounderWelcome(){
           <button class="fw-btn fw-btn-green" data-unban="${u.uid}" style="padding:5px 10px;font-size:.65rem">Kaldır</button>
         </div>`).join('')
       : `<div class="fw-empty">Banlı kullanıcı yok</div>`;
-
     const unlimitedHtml = s.unlimitedUsers?.length
       ? s.unlimitedUsers.map(uid => `
         <div class="fw-list-item">
@@ -3384,7 +3183,6 @@ function showFounderWelcome(){
           <button class="fw-btn fw-btn-red" data-revoke="${uid}" style="padding:5px 10px;font-size:.65rem">Kaldır</button>
         </div>`).join('')
       : `<div class="fw-empty">Özel ayrıcalıklı kullanıcı yok</div>`;
-
     contentEl.innerHTML = `
       <div class="fw-card">
         <div style="font-size:.7rem;color:rgba(255,255,255,.5);font-family:'Space Mono',monospace;margin-bottom:10px">🔍 KULLANICI YÖNETİMİ (UID ile)</div>
@@ -3395,18 +3193,15 @@ function showFounderWelcome(){
           <button id="fwGrantBtn" class="fw-btn fw-btn-gold">⚡ Sınırsız Erişim Ver</button>
         </div>
       </div>
-
       <div class="fw-card">
         <div style="font-size:.7rem;color:rgba(255,100,110,.7);font-family:'Space Mono',monospace;margin-bottom:10px">🚫 BANLI KULLANICILAR</div>
         ${bannedHtml}
       </div>
-
       <div class="fw-card">
         <div style="font-size:.7rem;color:rgba(255,215,0,.7);font-family:'Space Mono',monospace;margin-bottom:10px">⚡ SINIRSIZ ERİŞİMLİ KULLANICILAR (Beta Testçiler)</div>
         ${unlimitedHtml}
       </div>
     `;
-
     document.getElementById('fwBanBtn').onclick = async () => {
       const uid = document.getElementById('fwTargetUid').value.trim();
       const reason = document.getElementById('fwBanReason').value.trim();
@@ -3437,7 +3232,6 @@ function showFounderWelcome(){
       };
     });
   }
-
   // ============ AYARLAR (duyuru + bakım modu) ============
   function renderSettings(){
     contentEl.innerHTML = `
@@ -3448,7 +3242,6 @@ function showFounderWelcome(){
           <button id="founderAnnSave" class="fw-btn fw-btn-green">📤 Gönder</button>
         </div>
       </div>
-
       <div class="fw-card" style="display:flex;align-items:center;justify-content:space-between">
         <div style="font-size:.78rem;color:rgba(255,150,150,.9)">🔧 Bakım Modu</div>
         <label style="display:flex;align-items:center;gap:8px;cursor:pointer">
@@ -3457,7 +3250,6 @@ function showFounderWelcome(){
         </label>
       </div>
     `;
-
     if(window.fbGetAnnouncement){
       window.fbGetAnnouncement().then(ann => {
         const inp = document.getElementById('founderAnn');
@@ -3470,7 +3262,6 @@ function showFounderWelcome(){
         if(cb){ cb.checked = active; document.getElementById('maintLabel').textContent = active ? 'AÇIK' : 'KAPALI'; }
       });
     }
-
     async function handleAnnSave(){
       const text = document.getElementById('founderAnn')?.value.trim();
       if(window.fbSetAnnouncement) await window.fbSetAnnouncement(text);
@@ -3482,22 +3273,16 @@ function showFounderWelcome(){
     const annBtn = document.getElementById('founderAnnSave');
     annBtn.addEventListener('click', handleAnnSave);
     annBtn.addEventListener('touchend', (e)=>{ e.preventDefault(); handleAnnSave(); }, {passive:false});
-
     document.getElementById('founderMaintenance').onchange = async (e) => {
       const active = e.target.checked;
       document.getElementById('maintLabel').textContent = active ? 'AÇIK' : 'KAPALI';
       if(window.fbSetMaintenance) await window.fbSetMaintenance(active);
     };
   }
-
   // İlk açılışta Genel Bakış sekmesi
   renderOverview();
 }
-
-
-
 // Kozmik duyuru efekti
-
 // Duyuru banner'ı — Firestore'dan gelince kozmik göster
 document.addEventListener('announcementReady', (e) => {
   const existing = document.getElementById('annBanner');
@@ -3527,7 +3312,6 @@ document.addEventListener('announcementReady', (e) => {
     setTimeout(()=> banner.remove(), 500);
   }, 5000);
 });
-
 // Bakım modu
 window.addEventListener('maintenanceMode', () => {
   document.body.innerHTML = `
@@ -3537,7 +3321,6 @@ window.addEventListener('maintenanceMode', () => {
       <div style="color:rgba(180,160,255,.7);font-size:.9rem;line-height:1.6">Thinkle şu an bakımda.<br>Kısa süre içinde geri döneceğiz.</div>
     </div>`;
 });
-
 // Mobil floating AI butonu
 const aiFloatBtn = document.getElementById('aiFloatBtn');
 const aiFloatPanel = document.getElementById('aiFloatPanel');
@@ -3551,17 +3334,14 @@ if(aiFloatBtn){
   aiFloatBtn.addEventListener('click', ()=> aiFloatPanel.classList.toggle('open'));
   aiFloatBtn.addEventListener('touchend', (e)=>{ e.preventDefault(); aiFloatPanel.classList.toggle('open'); }, {passive:false});
 }
-
 // ============================================================
 // GALAKSİ — daha fazla detay: HII bölgeleri, toz bantları, parıltılar
 // ============================================================
 const spaceEl = document.getElementById('space');
-
 // Galaksi çekirdeği
 const coreEl = document.createElement('div');
 coreEl.className = 'galaxy-core';
 spaceEl.appendChild(coreEl);
-
 // Spiral kol yıldız yoğunlukları — HII bölgeleri + düzensiz parlama
 const spiralGlows = [
   // Ana spiral kollar
@@ -3592,14 +3372,11 @@ spiralGlows.forEach(g => {
   el.style.animationDelay = (-Math.random()*g.dur)+'s';
   spaceEl.appendChild(el);
 });
-
 // Toz bandı — galaksiyi ortadan kesen koyu şerit
 // dustLane kaldırıldı
-
 // Performans modu — mobilde animasyonları tamamen kapat
 const LOW_PERF = window.innerWidth <= 860 || navigator.hardwareConcurrency <= 4;
 const IS_MOBILE = window.innerWidth <= 860;
-
 // Yıldızlar
 const starsEl = document.getElementById('stars');
 const STAR_COUNT = IS_MOBILE ? 30 : 80;
@@ -3611,12 +3388,10 @@ for(let i=0;i<STAR_COUNT;i++){
   s.style.cssText = `width:${size}px;height:${size}px;left:${Math.random()*100}%;top:${Math.random()*100}%;--d:${(Math.random()*5+2).toFixed(1)}s`;
   starsEl.appendChild(s);
 }
-
 // ============================================================
 // GÜNEŞ SİSTEMİ — sağ alt köşede sabit
 // ============================================================
 const orbitContainer = document.getElementById('orbitContainer');
-
 // ============================================================
 // GÜNEŞ YÜZÜ — önce oluştur ki positionSolarSystem kullanabilsin
 // ============================================================
@@ -3647,7 +3422,6 @@ solEl.innerHTML = `
 `;
 solEl.style.opacity = '0';
 document.body.appendChild(solEl);
-
 function positionSolarSystem(){
   if(!orbitContainer || !solEl) return;
   const uploadScreen = document.getElementById('uploadScreen');
@@ -3655,7 +3429,6 @@ function positionSolarSystem(){
   const isQuizActive = !!document.querySelector('.quiz-q');
   const isSlideActive = !!document.querySelector('.slide-card');
   const topTitleEl = document.getElementById('topTitle');
-
   if(isUpload){
     solEl.classList.remove('upload-fixed','quiz-mode');
     solEl.style.visibility = '';
@@ -3713,20 +3486,13 @@ document.addEventListener('visibilitychange', () => {
   const stars = document.getElementById('stars');
   if(stars) stars.style.animationPlayState = document.hidden ? 'paused' : 'running';
 });
-
 // Scroll'da pozisyon güncellenmez — sabit viewport konumu
 setTimeout(positionSolarSystem, 60);
 setTimeout(positionSolarSystem, 500);
-
-
-
-
-
 // Göz takibi — gezegenleri izle
 function updateSolEyes(){
   const rect = solEl.getBoundingClientRect();
   const cx = rect.left + rect.width/2, cy = rect.top + rect.height/2;
-
   // Önce gezegenlere bak, yoksa asteroide
   let closest = null, minDist = 9999;
   document.querySelectorAll('.planet, .space-ship.transiting, .asteroid').forEach(el => {
@@ -3735,7 +3501,6 @@ function updateSolEyes(){
     const d = Math.sqrt((ex-cx)**2+(ey-cy)**2);
     if(d < minDist){ minDist=d; closest={x:ex,y:ey,dist:d}; }
   });
-
   const tx = closest?closest.x:cx, ty = closest?closest.y:cy;
   const angle = Math.atan2(ty-cy, tx-cx);
   const maxOff = 3, dist = Math.min((closest?.dist||999)/120,1);
@@ -3746,22 +3511,18 @@ function updateSolEyes(){
   });
 }
 setInterval(updateSolEyes, IS_MOBILE ? 1000 : 180);
-
 // ===== GÜNEŞ KİŞİLİĞİ — rastgele duygular =====
 const solMouth  = () => solEl.querySelector('.sol-mouth');
 const solBrowL  = () => solEl.querySelector('.sol-brow.left');
 const solBrowR  = () => solEl.querySelector('.sol-brow.right');
-
 function solSetMood(mood){
   const m = solMouth(), bl = solBrowL(), br = solBrowR();
   if(!m||!bl||!br) return;
-
   // Reset
   m.style.cssText  = '';
   bl.style.cssText = '';
   br.style.cssText = '';
   solEl.style.filter = '';
-
   if(mood === 'happy'){
     // Geniş gülümseme
     m.style.cssText  = 'position:absolute;bottom:16%;left:50%;transform:translateX(-50%);width:44%;height:22%;border-radius:0 0 40px 40px;border:2.5px solid #8b1a00;border-top:none;background:rgba(180,60,0,.2)';
@@ -3799,7 +3560,6 @@ function solSetMood(mood){
     setTimeout(()=>{ solEl.style.animation=''; }, 1200);
   }
 }
-
 function solResetMood(){
   const m = solMouth(), bl = solBrowL(), br = solBrowR();
   if(m) m.style.cssText = '';
@@ -3808,17 +3568,14 @@ function solResetMood(){
   solEl.style.filter = '';
   solEl.style.animation = '';
 }
-
 // Kahkaha CSS keyframe
 const laughStyle = document.createElement('style');
 laughStyle.textContent = '@keyframes sol-laugh{0%,100%{transform:translate(-50%,-50%) rotate(0deg)}25%{transform:translate(-50%,-50%) rotate(-5deg)}75%{transform:translate(-50%,-50%) rotate(5deg)}}';
 document.head.appendChild(laughStyle);
-
 // Rastgele duygu sistemi
 const MOODS = ['happy','surprised','bored','laughing','laughing','happy','happy'];
 let moodTimeout = null;
 let lastMood = null;
-
 function triggerRandomMood(){
   if(solEl.style.visibility === 'hidden') return;
   const available = MOODS.filter(m => m !== lastMood);
@@ -3832,10 +3589,8 @@ function triggerRandomMood(){
     moodTimeout = setTimeout(triggerRandomMood, next);
   }, mood === 'bored' ? 3500 : 2500);
 }
-
 // Başlat — 5 saniye sonra ilk duygu
 setTimeout(triggerRandomMood, 5000);
-
 // Öfke sistemi — 3 dosyadan sonra sinirlensin
 let solAngerLevel = 0;
 function solGetAngry(){
@@ -3845,7 +3600,6 @@ function solGetAngry(){
     solAngerLevel = Math.max(0, solAngerLevel-2);
   }
 }
-
 const BASE_R = 66, STEP_R = 36;
 const orbitDefs = [
   { size:9,  color:'radial-gradient(circle at 32% 28%, #d4a96a 0%, #7a3d10 60%, #3a1800 100%)', dur:16 },
@@ -3855,7 +3609,6 @@ const orbitDefs = [
   { size:26, color:'radial-gradient(circle at 28% 25%, #f0d89a 0%, #c89840 45%, #986820 80%, #5a3a08 100%)', ring:true, atmo:'rgba(240,200,130,.12)', dur:105 },
   { size:19, color:'radial-gradient(circle at 30% 28%, #a0d4e8 0%, #4888b8 50%, #183858 100%)', atmo:'rgba(120,200,240,.18)', dur:152 },
 ];
-
 // Mobilde daha az gezegen
 const activeDefs = IS_MOBILE ? orbitDefs.slice(0, 2) : orbitDefs.slice(0, 5);
 activeDefs.forEach((def, i) => {
@@ -3890,7 +3643,6 @@ activeDefs.forEach((def, i) => {
   orbiter.appendChild(planet);
   orbitContainer.appendChild(orbiter);
 });
-
 // ============================================================
 // UZAY GEMİLERİ — soldan sağa geçiş, karadeliğe yaklaşınca yutulur
 // ============================================================
@@ -3906,9 +3658,7 @@ const shipSVGs = [
   // Kargo gemisi
   `<svg viewBox="0 0 24 36" xmlns="http://www.w3.org/2000/svg"><path d="M12 2L18 20L12 16L6 20Z" fill="#e0e8ff"/><path d="M6 20L0 28L6 24Z" fill="#b46bff"/><path d="M18 20L24 28L18 24Z" fill="#b46bff"/><circle cx="12" cy="13" r="3" fill="#6ee7ff"/><path d="M9 28L12 36L15 28Z" fill="#ff6ec7" opacity=".8"/></svg>`,
 ];
-
 const shipsEl = document.getElementById('ships'); // element kaldırıldı
-
 function spawnShip(svgStr, initDelay){
   const el = document.createElement('div');
   el.className = 'space-ship transiting';
@@ -3924,28 +3674,23 @@ function spawnShip(svgStr, initDelay){
   el.style.setProperty('--transit-dy', dy+'px');
   if(initDelay) el.style.animationDelay = initDelay+'s';
   if(shipsEl) shipsEl.appendChild(el);
-
   let swallowed = false;
   // Karadelik artık yok — basit soldan sağa geçiş, yutulma yok
-
   const endT = setTimeout(() => {
     el.remove();
     setTimeout(()=>spawnShip(svgStr,0), 1500+Math.random()*7000);
   }, (dur+(initDelay||0))*1000+600);
 }
-
 // Mobilde daha az gemi
 // activeShipCount yukarıda tanımlı
 const activeShipSVGs = shipSVGs.sort(()=>Math.random()-.5).slice(0,activeShipCount);
 activeShipSVGs.forEach((svg,i) => spawnShip(svg, i*4));
 // Periyodik yeni gemi — mobilde daha seyrek
 setInterval(()=>{ spawnShip(shipSVGs[Math.floor(Math.random()*shipSVGs.length)],0); }, IS_MOBILE ? 999999 : 45000);
-
 // ============================================================
 // ASTEROİDLER — gerçekçi taşlı, pütürlü, boyutu çok değişken
 // ============================================================
 const asteroidsEl = document.getElementById('asteroids'); // element kaldırıldı
-
 function makeAsteroidSVG(size, isBig){
   const seed = Math.random();
   // Gerçekçi şekil: çok kenarlı, düzensiz polygon
@@ -3962,7 +3707,6 @@ function makeAsteroidSVG(size, isBig){
   const col2 = `rgb(${base+40},${base+30},${base+18})`;
   const col3 = `rgb(${base-10},${base-18},${base-22})`;
   const op = isBig ? '.88' : (0.6+Math.random()*0.28).toFixed(2);
-
   let svg = `<svg viewBox="0 0 ${size} ${size}" xmlns="http://www.w3.org/2000/svg" style="width:${size}px;height:${size}px;overflow:visible">
     <defs>
       <radialGradient id="ag${Math.floor(seed*9999)}" cx="35%" cy="32%" r="65%">
@@ -3972,7 +3716,6 @@ function makeAsteroidSVG(size, isBig){
       </radialGradient>
     </defs>
     <polygon points="${points.trim()}" fill="url(#ag${Math.floor(seed*9999)})" opacity="${op}"/>`;
-
   if(isBig){
     // Yüzeyde kraterler
     const craters = 3 + Math.floor(Math.random()*3);
@@ -3989,11 +3732,9 @@ function makeAsteroidSVG(size, isBig){
     // Parlak kenar notu
     svg += `<polygon points="${points.trim()}" fill="none" stroke="${col2}" stroke-width="${size*.018}" opacity=".3"/>`;
   }
-
   svg += `</svg>`;
   return svg;
 }
-
 function spawnAsteroid(){
   const el = document.createElement('div');
   el.className = 'asteroid';
@@ -4004,16 +3745,13 @@ function spawnAsteroid(){
     : isTiny
       ? Math.round(2 + Math.random()*4)   // 2-6px neredeyse görünmez
       : Math.round(6 + Math.random()*14); // 6-20px normal
-
   el.innerHTML = makeAsteroidSVG(size, isBig);
   el.style.left = '-80px';
   el.style.top = (Math.random()*window.innerHeight)+'px';
-
   const dur = isBig ? (22+Math.random()*18) : (8+Math.random()*20);
   const dy = Math.random()*240 - 120;
   const rot = Math.random()*720 - 360;
   const op = isBig ? '.88' : isTiny ? '.45' : '.75';
-
   el.style.setProperty('--ast-dur', dur+'s');
   el.style.setProperty('--ast-dx', (window.innerWidth+100)+'px');
   el.style.setProperty('--ast-dy', dy+'px');
@@ -4022,17 +3760,14 @@ function spawnAsteroid(){
   if(asteroidsEl) asteroidsEl.appendChild(el);
   setTimeout(()=>el.remove(), dur*1000+600);
 }
-
 // Asteroid spawn — mobilde çok az
 const INIT_ASTEROIDS = IS_MOBILE ? 0 : 4;
 const ASTEROID_INTERVAL = IS_MOBILE ? 999999 : 6000;
 for(let i=0;i<INIT_ASTEROIDS;i++) setTimeout(()=>spawnAsteroid(), i*3000);
 setInterval(spawnAsteroid, ASTEROID_INTERVAL);
-
 // Requests go through a small backend proxy that keeps the real Anthropic
 // API key secret. Replace this with your deployed proxy's URL.
 const PROXY_URL = "https://thinkle-proxy-518x.onrender.com/api/messages";
-
 // Request imzalama — her istek için zaman bazlı imza üret
 function getRequestSignature(){
   const hour = Math.floor(Date.now() / 3600000); // Her saat değişir
@@ -4040,7 +3775,6 @@ function getRequestSignature(){
   // Basit hash — btoa ile encode
   return btoa(secret + '-' + (hour % 7)).replace(/=/g,'');
 }
-
 // Sayfa yüklenince proxy'yi uyandır
 fetch("https://thinkle-proxy-518x.onrender.com/ping").catch(()=>{});
 // 14 dakikada bir tekrar uyandır
@@ -4051,7 +3785,6 @@ let pendingFile = null;
 let currentLang = 'tr';
 let quizAnswers = {}; // qi -> selected option index
 let currentBiome = 1; // 1, 2, or 3
-
 const uploadScreen = document.getElementById('uploadScreen');
 const loadingScreen = document.getElementById('loadingScreen');
 const loadingText = document.getElementById('loadingText');
@@ -4065,7 +3798,6 @@ const topTitle = document.getElementById('topTitle');
 const exportBtn = document.getElementById('exportBtn');
 const restartBtn = document.getElementById('restartBtn');
 const goBtn = document.getElementById('goBtn');
-
 const i18n = {
   tr: {
     tagline: 'dosyandan derse, dersten bilgiye',
@@ -4152,15 +3884,12 @@ const i18n = {
     pptxExportError: 'Could not generate the .pptx file.'
   }
 };
-
 function t(key, ...args){
   const val = i18n[currentLang][key];
   return typeof val === 'function' ? val(...args) : val;
 }
-
 let lastSourceText = null;
 let deckLang = 'tr';
-
 function applyLanguage(lang){
   currentLang = lang;
   document.documentElement.lang = lang;
@@ -4193,16 +3922,13 @@ function applyLanguage(lang){
     topTitle.textContent = t('topTitleDefault');
   }
 }
-
 async function regenerateDeckForLanguage(lang){
   currentLang = lang; // generateDeck içindeki langInstruction buna bakıyor
   document.documentElement.lang = lang;
-
   loadingScreen.classList.remove('hidden');
   startLoadingAnimation();
   solEl.style.visibility = 'hidden';
   loadingText.textContent = t('loadingDesign');
-
   try{
     deck = await generateDeck(lastSourceText);
     deckLang = lang;
@@ -4220,21 +3946,17 @@ async function regenerateDeckForLanguage(lang){
     solEl.style.visibility = '';
   }
 }
-
 document.querySelectorAll('.lang-opt').forEach(btn => {
   btn.addEventListener('click', () => applyLanguage(btn.dataset.lang));
 });
-
 const menuToggle = document.getElementById('menuToggle');
 if(menuToggle){
   menuToggle.addEventListener('click', () => {
     tabsEl.classList.toggle('open');
   });
 }
-
 dropzone.addEventListener('click', () => { requireAuth(() => fileInput.click()); });
 dropzone.addEventListener('touchend', (e) => { e.preventDefault(); requireAuth(() => fileInput.click()); }, { passive: false });
-
 ['dragenter','dragover','dragleave','drop'].forEach(ev => {
   dropzone.addEventListener(ev, e => {
     e.preventDefault();
@@ -4246,7 +3968,6 @@ dropzone.addEventListener('touchend', (e) => { e.preventDefault(); requireAuth((
 ['dragover','drop'].forEach(ev => {
   window.addEventListener(ev, e => e.preventDefault());
 });
-
 dropzone.addEventListener('drop', e => {
   const files = e.dataTransfer.files;
   if(files && files.length) selectFile(files[0]);
@@ -4254,7 +3975,6 @@ dropzone.addEventListener('drop', e => {
 fileInput.addEventListener('change', e => {
   if(e.target.files.length) selectFile(e.target.files[0]);
 });
-
 function selectFile(file){
   pendingFile = file;
   fileNameEl.classList.remove('file-eaten');
@@ -4265,7 +3985,6 @@ function selectFile(file){
   growBlackHole();
   if(typeof solGetAngry === 'function') solGetAngry();
 }
-
 let bhLevel = 0;
 function growBlackHole(){
   // Karadelik kaldırıldı — dropzone distort animasyonu devam eder
@@ -4273,18 +3992,15 @@ function growBlackHole(){
   dropzone.classList.remove('distort1','distort2','distort3');
   if(bhLevel>0) dropzone.classList.add('distort'+bhLevel);
 }
-
 restartBtn.addEventListener('click', () => location.reload());
 goBtn.addEventListener('click', () => {
   if(!pendingFile){ showError(t('chooseFile')); return; }
   requireAuth(() => handleFile(pendingFile));
 });
-
 function showError(msg){
   uploadError.textContent = msg;
   uploadError.classList.remove('hidden');
 }
-
 function showToast(msg){
   const toast = document.createElement('div');
   toast.className = 'toast';
@@ -4292,10 +4008,8 @@ function showToast(msg){
   document.body.appendChild(toast);
   setTimeout(() => toast.remove(), 5200);
 }
-
 async function handleFile(file){
   uploadError.classList.add('hidden');
-
   // 20MB limit
   const MAX_MB = 20;
   if(file.size > MAX_MB * 1024 * 1024){
@@ -4304,13 +4018,11 @@ async function handleFile(file){
       : `File too large. Maximum ${MAX_MB} MB allowed.`);
     return;
   }
-
   uploadScreen.classList.add('hidden');
   loadingScreen.classList.remove('hidden');
   startLoadingAnimation();
   solEl.style.visibility = 'hidden';
   loadingText.textContent = t('loadingDefault');
-
   try{
     const text = await extractText(file);
     if(!text || text.trim().length < 20){
@@ -4341,7 +4053,6 @@ async function handleFile(file){
     setTimeout(updateFooter, 100);
   }
 }
-
 async function extractText(file){
   const name = file.name.toLowerCase();
   if(name.endsWith('.txt')){
@@ -4380,7 +4091,6 @@ async function extractText(file){
   }
   throw new Error(t('unsupportedFile'));
 }
-
 // Görselden AI ile metin çıkarma (OCR benzeri)
 async function extractTextFromImage(file){
   const base64 = await new Promise((resolve, reject) => {
@@ -4390,7 +4100,6 @@ async function extractTextFromImage(file){
     reader.readAsDataURL(file);
   });
   const mediaType = file.type || 'image/jpeg';
-
   const response = await fetch(PROXY_URL, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -4410,7 +4119,6 @@ async function extractTextFromImage(file){
       }]
     })
   });
-
   if(!response.ok){
     throw new Error(currentLang === 'tr'
       ? 'Görsel işlenirken hata oluştu.'
@@ -4425,7 +4133,6 @@ async function extractTextFromImage(file){
   }
   return text;
 }
-
 // Attempts to parse the model's JSON output. If the response was cut off
 // (hit max_tokens mid-object), tries to salvage as many complete slides and
 // quiz questions as possible instead of failing outright.
@@ -4435,21 +4142,16 @@ function tryParseDeck(text){
   }catch(e){
     // fall through to repair attempt
   }
-
   // Try to salvage a title
   let title = 'Study Deck';
   const titleMatch = text.match(/"title"\s*:\s*"((?:[^"\\]|\\.)*)"/);
   if(titleMatch) title = titleMatch[1].replace(/\\"/g, '"');
-
   // Extract the slides array region and pull out complete {...} objects
   const slides = extractCompleteObjects(text, '"slides"');
   const quiz = extractCompleteObjects(text, '"quiz"');
-
   if(slides.length === 0) return null;
-
   return { title, slides, quiz };
 }
-
 // Given raw text and the key name (e.g. '"slides"'), finds that array and
 // extracts every syntactically-complete top-level {...} object inside it,
 // ignoring a final dangling/incomplete object.
@@ -4458,14 +4160,12 @@ function extractCompleteObjects(text, keyName){
   if(keyIdx === -1) return [];
   const arrStart = text.indexOf('[', keyIdx);
   if(arrStart === -1) return [];
-
   const results = [];
   let i = arrStart + 1;
   while(i < text.length){
     while(i < text.length && /[\s,]/.test(text[i])) i++;
     if(text[i] === ']' || i >= text.length) break;
     if(text[i] !== '{') break;
-
     // walk forward tracking brace depth and string state to find the matching '}'
     let depth = 0, inStr = false, esc = false, j = i;
     for(; j < text.length; j++){
@@ -4494,7 +4194,6 @@ function extractCompleteObjects(text, keyName){
   }
   return results;
 }
-
 async function generateDeck(sourceText){
   // Büyük dosyalar için akıllı metin kırpma — başı, ortası ve sonu al
   let trimmed;
@@ -4507,7 +4206,6 @@ async function generateDeck(sourceText){
     const end    = sourceText.slice(-chunk);
     trimmed = start + '\n\n[...]\n\n' + mid + '\n\n[...]\n\n' + end;
   }
-
   const langInstruction = currentLang === 'tr'
     ? `ZORUNLU: Tüm çıktıyı TÜRKÇE yaz. Türkçe özel karakterleri DOĞRU kullan:
 ş(s değil), ğ(g değil), ü(u değil), ö(o değil), ı(i değil), İ, Ç, Ğ, Ü, Ö, Ş, Ç
@@ -4515,35 +4213,27 @@ Doğru: "öğrenci, şekil, güzel, çalışma, ağırlık, bilgi, işlem"
 Yanlış: "ogrenci, sekil, guzel, calisma, agirlik"
 Kaynak metin başka dilde olsa bile Türkçeye çevir.`
     : 'Write ALL content in English. Translate source material if needed.';
-
   // Slayt sayısı — dosya boyutuna göre
   let slideRange = '5-8';
   if(trimmed.length > 9000) slideRange = '4-6';
   else if(trimmed.length > 5000) slideRange = '5-7';
-
   const systemPrompt = `You are an expert educator. Create a study deck from the source text.
-
 ${langInstruction}
-
 Output ONLY a single JSON object. No markdown. No explanation. Just JSON:
 {"title":"...","slides":[{"heading":"...","bullets":["...","...","..."],"explanation":"..."}],"quiz":[{"question":"...","options":["...","...","...","..."],"answerIndex":0}]}
-
 Requirements:
 - ${slideRange} slides. Each: heading + 3-4 bullets (max 12 words each) + 1-2 sentence explanation with context.
 - EXACTLY 10 quiz items. Each tests a different concept. Mix: recall, reasoning, application, cause-effect.
 - Wrong options must be plausible. Never use "all of the above".
 - Output must be complete and valid JSON. Close all brackets.
 - ${langInstruction}`;
-
   if(!PROXY_URL || PROXY_URL.includes('YOUR-PROXY-URL')){
     throw new Error(currentLang === 'tr'
       ? 'Proxy URL ayarlanmamış.'
       : 'Proxy URL not configured.');
   }
-
   // Render uyku modundaysa önceden uyandır
   try{ fetch(PROXY_URL.replace('/api/messages','/')); }catch(e){}
-
   // Retry mekanizması — 2 deneme
   let response;
   let lastErr;
@@ -4588,14 +4278,11 @@ Requirements:
     }
     throw new Error(t('apiError', response?.status || 0, errText.slice(0,120)));
   }
-
   const data = await response.json();
   const textBlock = data.content.find(b => b.type === 'text');
   if(!textBlock) throw new Error(t('noResponse'));
-
   let clean = textBlock.text.trim();
   clean = clean.replace(/^```json/,'').replace(/^```/,'').replace(/```$/,'').trim();
-
   let parsed = tryParseDeck(clean);
   if(!parsed){
     throw new Error(t('parseError'));
@@ -4626,7 +4313,6 @@ Requirements:
   }
   return parsed;
 }
-
 function renderDeck(){
   deckScreen.classList.remove('hidden');
   exportBtn.disabled = false;
@@ -4637,7 +4323,6 @@ function renderDeck(){
   renderSlide();
   setTimeout(positionSolarSystem, 50);
 }
-
 function buildTabs(){
   tabsEl.innerHTML = '';
   deck.slides.forEach((s,i) => {
@@ -4652,15 +4337,12 @@ function buildTabs(){
   qt.innerHTML = `<span class="num">Q</span> ${t('quizTab')}`;
   qt.onclick = () => { renderQuiz(); markActiveTab(qt); tabsEl.classList.remove('open'); };
   tabsEl.appendChild(qt);
-
   // Mobil ☰ butonu kaldırıldı — artık "Slaytlar" ⋯ menüsünde
 }
-
 function markActiveTab(activeEl){
   [...tabsEl.children].forEach(c => c.classList.remove('active'));
   activeEl.classList.add('active');
 }
-
 function renderSlide(){
   [...tabsEl.children].forEach((c,i) => c.classList.toggle('active', i===currentSlide));
   const s = deck.slides[currentSlide];
@@ -4688,21 +4370,17 @@ function renderSlide(){
   };
   document.getElementById('flashcardBtn').onclick = () => renderFlashcards();
 }
-
 // ===== FLASHCARD MODU =====
 let fcIndex = 0;
-
 function renderFlashcards(){
   fcIndex = 0;
   showFlashcard();
 }
-
 function showFlashcard(){
   const s = deck.slides[fcIndex];
   const total = deck.slides.length;
   topTitle.textContent = '🃏 Flashcard — ' + deck.title;
   setTimeout(positionSolarSystem, 50);
-
   deckScreen.innerHTML = `
     <div style="padding:8px 0">
       <div class="flashcard-counter">${fcIndex+1} / ${total} — tıklayarak çevir</div>
@@ -4725,7 +4403,6 @@ function showFlashcard(){
       </div>
     </div>
   `;
-
   // Kart çevirme
   document.getElementById('fcWrap').onclick = () => {
     document.getElementById('fc').classList.toggle('flipped');
@@ -4736,14 +4413,11 @@ function showFlashcard(){
     else { currentSlide=0; renderSlide(); }
   };
 }
-
 // ===== ZORLUK SEVİYESİ =====
 let difficulty = 'medium';
-
 function renderQuiz(){
   topTitle.textContent = t('quizTitle', deck.title);
   const isTr = currentLang === 'tr';
-
   // Zorluk seçim ekranı
   deckScreen.innerHTML = `
     <div class="slide-card" style="text-align:center">
@@ -4762,7 +4436,6 @@ function renderQuiz(){
       </button>
     </div>
   `;
-
   document.getElementById('dEasy').onclick = () => { difficulty='easy'; renderQuiz(); };
   document.getElementById('dMedium').onclick = () => { difficulty='medium'; renderQuiz(); };
   document.getElementById('dHard').onclick = () => { difficulty='hard'; renderQuiz(); };
@@ -4770,14 +4443,12 @@ function renderQuiz(){
   markActiveTab(tabsEl.lastChild);
   setTimeout(positionSolarSystem, 50);
 }
-
 function getDiffDesc(){
   const isTr = currentLang === 'tr';
   if(difficulty==='easy') return isTr ? '4 seçenek · Soru ipuçları var · Süre sınırı yok' : '4 options · Hints included · No time limit';
   if(difficulty==='medium') return isTr ? '4 seçenek · İpucu yok · Standart sorular' : '4 options · No hints · Standard questions';
   return isTr ? '4 seçenek · Daha spesifik sorular · Yanıltıcı şıklar' : '4 options · More specific questions · Tricky distractors';
 }
-
 function startQuizWithDifficulty(){
   const isTr = currentLang === 'tr';
   const diffLabel = difficulty==='easy'?(isTr?'Kolay':'Easy'):difficulty==='medium'?(isTr?'Orta':'Medium'):(isTr?'Zor':'Hard');
@@ -4821,14 +4492,11 @@ function startQuizWithDifficulty(){
     });
   });
 }
-
-
 function checkQuizCompletion(){
   if(Object.keys(quizAnswers).length === deck.quiz.length){
     showQuizResult();
   }
 }
-
 function showQuizResult(){
   const total = deck.quiz.length;
   if(total === 0) return;
@@ -4840,7 +4508,6 @@ function showQuizResult(){
   });
   const pct = Math.round((correctCount/total)*100);
   const passed = pct >= 70;
-
   // Tüm sorular yerine sonuç ekranı göster
   deckScreen.innerHTML = `
     <div class="quiz-result-screen">
@@ -4878,9 +4545,7 @@ function showQuizResult(){
         </div>
       `}
     </div>`;
-
   setTimeout(positionSolarSystem, 50);
-
   if(passed){
     
     document.getElementById('btnBackSlides').onclick = () => { currentSlide=0; renderSlide(); };
@@ -4890,30 +4555,24 @@ function showQuizResult(){
     document.getElementById('btnRetry').onclick  = () => startRetryQuiz();
   }
 }
-
 // Yanlış konuları tekrar öğret → tekrar sınav
 async function startRemedial(wrongQis){
   if(document.body.classList.contains('swallowing')) return;
   document.body.classList.add('swallowing');
-
   // Biome geçişi
   document.body.classList.remove('biome-1','biome-2','biome-3');
   currentBiome = (currentBiome % 3) + 1;
   document.body.classList.add('biome-' + currentBiome);
-
   await new Promise(r => setTimeout(r, 600));
   document.body.classList.remove('swallowing');
-
   // Yanlış soruların konularını çıkar
   const wrongTopics = wrongQis.map(qi => {
     const q = deck.quiz[qi];
     return { question: q.question, correct: q.options[q.answerIndex] };
   });
-
   // AI'dan 5 remedial slayt üret
   await showRemedialSlides(wrongTopics);
 }
-
 async function showRemedialSlides(wrongTopics){
   // Loading göster
   const deckScreen = document.getElementById('deckScreen');
@@ -4924,7 +4583,6 @@ async function showRemedialSlides(wrongTopics){
         ${currentLang==='tr' ? '🔍 Yanlış konular analiz ediliyor…' : '🔍 Analyzing your mistakes…'}
       </div>
     </div>`;
-
   const langInstruction = currentLang === 'tr'
     ? `TÜM İÇERİĞİ TÜRKÇE YAZ. ZORUNLU KURALLAR:
 1. Türkçe karakterleri ASLA hatalı yazma:
@@ -4938,21 +4596,15 @@ async function showRemedialSlides(wrongTopics){
 2. Kesinlikle Türkçe karakterler kullan, Latin karşılıklarına çevirme.
 3. Akademik ve anlaşılır Türkçe kullan.`
     : 'Write ALL content in English. Use clear, academic language.';
-
   const topicsText = wrongTopics.map((t,i) =>
     `${i+1}. Q: "${t.question}" → Correct: "${t.correct}"`
   ).join('\n');
-
   const prompt = `You are a remedial tutor. A student failed a quiz. Re-teach ONLY the concepts they got wrong in exactly 5 slides.
-
 Wrong answers:
 ${topicsText}
-
 ${langInstruction}
-
 Return ONLY valid JSON:
 {"slides":[{"heading":"string","bullets":["string"],"explanation":"string"}]}
-
 Rules:
 - Exactly 5 slides. Each covers ONE wrong concept deeply.
 - Heading: the specific concept/topic they missed.
@@ -4960,7 +4612,6 @@ Rules:
 - Explanation: 2-3 sentences with analogies, examples, or context that makes it unforgettable.
 - Be like a patient tutor who understands WHY the student got confused.
 - ${langInstruction}`;
-
   try{
     const resp = await fetch(PROXY_URL, {
       method:'POST', headers:{'Content-Type':'application/json'},
@@ -4975,7 +4626,6 @@ Rules:
     if(!textBlock) throw new Error('no response');
     let clean = textBlock.text.replace(/```json|```/g,'').trim();
     const parsed = JSON.parse(clean);
-
     // Remedial deck göster
     showRemedialDeck(parsed.slides, wrongTopics);
   } catch(err){
@@ -4983,22 +4633,18 @@ Rules:
     startRetryQuiz();
   }
 }
-
 let remedialSlides = [];
 let remedialIndex = 0;
-
 function showRemedialDeck(slides, wrongTopics){
   remedialSlides = slides;
   remedialIndex = 0;
   showRemedialSlide();
 }
-
 function showRemedialSlide(){
   const deckScreen = document.getElementById('deckScreen');
   const s = remedialSlides[remedialIndex];
   const total = remedialSlides.length;
   const isLast = remedialIndex === total-1;
-
   deckScreen.innerHTML = `
     <div class="slide-card" style="border-color:rgba(255,110,200,.3);background:rgba(30,10,50,.7)">
       <div class="slide-eyebrow" style="color:var(--pink)">
@@ -5020,22 +4666,18 @@ function showRemedialSlide(){
         </button>
       </div>
     </div>`;
-
   document.getElementById('remNext').onclick = () => {
     if(isLast){ startRetryQuiz(); }
     else { remedialIndex++; showRemedialSlide(); }
   };
   const prevBtn = document.getElementById('remPrev');
   if(prevBtn) prevBtn.onclick = () => { remedialIndex--; showRemedialSlide(); };
-
   setTimeout(positionSolarSystem, 50);
 }
-
 function startRetryQuiz(){
   quizAnswers = {};
   renderQuiz();
 }
-
 function triggerSwallowAndRetry(){
   // Eski basit retry — remedial yoksa direkt quiz
   if(document.body.classList.contains('swallowing')) return;
@@ -5049,7 +4691,6 @@ function triggerSwallowAndRetry(){
     document.body.classList.remove('swallowing');
   }, 600);
 }
-
 function fixText(str){
   if(!str || typeof str !== 'string') return str;
   return str
@@ -5078,25 +4719,21 @@ function fixText(str){
     // Null karakterler
     .replace(/\u0000/g,'').replace(/\ufffd/g,'');
 }
-
 function escapeHtml(str){
   str = fixText(str);
   const d = document.createElement('div');
   d.textContent = str;
   return d.innerHTML;
 }
-
 function exportPptx(){
   if(typeof PptxGenJS === 'undefined'){
     showToast(t('pptxLibError'));
     return;
   }
-
   try{
     const pptx = new PptxGenJS();
     pptx.defineLayout({ name: 'CUSTOM', width: 10, height: 5.63 });
     pptx.layout = 'CUSTOM';
-
     let slide = pptx.addSlide();
     slide.background = { color: '0D1230' };
     slide.addText(deck.title, {
@@ -5105,7 +4742,6 @@ function exportPptx(){
     slide.addText('THINKLE STUDY DECK', {
       x:0.6, y:3.2, w:8.8, h:0.5, fontFace:'Courier New', fontSize:14, color:'6EE7FF'
     });
-
     deck.slides.forEach((s,i) => {
       const sl = pptx.addSlide();
       sl.background = { color: '10163A' };
@@ -5120,7 +4756,6 @@ function exportPptx(){
         });
       }
     });
-
     deck.quiz.forEach((q,i) => {
       const sl = pptx.addSlide();
       sl.background = { color: '0D1230' };
@@ -5130,14 +4765,12 @@ function exportPptx(){
         x:0.5, y:1.8, w:9, h:3, fontFace:'Arial', fontSize:14
       });
     });
-
     pptx.writeFile({ fileName: (deck.title || 'study-deck').replace(/[^a-z0-9]+/gi,'-').toLowerCase() + '.pptx' });
   }catch(err){
     console.error('PPTX export failed:', err);
     showToast(t('pptxExportError') + (err && err.message ? ' (' + err.message + ')' : ''));
   }
 }
-
 // ---------- AI Q&A side panel ----------
 const aiChat = document.getElementById('aiChat');
 const aiInput = document.getElementById('aiInput');
@@ -5146,7 +4779,6 @@ const aiInputMobile = document.getElementById('aiInputMobile');
 const aiSendBtnMobile = document.getElementById('aiSendBtnMobile');
 const aiEmptyMsg = document.getElementById('aiEmptyMsg');
 let aiHistory = [];
-
 function getActiveAiInput(){
   return isMobile() ? aiInputMobile : aiInput;
 }
@@ -5158,7 +4790,6 @@ function getActiveAiChat(){
 function getActiveSendBtn(){
   return isMobile() ? aiSendBtnMobile : aiSendBtn;
 }
-
 function addAiMessage(role, text, thinking){
   if(aiEmptyMsg) aiEmptyMsg.remove();
   const chat = getActiveAiChat();
@@ -5169,13 +4800,11 @@ function addAiMessage(role, text, thinking){
   chat.scrollTop = chat.scrollHeight;
   return el;
 }
-
 async function sendAiQuestion(){
   const inp = getActiveAiInput();
   const btn = getActiveSendBtn();
   const question = inp.value.trim();
   if(!question) return;
-
   // Auth kontrolü
   if(!window.currentUser){
     showAuthModal(() => sendAiQuestion());
@@ -5184,7 +4813,6 @@ async function sendAiQuestion(){
   inp.value = '';
   if(btn) btn.disabled = true;
   addAiMessage('user', question);
-
   // 🕵️ GİZLİ EASTER EGG — Mehmet Emin Ayvaz
   const qLow = question.toLowerCase();
   const hasMEA = qLow.includes('mehmet') || qLow.includes('emin') || qLow.includes('ayvaz');
@@ -5217,9 +4845,7 @@ kendini imha edecek.</span></div>`;
     setTimeout(()=>{ thinkingEl.style.transition='opacity .5s'; thinkingEl.style.opacity='0'; setTimeout(()=>thinkingEl.remove(),500); }, 5000);
     return;
   }
-
   const thinkingEl = addAiMessage('ai', t('aiThinking'), true);
-
   try{
     let aiResponse;
     try{
@@ -5232,7 +4858,6 @@ kendini imha edecek.</span></div>`;
           uid: window.currentUser?.uid || '',
           sig: getRequestSignature(),
           system: `You are Thinkle, a helpful AI assistant.
-
 ABSOLUTE RULE — LANGUAGE:
 - Detect what language the user wrote in
 - Respond ONLY in that exact language
@@ -5242,7 +4867,6 @@ ABSOLUTE RULE — LANGUAGE:
 - Turkish special chars are mandatory: ş ğ ü ö ı İ ç Ç Ğ Ü Ö Ş
 - Correct Turkish: "öğrenci, şekil, güzel, çalışma"
 - Wrong: "ogrenci, sekil, guzel, calisma" or mixing Spanish/English words
-
 You can help with any topic: questions, math, science, coding, writing, history, general chat.
 If asked who you are: say "Ben Thinkle AI'yım" (Turkish) or "I am Thinkle AI" (English).
 Never mention underlying model names.`,
@@ -5257,13 +4881,10 @@ Never mention underlying model names.`,
       if(btn) btn.disabled = false;
       return;
     }
-
     if(!aiResponse.ok) throw new Error('API error: ' + aiResponse.status);
-
     const data = await aiResponse.json();
     const textBlock = data.content.find(b => b.type === 'text');
     const answer = textBlock ? textBlock.text : t('aiError');
-
     thinkingEl.classList.remove('thinking');
     thinkingEl.textContent = answer;
     aiHistory.push({ role: 'user', content: question });
@@ -5278,7 +4899,6 @@ Never mention underlying model names.`,
     getActiveAiChat().scrollTop = getActiveAiChat().scrollHeight;
   }
 }
-
 // PC send button + Enter
 if(aiSendBtn){
   aiSendBtn.addEventListener('click', sendAiQuestion);
@@ -5289,7 +4909,6 @@ if(aiInput){
     if(e.key === 'Enter' && !e.shiftKey){ e.preventDefault(); sendAiQuestion(); }
   });
 }
-
 // Mobil send button + Enter
 if(aiSendBtnMobile){
   aiSendBtnMobile.addEventListener('click', sendAiQuestion);
@@ -5306,7 +4925,6 @@ function startLoadingAnimation(){
   const canvas = document.getElementById('loadingCanvas');
   const particles = document.getElementById('loadingParticles');
   if(!canvas) return;
-
   // Loading güneş göz takibi
   const lgPL = document.getElementById('lgPupilL');
   const lgPR = document.getElementById('lgPupilR');
@@ -5330,12 +4948,10 @@ function startLoadingAnimation(){
     stopLoadingAnimation = origStop;
     origStop();
   };
-
   // Canvas yıldız alanı
   const ctx = canvas.getContext('2d');
   canvas.width = window.innerWidth;
   canvas.height = window.innerHeight;
-
   // Yıldızlar
   const stars = Array.from({length: LOW_PERF ? 60 : 140}, ()=>({
     x: Math.random()*canvas.width, y: Math.random()*canvas.height,
@@ -5343,7 +4959,6 @@ function startLoadingAnimation(){
     da: (Math.random()*.02+.004)*(Math.random()<.5?1:-1),
     vx:(Math.random()-.5)*.2, vy:(Math.random()-.5)*.2,
   }));
-
   // Yüzen büyük parçacıklar
   if(particles){
     particles.innerHTML='';
@@ -5368,7 +4983,6 @@ function startLoadingAnimation(){
       particles.appendChild(p);
     }
   }
-
   let t=0;
   function drawLoading(){
     if(!document.getElementById('loadingScreen') || 
@@ -5377,14 +4991,12 @@ function startLoadingAnimation(){
     }
     canvas.width=window.innerWidth; canvas.height=window.innerHeight;
     ctx.clearRect(0,0,canvas.width,canvas.height);
-
     // Derin uzay arka plan gradyanı
     const bg=ctx.createRadialGradient(canvas.width/2,canvas.height/2,0,canvas.width/2,canvas.height/2,Math.max(canvas.width,canvas.height)*.7);
     bg.addColorStop(0,'rgba(30,10,70,.25)');
     bg.addColorStop(.5,'rgba(10,5,40,.15)');
     bg.addColorStop(1,'rgba(0,0,0,0)');
     ctx.fillStyle=bg; ctx.fillRect(0,0,canvas.width,canvas.height);
-
     // Yıldızlar
     stars.forEach(s=>{
       s.a+=s.da; if(s.a>1||s.a<0)s.da*=-1;
@@ -5394,7 +5006,6 @@ function startLoadingAnimation(){
       ctx.beginPath(); ctx.arc(s.x,s.y,s.r,0,Math.PI*2);
       ctx.fillStyle=`rgba(220,200,255,${s.a*.8})`; ctx.fill();
     });
-
     // Spiral galaksi izleri
     t+=.003;
     ctx.save(); ctx.translate(canvas.width/2,canvas.height/2);
@@ -5415,13 +5026,10 @@ function startLoadingAnimation(){
   }
   drawLoading();
 }
-
 function stopLoadingAnimation(){
   cancelAnimationFrame(loadingRaf);
   loadingRaf=null;
 }
-
-
 // Footer accordion
 document.querySelectorAll('.footer-acc-btn').forEach(btn => {
   btn.addEventListener('click', e => {
@@ -5442,24 +5050,20 @@ document.querySelectorAll('.footer-acc-trigger').forEach(a => {
     }
   });
 });
-
 // Dil sınıfını body'e ekle
 function updateLangClass(){
   document.body.classList.toggle('lang-tr', currentLang==='tr');
   document.body.classList.toggle('lang-en', currentLang==='en');
 }
 updateLangClass();
-
 // Kullanım limitlerini göster
 async function updateLimitBadges(){
   const FOUNDER_UID = 'l8Tih1awnjP7fRXnUsFVVAuXEZu2';
   const isFounder = window.currentUser?.uid === FOUNDER_UID;
-
   const deckBadge = document.getElementById('deckLimitBadge');
   const deckText  = document.getElementById('deckLimitText');
   const chatBadge = document.getElementById('chatLimitBadge');
   const chatText  = document.getElementById('chatLimitText');
-
   // Kurucu — büyük ∞ / ∞ göster, açıklama metni gizlenir
   if(isFounder){
     if(deckBadge && deckText){
@@ -5482,7 +5086,6 @@ async function updateLimitBadges(){
     }
     return;
   }
-
   try{
     const r = await fetch('https://thinkle-proxy-518x.onrender.com/api/limit');
     if(!r.ok) return;
@@ -5510,7 +5113,6 @@ async function updateLimitBadges(){
   }catch(e){}
 }
 setTimeout(updateLimitBadges, 1500);
-
 const siteFooter = document.getElementById('siteFooter');
 let footerOpened = false;
 function updateFooter(){
@@ -5558,7 +5160,6 @@ setTimeout(updateFooter, 600);
     if(e.touches[0]) trackMouse(e.touches[0]);
   }, {passive:true});
 })();
-
 </script>
 </body>
 </html>
