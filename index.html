@@ -2991,36 +2991,45 @@ function showAuthModal(onSuccess){
   document.head.appendChild(style);
   document.body.appendChild(modal);
 
-  document.getElementById('authGoogleBtn').onclick = async () => {
-    if(window.fbSignIn){
-      await window.fbSignIn();
-      if(window.currentUser){
-        modal.remove(); style.remove();
-        if(onSuccess) onSuccess();
-      }
-    }
-  };
-  document.getElementById('authCancelBtn').onclick = () => { modal.remove(); style.remove(); };
-  
-  function handleGuest(e){
-    if(e) e.preventDefault();
-    modal.remove(); style.remove();
-    // Anonim oturum aç — sorunsuz ziyaretçi girişi
-    if(window.fbGuestSignIn){
-      window.fbGuestSignIn().then(user => {
-        if(user && onSuccess) onSuccess();
-        else if(onSuccess) onSuccess();
-      });
-    } else {
-      setTimeout(()=>{ if(onSuccess) onSuccess(); }, 50);
-    }
+  // Buton bağlayıcı — mobil touch + desktop click
+  function tap(el, fn){
+    if(!el) return;
+    let busy = false;
+    el.addEventListener('touchend', (e) => {
+      e.preventDefault();
+      if(busy) return; busy = true;
+      fn(); setTimeout(()=>{ busy = false; }, 800);
+    }, {passive:false});
+    el.addEventListener('click', () => {
+      if(busy) return; busy = true;
+      fn(); setTimeout(()=>{ busy = false; }, 800);
+    });
   }
-  const guestBtn = document.getElementById('authGuestBtn');
-  guestBtn.addEventListener('touchend', handleGuest, {passive:false});
-  guestBtn.addEventListener('click', (e)=>{ 
-    // touchend zaten tetiklendiyse click'i yoksay
-    if(e.detail === 0) return; // klavye ile basış
-    handleGuest(e); 
+
+  function closeModal(){ modal.remove(); style.remove(); }
+
+  tap(document.getElementById('authCancelBtn'), closeModal);
+
+  tap(document.getElementById('authGoogleBtn'), async () => {
+    if(window.fbSignIn) await window.fbSignIn();
+    // Redirect modunda sayfa zaten yenilenir — popup modunda auth state güncellenir
+    if(window.currentUser){
+      closeModal();
+      if(onSuccess) onSuccess();
+    }
+  });
+
+  tap(document.getElementById('authGuestBtn'), async () => {
+    const btn = document.getElementById('authGuestBtn');
+    if(btn){ btn.textContent = '⏳'; btn.disabled = true; }
+    if(window.fbGuestSignIn){
+      const user = await window.fbGuestSignIn();
+      closeModal();
+      if(onSuccess) onSuccess();
+    } else {
+      closeModal();
+      if(onSuccess) onSuccess();
+    }
   });
 }
 
