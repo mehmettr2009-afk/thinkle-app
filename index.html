@@ -2937,60 +2937,54 @@ function showAuthModal(onSuccess){
   const existing = document.getElementById('authModal');
   if(existing) existing.remove();
 
-  // onSuccess'i global'e al — onclick attribute'dan erişmek için
-  window._authSuccess = onSuccess;
+  const modal = document.createElement('div');
+  modal.id = 'authModal';
+  modal.style.cssText = 'position:fixed;inset:0;z-index:99000;background:rgba(3,2,15,.88);backdrop-filter:blur(12px);display:flex;align-items:center;justify-content:center;padding:20px;box-sizing:border-box;';
 
-  const overlay = document.createElement('div');
-  overlay.id = 'authModal';
-  overlay.style.cssText = 'position:fixed;inset:0;z-index:99000;background:rgba(3,2,15,.9);display:flex;align-items:center;justify-content:center;padding:20px;box-sizing:border-box;';
-  overlay.innerHTML = `
+  const isTr = currentLang === 'tr';
+  modal.innerHTML = `
     <div style="background:rgba(14,10,36,.97);border:1px solid rgba(180,107,255,.3);border-radius:24px;padding:36px 28px;max-width:360px;width:100%;text-align:center;">
       <div style="width:52px;height:52px;border-radius:14px;background:linear-gradient(135deg,#b46bff,#ff6ec7);margin:0 auto 14px;display:flex;align-items:center;justify-content:center;">
         <div style="width:50%;height:50%;border-radius:50%;background:#080410"></div>
       </div>
       <h2 style="font-family:'Space Mono',monospace;font-size:1.1rem;margin:0 0 6px;color:#fff">Thinkle</h2>
-      <p style="color:rgba(180,160,255,.8);font-size:.85rem;margin:0 0 22px">
-        ${currentLang==='tr' ? 'Devam etmek için giriş yap' : 'Sign in to continue'}
-      </p>
-
-      <button onclick="window._doGoogleSignIn()" style="width:100%;padding:14px;border-radius:12px;border:1px solid rgba(255,255,255,.2);background:rgba(255,255,255,.08);color:#fff;font-size:.9rem;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:10px;touch-action:manipulation;font-family:'Space Grotesk',sans-serif;">
+      <p style="color:rgba(180,160,255,.8);font-size:.85rem;margin:0 0 22px">${isTr?'Devam etmek için giriş yap':'Sign in to continue'}</p>
+      <button id="authGoogleBtn" style="width:100%;padding:14px;border-radius:12px;border:1px solid rgba(255,255,255,.15);background:rgba(255,255,255,.08);color:#fff;font-size:.9rem;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:10px;font-family:'Space Grotesk',sans-serif;touch-action:manipulation;">
         <svg width="18" height="18" viewBox="0 0 48 48"><path fill="#EA4335" d="M24 9.5c3.5 0 6.6 1.2 9.1 3.2l6.8-6.8C35.8 2.2 30.2 0 24 0 14.6 0 6.6 5.4 2.7 13.3l7.9 6.1C12.4 13.1 17.7 9.5 24 9.5z"/><path fill="#4285F4" d="M46.1 24.5c0-1.6-.1-3.1-.4-4.5H24v8.5h12.4c-.5 2.8-2.1 5.1-4.4 6.7l6.9 5.4c4-3.7 6.2-9.2 6.2-16.1z"/><path fill="#FBBC05" d="M10.6 28.6A14.9 14.9 0 0 1 9.5 24c0-1.6.3-3.1.7-4.6l-7.9-6.1A23.9 23.9 0 0 0 0 24c0 3.9.9 7.5 2.7 10.7l7.9-6.1z"/><path fill="#34A853" d="M24 48c6.2 0 11.4-2 15.2-5.5l-6.9-5.4c-2 1.4-4.6 2.2-8.3 2.2-6.3 0-11.6-3.6-13.4-9.1l-7.9 6.1C6.6 42.6 14.6 48 24 48z"/></svg>
-        ${currentLang==='tr' ? 'Google ile Giriş Yap' : 'Sign in with Google'}
+        ${isTr?'Google ile Giriş Yap':'Sign in with Google'}
       </button>
-
-      <div style="margin-top:10px;padding-top:12px;border-top:1px solid rgba(255,255,255,.08)">
-        <button onclick="window._doGuestSignIn()" style="width:100%;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.1);border-radius:10px;color:rgba(180,160,255,.7);font-size:.82rem;cursor:pointer;padding:12px 16px;touch-action:manipulation;font-family:'Space Grotesk',sans-serif;">
-          👤 ${currentLang==='tr' ? 'Ziyaretçi olarak devam et' : 'Continue as guest'}
+      <div style="margin-top:10px;padding-top:12px;border-top:1px solid rgba(255,255,255,.07)">
+        <button id="authGuestBtn" style="width:100%;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.1);border-radius:10px;color:rgba(180,160,255,.7);font-size:.82rem;cursor:pointer;padding:12px 16px;touch-action:manipulation;font-family:'Space Grotesk',sans-serif;">
+          👤 ${isTr?'Ziyaretçi olarak devam et':'Continue as guest'}
         </button>
       </div>
-      <button onclick="window._closeAuthModal()" style="margin-top:10px;background:none;border:none;color:rgba(180,160,255,.4);font-size:.78rem;cursor:pointer;padding:8px;touch-action:manipulation;width:100%;">
-        ${currentLang==='tr' ? 'Vazgeç' : 'Cancel'}
+      <button id="authCancelBtn" style="margin-top:10px;background:none;border:none;color:rgba(180,160,255,.4);font-size:.78rem;cursor:pointer;padding:8px;touch-action:manipulation;width:100%;">
+        ${isTr?'Vazgeç':'Cancel'}
       </button>
-    </div>
-  `;
-  document.body.appendChild(overlay);
+    </div>`;
 
-  window._closeAuthModal = () => {
-    document.getElementById('authModal')?.remove();
-  };
+  document.body.appendChild(modal);
 
-  window._doGoogleSignIn = async () => {
+  function close(){ modal.remove(); }
+
+  document.getElementById('authCancelBtn').onclick = close;
+  modal.onclick = (e) => { if(e.target === modal) close(); };
+
+  document.getElementById('authGoogleBtn').onclick = async () => {
     if(window.fbSignIn) await window.fbSignIn();
-    window._closeAuthModal();
-    if(window.currentUser && window._authSuccess) window._authSuccess();
+    if(window.currentUser){ close(); if(onSuccess) onSuccess(); }
   };
 
-  window._doGuestSignIn = async () => {
-    window._closeAuthModal();
+  document.getElementById('authGuestBtn').onclick = async () => {
+    const btn = document.getElementById('authGuestBtn');
+    if(btn){ btn.textContent = '⏳'; btn.disabled = true; }
     if(window.fbGuestSignIn) await window.fbGuestSignIn();
-    if(window._authSuccess) window._authSuccess();
+    close();
+    if(onSuccess) onSuccess();
   };
-
-  // Overlay'a tıklayınca kapat
-  overlay.onclick = (e) => { if(e.target === overlay) window._closeAuthModal(); };
 }
 
-// Auth gerekli mi kontrol et
+
 function requireAuth(callback){
   if(window.currentUser){ callback(); return; }
   showAuthModal(callback);
