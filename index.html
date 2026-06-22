@@ -249,8 +249,8 @@
     document.dispatchEvent(new CustomEvent('authChanged', { detail: user }));
   });
 
-    // Auth yüklenince duyuru dinlemeye başla (ziyaretçi dahil herkes)
-    if(!window._annListenerStarted){
+  // Auth yüklenince duyuru dinlemeye başla (ziyaretçi dahil herkes)
+  if(!window._annListenerStarted){
       window._annListenerStarted = true;
       onSnapshot(doc(db, 'config', 'announcement'), (snap) => {
         if(!snap.exists()) return;
@@ -263,7 +263,6 @@
         }
       }, ()=>{});
     }
-  });
 
   // Sayfa ziyaretini kaydet
   window.fbLogUsage('visits');
