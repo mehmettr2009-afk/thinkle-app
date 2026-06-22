@@ -3021,7 +3021,7 @@ document.addEventListener('authChanged', e => {  const user = e.detail;
           <div style="flex:1;min-width:0">
             <div style="font-size:.75rem;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:flex;align-items:center;gap:6px">
               <span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${isFounder ? '👑 ' : ''}${user.displayName||user.email||'Ziyaretçi'}</span>
-              <span id="galaxyBadge" style="display:none;flex-shrink:0;font-family:'Orbitron',sans-serif;font-size:.58rem;font-weight:900;letter-spacing:.06em;padding:1px 6px;border-radius:5px;background:linear-gradient(135deg,#8a5cff,#5c8aff);color:#fff;box-shadow:0 0 8px rgba(140,110,255,.5)">GALAXY</span>
+              <span id="galaxyBadge" style="display:none;flex-shrink:0;font-family:'Orbitron',sans-serif;font-size:.55rem;font-weight:900;letter-spacing:.1em;padding:2px 8px;border-radius:6px;background:linear-gradient(135deg,#6d28d9,#2563eb);color:#e0d7ff;box-shadow:0 0 10px rgba(109,40,217,.5),0 0 20px rgba(37,99,235,.3)">GALAXY</span>
             </div>
             <div style="font-size:.62rem;color:${isFounder?'#ffd700':'var(--ink-soft)'}">
               ${isFounder ? '⚡ Kurucu' : '✓ '+(currentLang==='tr'?'Giriş yapıldı':'Signed in')}
@@ -3492,7 +3492,7 @@ function showFounderWelcome(){
         <input id="fwBanReason" class="fw-input" placeholder="Ban sebebi (opsiyonel)" style="margin-bottom:10px">
         <div style="display:flex;gap:8px;flex-wrap:wrap">
           <button id="fwBanBtn" class="fw-btn fw-btn-red">🚫 Banla</button>
-          <button id="fwGrantBtn" class="fw-btn fw-btn-gold">⚡ Sınırsız Erişim Ver</button>
+          <button id="fwGrantBtn" class="fw-btn" style="background:linear-gradient(135deg,rgba(138,92,255,.25),rgba(92,138,255,.25));color:#a78bfa;border:1px solid rgba(138,92,255,.4)">🌌 GALAXY Ver</button>
         </div>
       </div>
 
@@ -3506,10 +3506,6 @@ function showFounderWelcome(){
         ${galaxyHtml}
       </div>
 
-      <div class="fw-card">
-        <div style="font-size:.7rem;color:rgba(255,215,0,.7);font-family:'Space Mono',monospace;margin-bottom:10px">⚡ MANUEL SINIRSIZ ERİŞİM (UID ile eklenen)</div>
-        ${unlimitedHtml}
-      </div>
     `;
 
     document.getElementById('fwBanBtn').onclick = async () => {
@@ -3523,9 +3519,14 @@ function showFounderWelcome(){
     document.getElementById('fwGrantBtn').onclick = async () => {
       const uid = document.getElementById('fwTargetUid').value.trim();
       if(!uid) return;
+      const btn = document.getElementById('fwGrantBtn');
+      btn.disabled = true; btn.textContent = '⏳ Veriliyor...';
+      // Server'da sınırsız erişim
       await adminFetch('/api/admin/grant-unlimited', { targetUid: uid });
-      cachedStats = null;
-      renderUsers();
+      // Firestore'da GALAXY rozeti
+      if(window.fbApproveGalaxy) await window.fbApproveGalaxy(uid);
+      btn.textContent = '✓ Verildi'; btn.style.color = '#4dff96';
+      setTimeout(()=>{ btn.disabled=false; btn.textContent='🌌 GALAXY Ver'; btn.style.color=''; cachedStats=null; renderUsers(); }, 1500);
     };
     // Banı kaldır — kişi tekrar normal limitlerle kullanmaya devam edebilir
     contentEl.querySelectorAll('[data-unban]').forEach(btn => {
