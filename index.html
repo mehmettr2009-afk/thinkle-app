@@ -20,7 +20,7 @@
   import { getAuth, GoogleAuthProvider, signInWithPopup, signInWithRedirect,
            signInAnonymously, getRedirectResult, signOut, onAuthStateChanged }
     from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js';
-  import { getFirestore, doc, setDoc, getDoc, updateDoc, increment, collection, getDocs, orderBy, query, limit, onSnapshot, deleteDoc }
+  import { getFirestore, doc, setDoc, getDoc, updateDoc, increment, collection, getDocs, orderBy, query, limit, onSnapshot, deleteDoc, where }
     from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
 
   const firebaseConfig = {
@@ -102,6 +102,66 @@
         await updateDoc(userRef, { lastSeen: today });
       }
     } catch(e){}
+  };
+
+  // ============ USERNAME SİSTEMİ ============
+  window.fbGetUsername = async (uid) => {
+    try {
+      const s = await getDoc(doc(db, 'users', uid));
+      return s.exists() ? (s.data().username || null) : null;
+    } catch(e){ return null; }
+  };
+
+  window.fbSetUsername = async (uid, username) => {
+    try {
+      // Kullanıcı adı kuralları: 3-20 karakter, sadece harf/rakam/alt çizgi
+      const clean = username.trim().toLowerCase().replace(/[^a-z0-9_]/g,'');
+      if(clean.length < 3 || clean.length > 20) return { ok:false, reason:'length' };
+      // Başkası kullanıyor mu kontrol et
+      const q = query(collection(db, 'users'), where('username', '==', clean));
+      const snap = await getDocs(q);
+      if(!snap.empty && snap.docs[0].id !== uid) return { ok:false, reason:'taken' };
+      await setDoc(doc(db, 'users', uid), { username: clean }, { merge:true });
+      return { ok:true, username: clean };
+    } catch(e){ return { ok:false, reason:'error' }; }
+  };
+
+  window.fbGetUserProfile = async (uid) => {
+    try {
+      const s = await getDoc(doc(db, 'users', uid));
+      return s.exists() ? s.data() : null;
+    } catch(e){ return null; }
+  };
+
+  // ============ ŞÜPHELİ KONUŞMA RAPORU ============
+  window.fbReportSuspiciousChat = async (uid, username, messages, reason) => {
+    try {
+      const ref = doc(collection(db, 'suspiciousChats'));
+      await setDoc(ref, {
+        uid: uid || '(anonim)',
+        username: username || '(isimsiz)',
+        reason: reason || 'belirtilmedi',
+        messages: messages.slice(-10),
+        reportedAt: new Date().toISOString(),
+        reviewed: false
+      });
+    } catch(e){}
+  };
+
+  window.fbGetSuspiciousChats = async () => {
+    try {
+      const q = query(
+        collection(db, 'suspiciousChats'),
+        orderBy('reportedAt', 'desc'),
+        limit(20)
+      );
+      const snap = await getDocs(q);
+      return snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    } catch(e){ return []; }
+  };
+
+  window.fbDismissSuspiciousChat = async (id) => {
+    try { await deleteDoc(doc(db, 'suspiciousChats', id)); } catch(e){}
   };
 
   // İstatistikleri getir (son 7 gün)
@@ -242,14 +302,22 @@
 
     if(user && !user.isAnonymous){
       window.fbLogUser(user.uid).catch(()=>{});
+
+      // Username yoksa modal göster
+      window.fbGetUsername(user.uid).then(username => {
+        window.currentUsername = username;
+        if(!username && typeof showUsernameModal === 'function'){
+          setTimeout(() => showUsernameModal(user), 800);
+        }
+      });
+
       // Galaxy durumunu gerçek zamanlı izle — hem rozet hem sidebar UI güncelle
       _galaxyUnsubscribe = onSnapshot(doc(db, 'users', user.uid), (snap) => {
         const isGalaxy = snap.exists() ? !!snap.data().galaxy : false;
+        window.currentUsername = snap.data()?.username || window.currentUsername || null;
         const badge = document.getElementById('galaxyBadge');
         if(badge) badge.style.display = isGalaxy ? 'inline-block' : 'none';
-        // Sidebar Galaxy butonunu da güncelle (üyelik kaldırılınca tekrar başvur butonu çıksın)
         if(typeof initGalaxyUI === 'function') initGalaxyUI(user);
-        // Mobil menüyü de güncelle
         document.dispatchEvent(new CustomEvent('galaxyStatusChanged', { detail: { uid: user.uid, isMember: isGalaxy } }));
         if(typeof updateLimitBadges === 'function') updateLimitBadges();
       }, ()=>{});
@@ -2553,8 +2621,8 @@
                 <span class="acc-arrow">▾</span>
               </button>
               <div class="footer-acc-body">
-                <p class="tr-text">PDF, Word, Excel, CSV, metin dosyası veya fotoğraf (.jpg/.png) yükle. Thinkle yapay zeka ile içeriği analiz eder, anlamlı slaytlara böler, her konuyu açıklar. Quiz'e geçmeden önce Kolay/Orta/Zor zorluk seviyesi seçebilirsin. İstersen 🃏 Flashcard moduna geçip kartları çevirerek tekrar edebilirsin. Sonucu .pptx olarak indirebilir, her yerde kullanabilirsin. Hesap açmadan "Ziyaretçi" olarak da kullanabilirsin.</p>
-                <p class="en-text">Upload a PDF, Word, Excel, CSV, text file, or photo (.jpg/.png). Thinkle uses AI to analyze the content, break it into slides, and explain each topic. Before the quiz, you can choose an Easy/Medium/Hard difficulty level. You can also switch to 🃏 Flashcard mode to review by flipping cards. You can download the result as .pptx and use it anywhere. You can also use Thinkle as a "Guest" without creating an account.</p>
+                <p class="tr-text">PDF, Word, Excel, CSV, metin dosyası veya fotoğraf (.jpg/.png) yükle. Thinkle yapay zeka ile içeriği analiz eder, anlamlı slaytlara böler, her konuyu açıklar. Quiz'e geçmeden önce Kolay/Orta/Zor zorluk seviyesi seçebilirsin. İstersen 🃏 Flashcard moduna geçip kartları çevirerek tekrar edebilirsin. Sonucu .pptx olarak indirebilir, her yerde kullanabilirsin. Hesap açmadan "Ziyaretçi" olarak da kullanabilirsin. Google ile giriş yapan kullanıcılar bir kullanıcı adı (@kullanıcı_adı) seçer ve Sor &amp; Öğren bölümünde Thinkle yapay zekasıyla kişisel sohbet edebilir.</p>
+                <p class="en-text">Upload a PDF, Word, Excel, CSV, text file, or photo (.jpg/.png). Thinkle uses AI to analyze the content, break it into slides, and explain each topic. Before the quiz, you can choose an Easy/Medium/Hard difficulty level. You can also switch to 🃏 Flashcard mode to review by flipping cards. You can download the result as .pptx and use it anywhere. You can also use Thinkle as a "Guest" without creating an account. Users who sign in with Google choose a username (@username) and can chat personally with Thinkle AI in the Ask &amp; Learn section.</p>
               </div>
             </div>
 
@@ -2564,8 +2632,8 @@
                 <span class="acc-arrow">▾</span>
               </button>
               <div class="footer-acc-body">
-                <p class="tr-text">Yüklediğin dosyalar (fotoğraflar dahil) yalnızca içerik üretimi için anlık olarak işlenir, sunucularımızda saklanmaz ve üçüncü taraflarla paylaşılmaz. Fotoğraf yüklediğinde, görseldeki yazı yapay zeka servisine (OpenRouter/Google Gemini) işlenmek üzere gönderilir ve işlem sonrası saklanmaz. Tüm veri aktarımları HTTPS şifreli bağlantı üzerinden gerçekleşir. Kullanıcı hesap bilgileri (giriş tarihi, kullanım istatistikleri) Google Firebase Firestore'da güvenli şekilde saklanır. Kötüye kullanımı (spam, sınırları aşan otomatik istekler) önlemek amacıyla, oluşturulan içeriklerin başlıkları ve anonim kullanım istatistikleri (IP, zaman damgası) güvenlik amacıyla geçici olarak loglanabilir; bu kayıtlar yalnızca kurucu tarafından erişilebilir ve düzenli olarak temizlenir.</p>
-                <p class="en-text">Your uploaded files (including photos) are processed only momentarily for content generation, are not stored on our servers, and are not shared with third parties. When you upload a photo, the text in the image is sent to an AI service (OpenRouter/Google Gemini) for processing and is not retained afterward. All data transfers occur over HTTPS encrypted connections. User account information (login date, usage statistics) is securely stored in Google Firebase Firestore. To prevent abuse (spam, requests exceeding limits), titles of generated content and anonymous usage statistics (IP, timestamp) may be temporarily logged for security purposes; these logs are accessible only to the founder and are periodically cleared.</p>
+                <p class="tr-text">Yüklediğin dosyalar (fotoğraflar dahil) yalnızca içerik üretimi için anlık olarak işlenir, sunucularımızda saklanmaz ve üçüncü taraflarla paylaşılmaz. Fotoğraf yüklediğinde, görseldeki yazı yapay zeka servisine işlenmek üzere gönderilir ve işlem sonrası saklanmaz. Tüm veri aktarımları HTTPS şifreli bağlantı üzerinden gerçekleşir. Kullanıcı hesap bilgileri (kullanıcı adı, giriş tarihi, kullanım istatistikleri) Google Firebase Firestore'da güvenli şekilde saklanır. Kötüye kullanımı ve zararlı içerikleri önlemek amacıyla, Sor &amp; Öğren bölümündeki konuşmalar yapay zeka tarafından otomatik olarak analiz edilir; şüpheli içerik tespit edildiğinde ilgili konuşma platform yöneticisine raporlanır. Bu kayıtlar yalnızca kurucu tarafından erişilebilir, inceleme sonrası silinir.</p>
+                <p class="en-text">Your uploaded files (including photos) are processed only momentarily for content generation, are not stored on our servers, and are not shared with third parties. When you upload a photo, the text in the image is sent to an AI service for processing and is not retained afterward. All data transfers occur over HTTPS encrypted connections. User account information (username, login date, usage statistics) is securely stored in Google Firebase Firestore. To prevent abuse and harmful content, conversations in the Ask &amp; Learn section are automatically analyzed by AI; when suspicious content is detected, the relevant conversation is reported to the platform administrator. These records are accessible only to the founder and are deleted after review.</p>
               </div>
             </div>
 
@@ -2575,8 +2643,8 @@
                 <span class="acc-arrow">▾</span>
               </button>
               <div class="footer-acc-body">
-                <p class="tr-text">6698 sayılı KVKK kapsamında: Thinkle sunucu tarafında kişisel veri toplamaz ve depolamaz. Google ile giriş yapılması durumunda yalnızca kullanıcının kendi cihazında çalışma geçmişi başlıkları saklanır. Yüklenen belgeler yalnızca anlık yapay zeka işlemi için kullanılır ve işlem sonunda silinir.</p>
-                <p class="en-text">Under Law No. 6698 (KVKK): Thinkle does not collect or store personal data on its servers. If you sign in with Google, only your study history titles are saved locally on your own device. Uploaded documents are used only for instant AI processing and deleted after the operation.</p>
+                <p class="tr-text">6698 sayılı KVKK kapsamında: Google ile giriş yapan kullanıcıların seçtiği kullanıcı adı, giriş tarihi ve kullanım istatistikleri Google Firebase Firestore'da saklanır. Yüklenen belgeler yalnızca anlık yapay zeka işlemi için kullanılır ve işlem sonunda silinir. Sor &amp; Öğren bölümündeki konuşmalar yalnızca güvenlik amaçlı şüpheli içerik tespiti için analiz edilir; normal konuşmalar kaydedilmez. Kişisel verilerinize erişim, düzeltme veya silme talebinde bulunmak için <a href="mailto:thinklespace@gmail.com" style="color:rgba(110,231,255,.8);text-decoration:none">thinklespace@gmail.com</a> adresine yazabilirsiniz.</p>
+                <p class="en-text">Under Law No. 6698 (KVKK): The username chosen by Google sign-in users, login date and usage statistics are stored in Google Firebase Firestore. Uploaded documents are used only for instant AI processing and deleted after the operation. Conversations in the Ask &amp; Learn section are analyzed only for suspicious content detection for security purposes; normal conversations are not recorded. To request access, correction or deletion of your personal data, please write to <a href="mailto:thinklespace@gmail.com" style="color:rgba(110,231,255,.8);text-decoration:none">thinklespace@gmail.com</a>.</p>
               </div>
             </div>
 
@@ -2586,8 +2654,8 @@
                 <span class="acc-arrow">▾</span>
               </button>
               <div class="footer-acc-body">
-                <p class="tr-text">Thinkle, büyük dil modelleri (LLM) kullanarak çalışır. Desteklenen formatlar: .pdf, .docx, .txt, .xlsx, .xls, .csv, .jpg, .jpeg, .png. Görsellerdeki yazılar yapay zeka ile otomatik olarak okunur (OCR). Maksimum dosya boyutu 20 MB. Üretilen slaytlar ve sorular dosyanın içeriğine göre otomatik oluşturulur. Kolay/Orta/Zor zorluk seviyeleri arasında seçim yapabilir, 🃏 Flashcard modu ile kart çevirerek tekrar edebilirsin. Kullanıcı verileri Google Firebase Firestore'da güvenli şekilde saklanır.<br><br><strong style="color:rgba(180,160,255,.9)">Kullanım Limitleri:</strong> Günde maksimum 10 dosya yükleyebilirsiniz. Günde 30 AI chat mesajı hakkınız bulunmaktadır. Limitler gece yarısı sıfırlanır. Bu limitler, hizmetin herkes için adil ve sürdürülebilir kalmasını sağlamak amacıyla uygulanır.</p>
-                <p class="en-text">Thinkle runs on large language models (LLMs). Supported formats: .pdf, .docx, .txt, .xlsx, .xls, .csv, .jpg, .jpeg, .png. Text in images is automatically read using AI (OCR). Maximum file size 20 MB. Generated slides and questions are automatically created based on your file's content. You can choose between Easy/Medium/Hard difficulty levels, and use 🃏 Flashcard mode to review by flipping cards. User data is securely stored in Google Firebase Firestore.<br><br><strong style="color:rgba(180,160,255,.9)">Usage Limits:</strong> You can upload a maximum of 10 files per day. You have 30 AI chat messages per day. Limits reset at midnight. These limits exist to keep the service fair and sustainable for everyone.</p>
+                <p class="tr-text">Thinkle, büyük dil modelleri (LLM) kullanarak çalışır. Desteklenen formatlar: .pdf, .docx, .txt, .xlsx, .xls, .csv, .jpg, .jpeg, .png. Görsellerdeki yazılar yapay zeka ile otomatik olarak okunur (OCR). Maksimum dosya boyutu 20 MB. Üretilen slaytlar ve sorular dosyanın içeriğine göre otomatik oluşturulur. Kolay/Orta/Zor zorluk seviyeleri arasında seçim yapabilir, 🃏 Flashcard modu ile kart çevirerek tekrar edebilirsin. Kullanıcı verileri Google Firebase Firestore'da güvenli şekilde saklanır.<br><br><strong style="color:rgba(180,160,255,.9)">Sor &amp; Öğren:</strong> Thinkle'ın yapay zekasıyla dosya yüklemeden de sohbet edebilirsin. Yapay zeka kullanıcı adını ve Galaxy üyelik durumunu bilerek kişisel bir deneyim sunar. Thinkle AI kendi geliştirdiğimiz bir yapay zekadır — hangi modeli kullandığı hakkında bilgi verilmez.<br><br><strong style="color:rgba(180,160,255,.9)">Kullanıcı Adı:</strong> Google ile giriş yapan kullanıcılar ilk girişte benzersiz bir kullanıcı adı (@kullanıcı_adı) seçer. 3-20 karakter, harf/rakam/alt çizgi kullanılabilir.<br><br><strong style="color:rgba(180,160,255,.9)">Kullanım Limitleri:</strong> Günde maksimum 10 dosya yükleyebilirsiniz. Günde 30 AI chat mesajı hakkınız bulunmaktadır. Limitler gece yarısı sıfırlanır. Bu limitler, hizmetin herkes için adil ve sürdürülebilir kalmasını sağlamak amacıyla uygulanır.</p>
+                <p class="en-text">Thinkle runs on large language models (LLMs). Supported formats: .pdf, .docx, .txt, .xlsx, .xls, .csv, .jpg, .jpeg, .png. Text in images is automatically read using AI (OCR). Maximum file size 20 MB. Generated slides and questions are automatically created based on your file's content. You can choose between Easy/Medium/Hard difficulty levels, and use 🃏 Flashcard mode to review by flipping cards. User data is securely stored in Google Firebase Firestore.<br><br><strong style="color:rgba(180,160,255,.9)">Ask &amp; Learn:</strong> You can chat with Thinkle's AI without uploading a file. The AI knows your username and Galaxy membership status for a personal experience. Thinkle AI is our own developed AI — information about which underlying model it uses is not disclosed.<br><br><strong style="color:rgba(180,160,255,.9)">Username:</strong> Users who sign in with Google choose a unique username (@username) on first login. 3-20 characters, letters/numbers/underscores allowed.<br><br><strong style="color:rgba(180,160,255,.9)">Usage Limits:</strong> You can upload a maximum of 10 files per day. You have 30 AI chat messages per day. Limits reset at midnight. These limits exist to keep the service fair and sustainable for everyone.</p>
               </div>
             </div>
 
@@ -2674,8 +2742,19 @@
                 <span class="acc-arrow">▾</span>
               </button>
               <div class="footer-acc-body">
-                <p class="tr-text">Thinkle'ı Google hesabınla giriş yaparak veya "Ziyaretçi" olarak (hesap oluşturmadan) kullanabilirsin. Ziyaretçi modunda geçmişin kaydedilmez. Adil kullanım kurallarını ihlal eden hesaplar (otomatik bot trafiği, sınırları aşmaya yönelik kötüye kullanım girişimleri) önceden haber verilmeksizin geçici veya kalıcı olarak kısıtlanabilir. Hizmeti kötüye kullanmadığını düşünüyorsan ve hesabın kısıtlandıysa, itiraz için bizimle iletişime geçebilirsin.</p>
-                <p class="en-text">You can use Thinkle by signing in with your Google account or as a "Guest" (without creating an account). In guest mode, your history is not saved. Accounts that violate fair use rules (automated bot traffic, attempts to bypass limits) may be temporarily or permanently restricted without prior notice. If you believe your account was restricted in error, you can contact us to appeal.</p>
+                <p class="tr-text">Thinkle'ı Google hesabınla giriş yaparak veya "Ziyaretçi" olarak (hesap oluşturmadan) kullanabilirsin. Ziyaretçi modunda geçmiş kaydedilmez ve Sor &amp; Öğren özelliği kullanılamaz. Google ile giriş yapan kullanıcılar ilk girişte benzersiz bir <strong style="color:rgba(180,160,255,.9)">kullanıcı adı</strong> seçer — bu isim Thinkle AI tarafından seni tanımak için kullanılır. Adil kullanım kurallarını ihlal eden hesaplar (otomatik bot trafiği, zararlı içerik, sınırları aşmaya yönelik girişimler) önceden haber verilmeksizin geçici veya kalıcı olarak kısıtlanabilir. Hizmeti kötüye kullanmadığını düşünüyorsan ve hesabın kısıtlandıysa, itiraz için bizimle iletişime geçebilirsin.</p>
+                <p class="en-text">You can use Thinkle by signing in with your Google account or as a "Guest" (without creating an account). In guest mode, your history is not saved and the Ask &amp; Learn feature is unavailable. Users who sign in with Google choose a unique <strong style="color:rgba(180,160,255,.9)">username</strong> on first login — this name is used by Thinkle AI to recognize you. Accounts that violate fair use rules (automated bot traffic, harmful content, attempts to bypass limits) may be temporarily or permanently restricted without prior notice. If you believe your account was restricted in error, you can contact us to appeal.</p>
+              </div>
+            </div>
+
+            <div class="footer-acc">
+              <button class="footer-acc-btn">
+                <span>🌌 <span class="tr-text">Galaxy Üyeliği</span><span class="en-text">Galaxy Membership</span></span>
+                <span class="acc-arrow">▾</span>
+              </button>
+              <div class="footer-acc-body">
+                <p class="tr-text">Galaxy, Thinkle'ın özel beta üyelik programıdır. Galaxy üyeleri sınırsız dosya yükleme ve sınırsız AI chat hakkına sahip olur. Üyelik başvurusu hesabındaki "🌌 Galaxy Üyesi Olmak İstiyorum" butonundan yapılır; kurucu tarafından incelenerek onaylanır veya reddedilir. Onaylanan üyeler profillerinde <strong style="font-family:'Orbitron',sans-serif;background:linear-gradient(135deg,#8a5cff,#5c8aff);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text">GALAXY</strong> rozeti kazanır. Üyelik herhangi bir zamanda platorm kuralları çerçevesinde iptal edilebilir.</p>
+                <p class="en-text">Galaxy is Thinkle's exclusive beta membership program. Galaxy members receive unlimited file uploads and unlimited AI chat. Membership applications are made via the "🌌 I Want to Become a Galaxy Member" button in your account; reviewed by the founder and approved or rejected. Approved members earn a <strong style="font-family:'Orbitron',sans-serif;background:linear-gradient(135deg,#8a5cff,#5c8aff);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text">GALAXY</strong> badge on their profile. Membership may be revoked at any time within the framework of platform rules.</p>
               </div>
             </div>
 
@@ -2696,8 +2775,8 @@
 
           <!-- Kullanım koşulları -->
           <div class="footer-terms">
-            <p class="tr-text"><strong>Yasal Özet:</strong> Thinkle eğitim amaçlı bir yapay zeka platformudur. Sunucu tarafında kişisel veri toplamaz (KVKK &amp; GDPR uyumlu). Giriş yapan kullanıcıların geçmişi yalnızca kendi cihazında saklanır. Yüklenen dosyalar işlem sonrası silinir. Telif hakkı sorumluluğu kullanıcıya aittir. Yapay zeka çıktıları bilgi amaçlıdır, kesin doğruluk garantisi verilmez. Hizmet "olduğu gibi" sunulur. 13 yaş altı kullanım yasaktır.</p>
-            <p class="en-text"><strong>Legal Summary:</strong> Thinkle is an AI-powered educational platform. No personal data is stored on servers (KVKK &amp; GDPR compliant). Signed-in users' history is stored only on their own device. Uploaded files are deleted after processing. Copyright responsibility belongs to the user. AI outputs are for informational purposes only, no accuracy guarantee is provided. Service is provided "as is". Use by children under 13 is prohibited.</p>
+            <p class="tr-text"><strong>Yasal Özet:</strong> Thinkle eğitim amaçlı bir yapay zeka platformudur. Google ile giriş yapan kullanıcıların kullanıcı adı ve kullanım istatistikleri Firebase'de saklanır (KVKK &amp; GDPR uyumlu). Yüklenen dosyalar işlem sonrası silinir. Sor &amp; Öğren konuşmaları güvenlik amaçlı analiz edilir; şüpheli içerik yalnızca kurucu tarafından görülebilir. Telif hakkı sorumluluğu kullanıcıya aittir. Yapay zeka çıktıları bilgi amaçlıdır, kesin doğruluk garantisi verilmez. Hizmet "olduğu gibi" sunulur. 13 yaş altı kullanım yasaktır.</p>
+            <p class="en-text"><strong>Legal Summary:</strong> Thinkle is an AI-powered educational platform. Username and usage statistics of Google sign-in users are stored in Firebase (KVKK &amp; GDPR compliant). Uploaded files are deleted after processing. Ask &amp; Learn conversations are analyzed for security purposes; suspicious content is visible only to the founder. Copyright responsibility belongs to the user. AI outputs are for informational purposes only, no accuracy guarantee is provided. Service is provided "as is". Use by children under 13 is prohibited.</p>
           </div>
 
           <!-- Alt: copyright -->
@@ -2912,6 +2991,90 @@ document.body.classList.add('biome-1');
 
 // ============ AUTH SİSTEMİ ============
 let authRequired = false; // true olunca giriş zorunlu
+
+// ============ USERNAME MODAL ============
+function showUsernameModal(user){
+  if(document.getElementById('usernameModal')) return;
+
+  const isTr = currentLang === 'tr';
+  const modal = document.createElement('div');
+  modal.id = 'usernameModal';
+  modal.style.cssText = 'position:fixed;inset:0;z-index:99000;background:rgba(3,2,15,.9);backdrop-filter:blur(14px);display:flex;align-items:center;justify-content:center;padding:20px;box-sizing:border-box;animation:auth-appear .3s ease both';
+
+  modal.innerHTML = `
+    <div style="background:rgba(14,10,36,.97);border:1px solid rgba(110,231,255,.25);border-radius:24px;padding:36px 28px;max-width:380px;width:100%;text-align:center;box-shadow:0 20px 60px rgba(0,0,0,.6);animation:auth-slide .4s cubic-bezier(.16,1,.3,1) both">
+      <div style="font-size:2rem;margin-bottom:10px">✨</div>
+      <h2 style="font-family:'Orbitron',sans-serif;font-size:1.1rem;margin:0 0 8px;background:linear-gradient(135deg,#6ee7ff,#b46bff);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text">
+        ${isTr ? 'Kullanıcı Adı Seç' : 'Choose a Username'}
+      </h2>
+      <p style="color:rgba(180,160,255,.7);font-size:.82rem;margin:0 0 22px;line-height:1.5">
+        ${isTr ? 'Thinkle\'da nasıl görünmek istiyorsun?' : 'How do you want to appear on Thinkle?'}
+      </p>
+      <div style="position:relative;margin-bottom:8px">
+        <span style="position:absolute;left:12px;top:50%;transform:translateY(-50%);color:rgba(180,160,255,.5);font-size:.9rem">@</span>
+        <input id="usernameInput" type="text" maxlength="20"
+          placeholder="${isTr ? 'kullanici_adi' : 'username'}"
+          style="width:100%;padding:12px 12px 12px 28px;border:1px solid rgba(110,231,255,.25);border-radius:12px;background:rgba(255,255,255,.05);color:#fff;font-size:.9rem;font-family:'Space Grotesk',sans-serif;box-sizing:border-box;outline:none"
+        >
+      </div>
+      <div id="usernameHint" style="font-size:.7rem;color:rgba(180,160,255,.5);margin-bottom:18px;min-height:1.2em">
+        ${isTr ? '3-20 karakter · harf, rakam, alt çizgi' : '3-20 chars · letters, numbers, underscore'}
+      </div>
+      <button id="usernameConfirmBtn" style="width:100%;padding:13px;border-radius:12px;border:none;background:linear-gradient(135deg,#6ee7ff,#b46bff);color:#070a18;font-weight:700;font-size:.9rem;cursor:pointer;font-family:'Space Grotesk',sans-serif;touch-action:manipulation">
+        ${isTr ? 'Devam Et →' : 'Continue →'}
+      </button>
+    </div>`;
+
+  document.body.appendChild(modal);
+
+  const input = document.getElementById('usernameInput');
+  const hint  = document.getElementById('usernameHint');
+  const btn   = document.getElementById('usernameConfirmBtn');
+
+  // Önerilen isim — display name'den türet
+  if(user.displayName){
+    const suggested = user.displayName.toLowerCase()
+      .replace(/[^a-z0-9]/g,'_').replace(/__+/g,'_').slice(0,18);
+    input.value = suggested;
+  }
+
+  input.addEventListener('input', () => {
+    const v = input.value.toLowerCase().replace(/[^a-z0-9_]/g,'');
+    input.value = v;
+    if(v.length < 3) hint.textContent = isTr ? `En az 3 karakter (${v.length}/20)` : `Min 3 chars (${v.length}/20)`;
+    else hint.textContent = `@${v} · ${v.length}/20`;
+    hint.style.color = v.length >= 3 ? 'rgba(110,231,255,.6)' : 'rgba(255,110,160,.6)';
+  });
+
+  btn.onclick = async () => {
+    const val = input.value.trim();
+    if(val.length < 3){ input.focus(); return; }
+    btn.disabled = true;
+    btn.textContent = isTr ? 'Kaydediliyor...' : 'Saving...';
+    const result = await window.fbSetUsername(user.uid, val);
+    if(result.ok){
+      window.currentUsername = result.username;
+      modal.remove();
+      // Sidebar'ı güncelle
+      document.dispatchEvent(new CustomEvent('authChanged', { detail: user }));
+    } else {
+      btn.disabled = false;
+      btn.textContent = isTr ? 'Devam Et →' : 'Continue →';
+      if(result.reason === 'taken'){
+        hint.textContent = isTr ? '⚠ Bu kullanıcı adı alınmış' : '⚠ Username taken';
+        hint.style.color = 'rgba(255,110,160,.8)';
+      } else if(result.reason === 'length'){
+        hint.textContent = isTr ? '⚠ 3-20 karakter olmalı' : '⚠ Must be 3-20 chars';
+        hint.style.color = 'rgba(255,110,160,.8)';
+      } else {
+        hint.textContent = isTr ? '⚠ Hata, tekrar dene' : '⚠ Error, try again';
+        hint.style.color = 'rgba(255,110,160,.8)';
+      }
+    }
+  };
+  input.addEventListener('keydown', e => { if(e.key === 'Enter') btn.click(); });
+  setTimeout(() => input.focus(), 300);
+}
 
 function showAuthModal(onSuccess){
   const existing = document.getElementById('authModal');
@@ -3391,6 +3554,16 @@ function showFounderWelcome(){
     }
     const s = cachedStats;
 
+    // Şüpheli AI konuşmalarını Firestore'dan çek
+    let suspiciousChats = [];
+    try{
+      const scRef = window._fbCollection ? window._fbCollection : null;
+      // Firestore'dan direkt çek
+      if(window.fbGetSuspiciousChats){
+        suspiciousChats = await window.fbGetSuspiciousChats();
+      }
+    }catch(e){}
+
     const reportsHtml = s.abuseReports?.length
       ? s.abuseReports.map(r => `
         <div class="fw-list-item" style="flex-direction:column;align-items:flex-start;gap:4px">
@@ -3411,16 +3584,75 @@ function showFounderWelcome(){
         </div>`).join('')
       : `<div class="fw-empty">Henüz deck oluşturulmadı</div>`;
 
+    const chatsHtml = suspiciousChats.length
+      ? suspiciousChats.map(c => `
+        <div class="fw-card" style="border-color:rgba(255,100,110,.2);margin-bottom:8px">
+          <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:6px">
+            <div>
+              <span style="font-size:.78rem;color:#ff6e78;font-weight:600">⚠ ${(c.username||'(anonim)').replace(/</g,'&lt;')}</span>
+              <span class="fw-badge" style="background:rgba(255,100,110,.2);color:#ff6e78;margin-left:6px">${(c.reason||'belirtilmedi').replace(/</g,'&lt;')}</span>
+            </div>
+            <span style="font-size:.6rem;color:rgba(255,255,255,.3);white-space:nowrap;flex-shrink:0">${new Date(c.reportedAt).toLocaleString('tr-TR')}</span>
+          </div>
+          <div style="font-size:.62rem;color:rgba(255,255,255,.3);margin-bottom:8px;font-family:'Space Mono',monospace">UID: ${(c.uid||'').slice(0,20)}…</div>
+          ${(c.messages||[]).slice(-4).map(m => `
+            <div style="margin-bottom:4px;padding:5px 8px;border-radius:7px;background:${m.role==='user'?'rgba(255,255,255,.04)':'rgba(110,231,255,.04)'}">
+              <span style="font-size:.6rem;color:${m.role==='user'?'rgba(255,200,100,.6)':'rgba(110,231,255,.6)'};font-family:'Space Mono',monospace">${m.role==='user'?'👤':'🤖'} </span>
+              <span style="font-size:.68rem;color:rgba(255,255,255,.7)">${(m.content||'').slice(0,150).replace(/</g,'&lt;')}${(m.content||'').length>150?'…':''}</span>
+            </div>`).join('')}
+          <div style="display:flex;gap:8px;margin-top:10px">
+            <button class="fw-btn fw-btn-red" data-ban-uid="${(c.uid||'').replace(/"/g,'')}" data-ban-reason="${(c.reason||'şüpheli AI konuşması').replace(/"/g,'')}">
+              🚫 Banla
+            </button>
+            <button class="fw-btn" style="background:rgba(255,255,255,.05);color:rgba(255,255,255,.4)" data-dismiss-id="${(c.id||'').replace(/"/g,'')}">
+              ✓ Geç
+            </button>
+          </div>
+        </div>`).join('')
+      : `<div class="fw-empty">Şüpheli AI konuşması yok 👍</div>`;
+
     contentEl.innerHTML = `
       <div class="fw-card">
-        <div style="font-size:.7rem;color:rgba(255,100,110,.7);font-family:'Space Mono',monospace;margin-bottom:10px">🚨 ŞÜPHELİ KULLANIM RAPORLARI</div>
+        <div style="font-size:.7rem;color:rgba(255,100,110,.7);font-family:'Space Mono',monospace;margin-bottom:10px">🚨 ŞÜPHELİ KULLANIM RAPORLARI (IP/Rate)</div>
         ${reportsHtml}
+      </div>
+      <div class="fw-card" style="border-color:rgba(255,100,110,.15)">
+        <div style="font-size:.7rem;color:rgba(255,100,110,.7);font-family:'Space Mono',monospace;margin-bottom:10px">💬 ŞÜPHELİ AI KONUŞMALARI (${suspiciousChats.length})</div>
+        ${chatsHtml}
       </div>
       <div class="fw-card">
         <div style="font-size:.7rem;color:rgba(110,231,255,.7);font-family:'Space Mono',monospace;margin-bottom:10px">📑 SON OLUŞTURULAN DECK BAŞLIKLARI</div>
         ${decksHtml}
       </div>
     `;
+
+    // Banla butonları
+    contentEl.querySelectorAll('[data-ban-uid]').forEach(btn => {
+      btn.onclick = async () => {
+        const uid = btn.dataset.banUid;
+        const reason = btn.dataset.banReason || 'şüpheli AI konuşması';
+        if(!uid) return;
+        btn.disabled = true; btn.textContent = '...';
+        await adminFetch('/api/admin/ban', { targetUid: uid, reason });
+        cachedStats = null;
+        renderModeration();
+      };
+    });
+
+    // Geç butonları — raporu reviewed olarak işaretle (veya sil)
+    contentEl.querySelectorAll('[data-dismiss-id]').forEach(btn => {
+      btn.onclick = async () => {
+        const id = btn.dataset.dismissId;
+        if(!id) return;
+        btn.closest('.fw-card').style.opacity = '.3';
+        btn.closest('.fw-card').style.pointerEvents = 'none';
+        // Firestore'dan sil
+        try{
+          if(window.fbDismissSuspiciousChat) await window.fbDismissSuspiciousChat(id);
+        }catch(e){}
+        setTimeout(() => btn.closest('.fw-card')?.remove(), 400);
+      };
+    });
   }
 
   // ============ KULLANICILAR ============
@@ -5342,6 +5574,13 @@ kendini imha edecek.</span></div>`;
   try{
     let aiResponse;
     try{
+      // Kullanıcı profil bilgilerini topla
+      const galaxyBadge = document.getElementById('galaxyBadge');
+      const isGalaxyMember = galaxyBadge && galaxyBadge.style.display !== 'none';
+      const uname = window.currentUsername ? '@' + window.currentUsername : (window.currentUser?.displayName || null);
+      const userCtx = window.currentUser && !window.currentUser.isAnonymous ? `
+KULLANICI: ${uname || '(anonim)'} ${isGalaxyMember ? '✦ GALAXY ÜYESİ' : ''}` : '';
+
       aiResponse = await fetch(PROXY_URL, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -5350,21 +5589,26 @@ kendini imha edecek.</span></div>`;
           max_tokens: 1200,
           uid: window.currentUser?.uid || '',
           sig: getRequestSignature(),
-          system: `You are Thinkle, a helpful AI assistant.
+          system: `Sen Thinkle platformunun yapay zekasısın. Thinkle, yapay zeka destekli bir öğrenme platformudur — öğrenciler dosya yükleyerek AI destekli slaytlar ve quizler oluşturabilir.${userCtx}
 
-ABSOLUTE RULE — LANGUAGE:
-- Detect what language the user wrote in
-- Respond ONLY in that exact language
-- NEVER mix languages or use words from other languages
-- If user writes Turkish → respond 100% Turkish, no English, no Spanish, no other language
-- If user writes English → respond 100% English only
-- Turkish special chars are mandatory: ş ğ ü ö ı İ ç Ç Ğ Ü Ö Ş
-- Correct Turkish: "öğrenci, şekil, güzel, çalışma"
-- Wrong: "ogrenci, sekil, guzel, calisma" or mixing Spanish/English words
+KİMLİK KURALLARI:
+- "Kim yaptı / hangi model" sorulursa: "Ben Thinkle tarafından geliştirilmiş bir yapay zekayım." de.
+- Google, Gemini, Claude, OpenAI gibi isimler ASLA söyleme.
+- Kullanıcının adını/kullanıcı adını biliyorsan sohbette samimi şekilde kullan.
+- Galaxy üyesiyse ara sıra ✦ ile özel hissettir.
 
-You can help with any topic: questions, math, science, coding, writing, history, general chat.
-If asked who you are: say "Ben Thinkle AI'yım" (Turkish) or "I am Thinkle AI" (English).
-Never mention underlying model names.`,
+DİL KURALI:
+- Kullanıcının yazdığı dili algıla, SADECE o dilde yanıt ver.
+- Türkçe → %100 Türkçe, karakterler: ş ğ ü ö ı İ ç Ç Ğ Ü Ö Ş
+- İngilizce → %100 İngilizce
+
+GÜVENLİK:
+Şiddet, yasadışı içerik, nefret söylemi veya zararlı içerik içeren mesajlarda yanıtının EN SONUNA —hiçbir açıklama yapmadan— şunu ekle:
+[SUSPICIOUS:kısa_sebep]
+Örnek: [SUSPICIOUS:şiddet içeriği] veya [SUSPICIOUS:yasadışı istek] veya [SUSPICIOUS:nefret söylemi]
+Sebep 5 kelimeyi geçmesin.
+
+Her konuda yardımcı ol: ders, matematik, fen, tarih, kodlama, genel sohbet.`,
           messages: [ ...aiHistory, { role: "user", content: question } ]
         })
       });
@@ -5381,7 +5625,27 @@ Never mention underlying model names.`,
 
     const data = await aiResponse.json();
     const textBlock = data.content.find(b => b.type === 'text');
-    const answer = textBlock ? textBlock.text : t('aiError');
+    let answer = textBlock ? textBlock.text : t('aiError');
+
+    // Şüpheli konuşma tespiti
+    const suspMatch = answer.match(/\[SUSPICIOUS:?([^\]]*)\]/);
+    if(suspMatch){
+      const reason = suspMatch[1]?.trim() || 'belirtilmedi';
+      answer = answer.replace(suspMatch[0], '').trim();
+      if(window.fbReportSuspiciousChat){
+        const reportMessages = [
+          ...aiHistory.slice(-6),
+          { role: 'user', content: question },
+          { role: 'assistant', content: answer }
+        ];
+        window.fbReportSuspiciousChat(
+          window.currentUser?.uid || '(anonim)',
+          window.currentUsername || window.currentUser?.displayName || '(isimsiz)',
+          reportMessages,
+          reason
+        );
+      }
+    }
 
     thinkingEl.classList.remove('thinking');
     thinkingEl.textContent = answer;
