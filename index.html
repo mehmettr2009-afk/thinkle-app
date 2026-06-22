@@ -87,20 +87,34 @@
   };
 
   // Kullanıcı girişini kaydet
-  window.fbLogUser = async (uid) => {
+window.fbtguser = async (uid) => {
+    // 1. UID kontrolü (Bu satır sorunu engeller)
+    if (!uid) {
+        console.error("Hata: Kullanıcı UID'si boş, veritabanına yazılamıyor!");
+        return;
+    }
+
     try {
-      const today = new Date().toISOString().split('T')[0];
-      const userRef = doc(db, 'users', uid);
-      const snap = await getDoc(userRef);
-      if(!snap.exists()){
-        await setDoc(userRef, { firstSeen:today, lastSeen:today, decks:0, chats:0 });
-        const statsRef = doc(db, 'stats', today);
-        const ss = await getDoc(statsRef);
-        if(!ss.exists()) await setDoc(statsRef, { date:today, decks:0, chats:0, users:0, visits:0 });
-        await updateDoc(statsRef, { users: increment(1) });
-      } else {
-        await updateDoc(userRef, { lastSeen: today });
-      }
+        const today = new Date().toISOString().split('T')[0];
+        const userRef = doc(db, 'users', uid);
+        const snap = await getDoc(userRef);
+
+        if (!snap.exists()) {
+            await setDoc(userRef, { firstSeen: today, lastSeen: today, decks: 0, chats: 0 });
+            
+            const statsRef = doc(db, 'stats', today);
+            const ss = await getDoc(statsRef);
+            
+            if (!ss.exists()) await setDoc(statsRef, { date: today, decks: 0, chats: 0, users: 0, visits: 0 });
+            await updateDoc(statsRef, { users: increment(1) });
+        } else {
+            await updateDoc(userRef, { lastSeen: today });
+        }
+    } catch (error) {
+        // 2. Hatayı detaylı görmek için konsola yazdırıyoruz
+        console.error("Firestore Yazma Hatası:", error.code, error.message);
+    }
+};
     } catch(e){}
   };
 
