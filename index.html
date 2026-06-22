@@ -39,24 +39,22 @@
   provider.setCustomParameters({ prompt: 'select_account' });
   const isMobileDevice = /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent);
 
-  window.fbSignIn = async () => {
-    try {
-      if(isMobileDevice){
-        // Redirect öncesi flag set et — geri dönünce intro atlanır
+
+  window.fbSignIn = () => {
+    // ÖNEMLI: async/await KULLANMA — iOS Safari'de kullanıcı gesture'ı kırılıyor
+    // signInWithPopup doğrudan çağrılmalı, Promise zinciriyle devam et
+    return signInWithPopup(auth, provider).catch(err => {
+      const code = err?.code || '';
+      if(code === 'auth/popup-blocked' ||
+         code === 'auth/popup-closed-by-user' ||
+         code === 'auth/cancelled-popup-request' ||
+         code === 'auth/operation-not-supported-in-this-environment'){
+        // Popup olmadı — redirect dene
         sessionStorage.setItem('firebase_redirect_pending', '1');
-        await signInWithRedirect(auth, provider);
-      } else {
-        await signInWithPopup(auth, provider);
+        return signInWithRedirect(auth, provider);
       }
-    } catch(err){
-      sessionStorage.removeItem('firebase_redirect_pending');
-      if(err.code === 'auth/popup-blocked' || err.code === 'auth/popup-closed-by-user'){
-        try {
-          sessionStorage.setItem('firebase_redirect_pending', '1');
-          await signInWithRedirect(auth, provider);
-        } catch(e){ sessionStorage.removeItem('firebase_redirect_pending'); }
-      }
-    }
+      // Kullanıcı kendi kapattı — sessizce geç
+    });
   };
 
   window.fbGuestSignIn = async () => {
@@ -2952,20 +2950,16 @@ function showAuthModal(onSuccess){
   document.getElementById('authCancelBtn').onclick = close;
   modal.onclick = (e) => { if(e.target === modal) close(); };
 
-  document.getElementById('authGoogleBtn').onclick = async () => {
+  document.getElementById('authGoogleBtn').onclick = () => {
     const btn = document.getElementById('authGoogleBtn');
-    if(btn){ btn.innerHTML = '⏳ ' + (currentLang==='tr' ? 'Yönlendiriliyor...' : 'Redirecting...'); btn.disabled = true; }
-    try {
-      if(window.fbSignIn) await window.fbSignIn();
-      // Popup başarılıysa (masaüstü) — redirect'te sayfa zaten yenilenir
+    if(btn){ btn.innerHTML = '⏳ ' + (currentLang==='tr' ? 'Açılıyor...' : 'Opening...'); btn.disabled = true; }
+    // async/await YOK — gesture zinciri korunuyor
+    window.fbSignIn().then(() => {
       if(window.currentUser){ close(); if(onSuccess) onSuccess(); }
-    } catch(e){
-      // Hata varsa butonu sıfırla
-      if(btn){
-        btn.disabled = false;
-        btn.innerHTML = `<svg width="18" height="18" viewBox="0 0 48 48"><path fill="#EA4335" d="M24 9.5c3.5 0 6.6 1.2 9.1 3.2l6.8-6.8C35.8 2.2 30.2 0 24 0 14.6 0 6.6 5.4 2.7 13.3l7.9 6.1C12.4 13.1 17.7 9.5 24 9.5z"/><path fill="#4285F4" d="M46.1 24.5c0-1.6-.1-3.1-.4-4.5H24v8.5h12.4c-.5 2.8-2.1 5.1-4.4 6.7l6.9 5.4c4-3.7 6.2-9.2 6.2-16.1z"/><path fill="#FBBC05" d="M10.6 28.6A14.9 14.9 0 0 1 9.5 24c0-1.6.3-3.1.7-4.6l-7.9-6.1A23.9 23.9 0 0 0 0 24c0 3.9.9 7.5 2.7 10.7l7.9-6.1z"/><path fill="#34A853" d="M24 48c6.2 0 11.4-2 15.2-5.5l-6.9-5.4c-2 1.4-4.6 2.2-8.3 2.2-6.3 0-11.6-3.6-13.4-9.1l-7.9 6.1C6.6 42.6 14.6 48 24 48z"/></svg> ${currentLang==='tr'?'Tekrar dene':'Try again'}`;
-      }
-    }
+      else if(btn){ btn.disabled = false; btn.innerHTML = `<svg width="18" height="18" viewBox="0 0 48 48"><path fill="#EA4335" d="M24 9.5c3.5 0 6.6 1.2 9.1 3.2l6.8-6.8C35.8 2.2 30.2 0 24 0 14.6 0 6.6 5.4 2.7 13.3l7.9 6.1C12.4 13.1 17.7 9.5 24 9.5z"/><path fill="#4285F4" d="M46.1 24.5c0-1.6-.1-3.1-.4-4.5H24v8.5h12.4c-.5 2.8-2.1 5.1-4.4 6.7l6.9 5.4c4-3.7 6.2-9.2 6.2-16.1z"/><path fill="#FBBC05" d="M10.6 28.6A14.9 14.9 0 0 1 9.5 24c0-1.6.3-3.1.7-4.6l-7.9-6.1A23.9 23.9 0 0 0 0 24c0 3.9.9 7.5 2.7 10.7l7.9-6.1z"/><path fill="#34A853" d="M24 48c6.2 0 11.4-2 15.2-5.5l-6.9-5.4c-2 1.4-4.6 2.2-8.3 2.2-6.3 0-11.6-3.6-13.4-9.1l-7.9 6.1C6.6 42.6 14.6 48 24 48z"/></svg> ${currentLang==='tr'?'Google ile Giriş Yap':'Sign in with Google'}`; }
+    }).catch(() => {
+      if(btn){ btn.disabled = false; btn.innerHTML = `<svg width="18" height="18" viewBox="0 0 48 48"><path fill="#EA4335" d="M24 9.5c3.5 0 6.6 1.2 9.1 3.2l6.8-6.8C35.8 2.2 30.2 0 24 0 14.6 0 6.6 5.4 2.7 13.3l7.9 6.1C12.4 13.1 17.7 9.5 24 9.5z"/><path fill="#4285F4" d="M46.1 24.5c0-1.6-.1-3.1-.4-4.5H24v8.5h12.4c-.5 2.8-2.1 5.1-4.4 6.7l6.9 5.4c4-3.7 6.2-9.2 6.2-16.1z"/><path fill="#FBBC05" d="M10.6 28.6A14.9 14.9 0 0 1 9.5 24c0-1.6.3-3.1.7-4.6l-7.9-6.1A23.9 23.9 0 0 0 0 24c0 3.9.9 7.5 2.7 10.7l7.9-6.1z"/><path fill="#34A853" d="M24 48c6.2 0 11.4-2 15.2-5.5l-6.9-5.4c-2 1.4-4.6 2.2-8.3 2.2-6.3 0-11.6-3.6-13.4-9.1l-7.9 6.1C6.6 42.6 14.6 48 24 48z"/></svg> ${currentLang==='tr'?'Tekrar dene':'Try again'}`; }
+    });
   };
 
   document.getElementById('authGuestBtn').onclick = async () => {
