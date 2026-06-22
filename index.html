@@ -2807,34 +2807,40 @@ document.addEventListener('authChanged', e => {
 });
 // ============ GALAXY ÜYELİK UI ============
 let _galaxyWatcherUnsub = null;
-async function initGalaxyUI(user){
-  const area     = document.getElementById('galaxyApplyArea');
-  const mamArea  = document.getElementById('mamGalaxyArea');
-  const mamDiv   = document.getElementById('mamGalaxyDivider');
-  const badge    = document.getElementById('galaxyBadge');
+async function initGalaxyUI(user, _memberOverride){
+  const area   = document.getElementById('galaxyApplyArea');
+  const mamArea = document.getElementById('mamGalaxyArea');
+  const mamDiv  = document.getElementById('mamGalaxyDivider');
+  const badge   = document.getElementById('galaxyBadge');
   if(!area && !mamArea) return;
   const isTr = currentLang === 'tr';
 
-  const isMember = window.fbIsGalaxyMember ? await window.fbIsGalaxyMember(user.uid) : false;
+  // _memberOverride: true/false → skip Firestore getDoc (bypass cache)
+  const isMember = (_memberOverride !== undefined && _memberOverride !== null)
+    ? _memberOverride
+    : (window.fbIsGalaxyMember ? await window.fbIsGalaxyMember(user.uid) : false);
 
   if(isMember){
     if(badge) badge.style.display = 'inline-block';
     if(area)    area.innerHTML = '';
-    if(mamArea){ mamArea.innerHTML = `<div style="padding:8px 12px;text-align:center;font-size:.72rem;color:#a78bfa">🌌 Galaxy Üyesisin</div>`; }
-    if(mamDiv)  mamDiv.style.display = 'block';
+    // Üye olduğunda mobil menüdeki galaxy alanını gizle (rozet solda zaten var)
+    if(mamDiv)  mamDiv.style.display = 'none';
+    if(mamArea) mamArea.innerHTML = '';
+    // Real-time watcher kur
     if(_galaxyWatcherUnsub){ _galaxyWatcherUnsub(); _galaxyWatcherUnsub = null; }
     if(window.fbWatchUserGalaxy){
       _galaxyWatcherUnsub = window.fbWatchUserGalaxy(user.uid, (isGalaxy) => {
         if(!isGalaxy){
+          // Cache'i atla: doğrudan false geçir
           if(_galaxyWatcherUnsub){ _galaxyWatcherUnsub(); _galaxyWatcherUnsub = null; }
-          if(badge) badge.style.display = 'none';
-          initGalaxyUI(user);
+          initGalaxyUI(user, false);
         }
       });
     }
     return;
   }
 
+  // Üye değil
   if(_galaxyWatcherUnsub){ _galaxyWatcherUnsub(); _galaxyWatcherUnsub = null; }
   if(badge) badge.style.display = 'none';
 
