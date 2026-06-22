@@ -16,33 +16,34 @@
 <script src="https://cdn.jsdelivr.net/gh/gitbrent/pptxgenjs@3.12.0/dist/pptxgen.bundle.js"></script>
 <!-- Firebase -->
 <script type="module">
-  import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
-  import { getAuth, GoogleAuthProvider, signInWithPopup, signInWithRedirect,
-           signInAnonymously, getRedirectResult, signOut, onAuthStateChanged }
-    from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js';
-  import { getFirestore, doc, setDoc, getDoc, updateDoc, increment, collection, getDocs, orderBy, query, limit, onSnapshot, deleteDoc, where }
-    from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
+        import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
+        import { getFirestore, doc, updateDoc } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
 
-  const firebaseConfig = {
-    apiKey: "AIzaSyBfq73MikECswm01iEAB8X-_vgxaHrEAvQ",
-    authDomain: "thinkle-space.firebaseapp.com",
-    projectId: "thinkle-space",
-    storageBucket: "thinkle-space.firebasestorage.app",
-    messagingSenderId: "116189378023",
-    appId: "1:116189378023:web:4c16d2bac82e192455b942"
-  };
+        const firebaseConfig = {
+            apiKey: "AzaSyBfq73MIkECswm0liEAB8X_vgxaHrEAvQ",
+            authDomain: "thinkle-space.firebaseapp.com",
+            projectId: "thinkle-space",
+            storageBucket: "thinkle-space.appspot.com",
+            messagingSenderId: "116189378023",
+            appId: "1:116189378023:web:4c16d2bac82e192455b942"
+        };
 
-  const app = initializeApp(firebaseConfig);
-  const auth = getAuth(app);
-  const db = getFirestore(app);
-  const provider = new GoogleAuthProvider();
-  provider.setCustomParameters({ prompt: 'select_account' });
-  const isMobileDevice = /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent);
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
 
-
-  window.fbSignIn = () => {
-    // ÖNEMLI: async/await KULLANMA — iOS Safari'de kullanıcı gesture'ı kırılıyor
-    // signInWithPopup doğrudan çağrılmalı, Promise zinciriyle devam et
+        // Fonksiyonları window'a bağlıyoruz ki butonlar direkt görsün
+        window.approveGalaxyApplication = async (docId) => {
+            try {
+                const appRef = doc(db, "galaxyApplications", docId);
+                await updateDoc(appRef, { status: "approved" });
+                alert("Başarıyla onaylandı!");
+                location.reload();
+            } catch (error) {
+                console.error("Hata:", error);
+                alert("Hata: " + error.message);
+            }
+        };
+    </script>
     return signInWithPopup(auth, provider).catch(err => {
       const code = err?.code || '';
       if(code === 'auth/popup-blocked' ||
