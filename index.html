@@ -2167,24 +2167,24 @@
     <div class="mh-title">Thinkle</div>
   </div>
   <div class="mh-right">
-    <button id="mhLoginBtn" style="display:flex;color:#ffd27a;border-color:rgba(255,180,80,.4)">🔑 Giriş</button>
-    <button id="mhLogoutBtn" style="display:none;color:#ff8fa3;border-color:rgba(255,110,140,.4)">↪ Çıkış</button>
-    <button id="mobileActionsBtn">⋯</button>
+    <button id="mhLoginBtn" style="display:flex;color:#ffd27a;border-color:rgba(255,180,80,.4)" onclick="if(typeof showAuthModal==='function')showAuthModal()">🔑 Giriş</button>
+    <button id="mhLogoutBtn" style="display:none;color:#ff8fa3;border-color:rgba(255,110,140,.4)" onclick="if(window.fbSignOut)window.fbSignOut()">↪ Çıkış</button>
+    <button id="mobileActionsBtn" onclick="document.getElementById('mobileActionsMenu').classList.toggle('open')">⋯</button>
   </div>
 </div>
 <div id="mobileActionsMenu">
   <div class="mam-lang">
-    <button class="mam-lang-tr active" data-lang="tr">TR</button>
-    <button class="mam-lang-en" data-lang="en">EN</button>
+    <button class="mam-lang-tr active" data-lang="tr" onclick="applyLanguage('tr');this.parentElement.querySelectorAll('[data-lang]').forEach(b=>b.classList.toggle('active',b.dataset.lang==='tr'))">TR</button>
+    <button class="mam-lang-en" data-lang="en" onclick="applyLanguage('en');this.parentElement.querySelectorAll('[data-lang]').forEach(b=>b.classList.toggle('active',b.dataset.lang==='en'))">EN</button>
   </div>
   <div class="mam-divider"></div>
-  <button id="mamSlides">📑 <span data-i18n="menuToggle">Slaytlar</span></button>
-  <button id="mamRestart">↺ <span data-i18n="restartBtn">Yeni dosya</span></button>
-  <button id="mamExport" disabled>⬇ <span data-i18n="exportBtn">.pptx indir</span></button>
+  <button id="mamSlides" onclick="var t=document.getElementById('tabs');if(t&&t.children.length>0)t.classList.add('open');document.getElementById('mobileActionsMenu').classList.remove('open')">📑 <span data-i18n="menuToggle">Slaytlar</span></button>
+  <button id="mamRestart" onclick="document.getElementById('restartBtn')?.click();document.getElementById('mobileActionsMenu').classList.remove('open')">↺ <span data-i18n="restartBtn">Yeni dosya</span></button>
+  <button id="mamExport" disabled onclick="document.getElementById('exportBtn')?.click();document.getElementById('mobileActionsMenu').classList.remove('open')">⬇ <span data-i18n="exportBtn">.pptx indir</span></button>
   <div class="mam-divider" id="mamFounderDivider" style="display:none"></div>
-  <button id="mamFounderBtn" style="display:none;color:#ffd700">👑 Yönetici Paneli</button>
+  <button id="mamFounderBtn" style="display:none;color:#ffd700" onclick="if(typeof showFounderWelcome==='function')showFounderWelcome();document.getElementById('mobileActionsMenu').classList.remove('open')">👑 Yönetici Paneli</button>
   <div class="mam-divider" id="mamGalaxyDivider" style="display:none"></div>
-  <button id="mamGalaxyBtn" style="display:none;color:#a78bfa">🌌 Galaxy Üyesi Olmak İstiyorum <span style="opacity:.5;font-size:.65rem">(Beta)</span></button>
+  <button id="mamGalaxyBtn" style="display:none;color:#a78bfa" onclick="(async()=>{var u=window.currentUser;if(!u||!window.fbApplyGalaxy)return;this.style.opacity='.5';this.style.pointerEvents='none';var r=await window.fbApplyGalaxy(u.uid,u.displayName,u.email);if(r&&r.ok){this.style.display='none';var p=document.getElementById('mamGalaxyPending');if(p)p.style.display='flex';}else{this.style.opacity='1';this.style.pointerEvents='';}document.getElementById('mobileActionsMenu').classList.remove('open');})()">🌌 Galaxy Üyesi Olmak İstiyorum <span style="opacity:.5;font-size:.65rem">(Beta)</span></button>
   <button id="mamGalaxyPending" style="display:none;color:rgba(140,110,255,.6);font-size:.72rem;cursor:default">⏳ Başvuru beklemede</button>
   <button id="mamGalaxyMember" style="display:none;font-size:.72rem;cursor:default">
     <span style="font-family:'Orbitron',sans-serif;font-size:.6rem;font-weight:900;padding:1px 6px;border-radius:4px;background:linear-gradient(135deg,#8a5cff,#5c8aff);color:#fff">GALAXY</span>
@@ -2195,99 +2195,19 @@
 </div>
 
 <script>
-  // Mobil header — aksiyon menüsü
+  // Mobil header — basit onclick tabanlı, touch karmaşası yok
   (function(){
-    const actionsBtn  = document.getElementById('mobileActionsBtn');
     const actionsMenu = document.getElementById('mobileActionsMenu');
-    const loginBtn    = document.getElementById('mhLoginBtn');
-    const logoutBtn   = document.getElementById('mhLogoutBtn');
-
-    // Tek bir merkezi tıklama bağlayıcı — hem touch hem mouse'ta garanti çalışır
-    function bindTap(el, handler){
-      if(!el) return;
-      let touched = false;
-      el.addEventListener('touchstart', () => { touched = true; }, {passive:true});
-      el.addEventListener('touchend', (e) => {
-        e.preventDefault();
-        handler(e);
-        setTimeout(()=>{ touched = false; }, 400);
-      }, {passive:false});
-      el.addEventListener('click', (e) => {
-        if(touched) return; // touchend zaten işledi, çift tetiklenmeyi önle
-        handler(e);
-      });
-    }
-
-
-    bindTap(actionsBtn, () => {
-      actionsMenu?.classList.toggle('open');
-      document.getElementById('tabs')?.classList.remove('open');
-    });
-
-    bindTap(loginBtn, () => {
-      if(typeof showAuthModal === 'function') showAuthModal();
-    });
-
-    bindTap(logoutBtn, () => {
-      if(typeof window.fbSignOut === 'function') window.fbSignOut();
-    });
 
     // Menü dışına tıklayınca kapat
     document.addEventListener('click', (e) => {
-      if(actionsMenu && actionsMenu.classList.contains('open') &&
-         !actionsMenu.contains(e.target) && e.target !== actionsBtn){
+      if(!actionsMenu) return;
+      const btn = document.getElementById('mobileActionsBtn');
+      if(!actionsMenu.contains(e.target) && e.target !== btn){
         actionsMenu.classList.remove('open');
       }
-    });
-    document.addEventListener('touchend', (e) => {
-      if(actionsMenu && actionsMenu.classList.contains('open') &&
-         !actionsMenu.contains(e.target) && e.target !== actionsBtn){
-        actionsMenu.classList.remove('open');
-      }
-    }, {passive:true});
-
-    actionsMenu?.querySelectorAll('[data-lang]').forEach(b => {
-      bindTap(b, () => {
-        if(typeof applyLanguage === 'function') applyLanguage(b.dataset.lang);
-        actionsMenu.querySelectorAll('[data-lang]').forEach(x => x.classList.toggle('active', x.dataset.lang === b.dataset.lang));
-        actionsMenu.classList.remove('open');
-      });
     });
 
-    bindTap(document.getElementById('mamSlides'), () => {
-      const tabsEl = document.getElementById('tabs');
-      if(tabsEl && tabsEl.children.length > 0){
-        tabsEl.classList.add('open');
-      }
-      actionsMenu.classList.remove('open');
-    });
-    bindTap(document.getElementById('mamRestart'), () => {
-      document.getElementById('restartBtn')?.click();
-      actionsMenu.classList.remove('open');
-    });
-    bindTap(document.getElementById('mamExport'), () => {
-      document.getElementById('exportBtn')?.click();
-      actionsMenu.classList.remove('open');
-    });
-    bindTap(document.getElementById('mamFounderBtn'), () => {
-      if(typeof showFounderWelcome === 'function') showFounderWelcome();
-      actionsMenu.classList.remove('open');
-    });
-    bindTap(document.getElementById('mamGalaxyBtn'), async () => {
-      const user = window.currentUser;
-      if(!user || !window.fbApplyGalaxy) return;
-      const btn = document.getElementById('mamGalaxyBtn');
-      if(btn){ btn.style.opacity = '.5'; btn.style.pointerEvents = 'none'; }
-      const result = await window.fbApplyGalaxy(user.uid, user.displayName, user.email);
-      if(result.ok){
-        if(btn) btn.style.display = 'none';
-        const pend = document.getElementById('mamGalaxyPending');
-        if(pend) pend.style.display = 'flex';
-      } else {
-        if(btn){ btn.style.opacity = '1'; btn.style.pointerEvents = ''; }
-      }
-      actionsMenu.classList.remove('open');
-    });
 
     const exportBtn = document.getElementById('exportBtn');
     if(exportBtn){
@@ -2976,13 +2896,17 @@ function showAuthModal(onSuccess){
 
   document.getElementById('authGoogleBtn').onclick = async () => {
     const btn = document.getElementById('authGoogleBtn');
-    if(btn){ btn.textContent = '⏳ Yönlendiriliyor...'; btn.disabled = true; }
+    if(btn){ btn.innerHTML = '⏳ ' + (currentLang==='tr' ? 'Yönlendiriliyor...' : 'Redirecting...'); btn.disabled = true; }
     try {
       if(window.fbSignIn) await window.fbSignIn();
-      // Popup başarılıysa (masaüstü)
+      // Popup başarılıysa (masaüstü) — redirect'te sayfa zaten yenilenir
       if(window.currentUser){ close(); if(onSuccess) onSuccess(); }
     } catch(e){
-      // Redirect başladı — sayfa zaten yenileniyor, hata normal
+      // Hata varsa butonu sıfırla
+      if(btn){
+        btn.disabled = false;
+        btn.innerHTML = `<svg width="18" height="18" viewBox="0 0 48 48"><path fill="#EA4335" d="M24 9.5c3.5 0 6.6 1.2 9.1 3.2l6.8-6.8C35.8 2.2 30.2 0 24 0 14.6 0 6.6 5.4 2.7 13.3l7.9 6.1C12.4 13.1 17.7 9.5 24 9.5z"/><path fill="#4285F4" d="M46.1 24.5c0-1.6-.1-3.1-.4-4.5H24v8.5h12.4c-.5 2.8-2.1 5.1-4.4 6.7l6.9 5.4c4-3.7 6.2-9.2 6.2-16.1z"/><path fill="#FBBC05" d="M10.6 28.6A14.9 14.9 0 0 1 9.5 24c0-1.6.3-3.1.7-4.6l-7.9-6.1A23.9 23.9 0 0 0 0 24c0 3.9.9 7.5 2.7 10.7l7.9-6.1z"/><path fill="#34A853" d="M24 48c6.2 0 11.4-2 15.2-5.5l-6.9-5.4c-2 1.4-4.6 2.2-8.3 2.2-6.3 0-11.6-3.6-13.4-9.1l-7.9 6.1C6.6 42.6 14.6 48 24 48z"/></svg> ${currentLang==='tr'?'Tekrar dene':'Try again'}`;
+      }
     }
   };
 
