@@ -142,9 +142,10 @@
         const status = existing.data().status;
         if(status === 'pending')  return { ok:false, reason:'already_pending' };
         if(status === 'approved') return { ok:false, reason:'already_member' };
-        // revoked veya rejected — üzerine yaz (setDoc ile tam yenile)
+        // revoked veya rejected — dokümanı sil, sonra yeniden oluştur
+        // (kullanıcının update yetkisi yok, sadece create var)
+        try { await deleteDoc(ref); } catch(e){}
       }
-      // setDoc ile yeni başvuru yaz (yoksa oluşturur, varsa tamamen üzerine yazar)
       await setDoc(ref, {
         uid, displayName: displayName||'', email: email||'',
         status: 'pending', appliedAt: new Date().toISOString()
