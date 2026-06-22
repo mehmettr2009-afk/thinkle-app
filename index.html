@@ -317,16 +317,33 @@
 
       // Galaxy durumunu gerçek zamanlı izle — hem rozet hem sidebar UI güncelle
       _galaxyUnsubscribe = onSnapshot(doc(db, 'users', user.uid), (snap) => {
-        const isGalaxy = snap.exists() ? !!snap.data().galaxy : false;
-        const newUsername = snap.data()?.username || null;
-        const usernameChanged = newUsername !== window.currentUsername;
-        window.currentUsername = newUsername || window.currentUsername || null;
+        const data = snap.data() || {};
+        const isGalaxy = !!data.galaxy;
+        // Username'i güncelle — her zaman Firestore'daki gerçek değer
+        window.currentUsername = data.username || null;
+
+        // Rozeti güncelle
         const badge = document.getElementById('galaxyBadge');
         if(badge) badge.style.display = isGalaxy ? 'inline-block' : 'none';
+
+        // Sidebar'daki isim alanını direkt güncelle — authChanged bekleme
+        const nameEl = document.querySelector('#userArea .mh-uname');
+        if(nameEl){
+          nameEl.textContent = (user.uid === 'l8Tih1awnjP7fRXnUsFVVAuXEZu2' ? '👑 ' : '') +
+            (window.currentUsername ? '@'+window.currentUsername : (user.displayName||user.email||'Ziyaretçi'));
+        } else {
+          // Sidebar henüz render edilmemiş — authChanged ile render et
+          document.dispatchEvent(new CustomEvent('authChanged', { detail: user }));
+        }
+
+        // Mobil header'ı da güncelle
+        const mhTitle = document.querySelector('#mobileHeader .mh-title');
+        if(mhTitle && window.currentUsername && !user.isAnonymous){
+          mhTitle.textContent = '@' + window.currentUsername;
+        }
+
         if(typeof initGalaxyUI === 'function') initGalaxyUI(user);
         document.dispatchEvent(new CustomEvent('galaxyStatusChanged', { detail: { uid: user.uid, isMember: isGalaxy } }));
-        // Username değiştiyse sidebar'ı da güncelle
-        if(usernameChanged) document.dispatchEvent(new CustomEvent('authChanged', { detail: user }));
         if(typeof updateLimitBadges === 'function') updateLimitBadges();
       }, ()=>{});
     }
@@ -3188,7 +3205,7 @@ document.addEventListener('authChanged', e => {  const user = e.detail;
           <img src="${user.photoURL||''}" style="width:28px;height:28px;border-radius:50%;border:1px solid rgba(180,107,255,.4)" onerror="this.style.display='none'">
           <div style="flex:1;min-width:0">
             <div style="font-size:.75rem;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:flex;align-items:center;gap:6px">
-              <span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${isFounder ? '👑 ' : ''}${window.currentUsername ? '@'+window.currentUsername : (user.displayName||user.email||'Ziyaretçi')}</span>
+              <span class="mh-uname" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${isFounder ? '👑 ' : ''}${window.currentUsername ? '@'+window.currentUsername : (user.displayName||user.email||'Ziyaretçi')}</span>
               <span id="galaxyBadge" style="display:none;flex-shrink:0;font-family:'Orbitron',sans-serif;font-size:.55rem;font-weight:900;letter-spacing:.1em;padding:2px 8px;border-radius:6px;background:linear-gradient(135deg,#6d28d9,#2563eb);color:#e0d7ff;box-shadow:0 0 10px rgba(109,40,217,.5),0 0 20px rgba(37,99,235,.3)">GALAXY</span>
             </div>
             <div style="font-size:.62rem;color:${isFounder?'#ffd700':'var(--ink-soft)'}">
