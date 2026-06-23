@@ -426,7 +426,13 @@
     goOnline();
     const heartbeat = setInterval(goOnline, 60000);
 
-    // Sayfa kapanınca sil (sendBeacon ile garanti)
+    // Auth yüklenince presence'ı uid ile güncelle — önemli!
+    // Sayfa açılışında currentUser henüz null olabilir
+    document.addEventListener('authChanged', () => {
+      goOnline(); // uid artık belli, presence'ı güncelle
+    });
+
+    // Sayfa kapanınca sil
     window.addEventListener('beforeunload', () => {
       clearInterval(heartbeat);
       goOffline();
@@ -4708,6 +4714,7 @@ function renderBattleQuestion(qi, roomData){
   if(qi >= battleQuestions.length){ endBattle(); return; }
   battleCurrentQ = qi;
   clearInterval(battleTimerInterval);
+  clearTimeout(window._battleWaitTimeout);
   battleTimeLeft = 20;
 
   const q = battleQuestions[qi];
@@ -4735,13 +4742,84 @@ function renderBattleQuestion(qi, roomData){
     updateTimerUI();
     if(battleTimeLeft <= 0){
       clearInterval(battleTimerInterval);
-      // Süre doldu — yanlış cevap gibi işle
       if(battleAnswers[qi] === undefined){
+        // Ben cevap vermedim — kilitle, sonra 10 saniye bekle
         lockQuestion(qi, -1, q.answerIndex);
-        setTimeout(()=> renderBattleQuestion(qi+1, {}), 2000);
+        showBattleWaitBar(qi, q);
+      } else {
+        // Ben cevap verdim, rakipleri bekle — 10 saniye
+        showBattleWaitBar(qi, q);
       }
     }
   }, 1000);
+}
+
+// Süre bittikten sonra 10 saniyelik bekleme barı
+function showBattleWaitBar(qi, q){
+  clearTimeout(window._battleWaitTimeout);
+  const qArea = document.getElementById('battleQArea');
+  if(!qArea) return;
+
+  // Mevcut sorunun altına bekleme barı ekle
+  let waitDiv = document.getElementById('battleWaitBar');
+  if(!waitDiv){
+    waitDiv = document.createElement('div');
+    waitDiv.id = 'battleWaitBar';
+    waitDiv.style.cssText = 'margin-top:10px;padding:10px 14px;border-radius:10px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08)';
+    qArea.appendChild(waitDiv);
+  }
+
+  let secs = 10;
+  waitDiv.innerHTML = `
+    <div style="font-size:.72rem;color:rgba(180,160,255,.6);margin-bottom:6px;font-family:'Space Mono',monospace">
+      ⏳ Rakip bekleniyor… <span id="bwSecs">${secs}</span>s
+    </div>
+    <div style="height:4px;background:rgba(255,255,255,.08);border-radius:4px;overflow:hidden">
+      <div id="bwBar" style="height:100%;width:100%;background:linear-gradient(90deg,#6ee7ff,#b46bff);border-radius:4px;transition:width 1s linear"></div>
+    </div>`;
+
+  const secsEl = document.getElementById('bwSecs');
+  const barEl = document.getElementById('bwBar');
+  const waitInterval = setInterval(()=>{
+    secs--;
+    if(secsEl) secsEl.textContent = secs;
+    if(barEl) barEl.style.width = (secs/10*100)+'%';
+    if(secs <= 0){
+      clearInterval(waitInterval);
+      // 10 saniye bitti — rakip cevap vermedi
+      showPlayerLeftNotice();
+      setTimeout(()=>{
+        if(qi + 1 >= battleQuestions.length){ endBattle(); }
+        else { renderBattleQuestion(qi+1, {}); }
+      }, 2000);
+    }
+  }, 1000);
+  window._battleWaitTimeout = setTimeout(()=> clearInterval(waitInterval), 12000);
+}
+
+function showPlayerLeftNotice(){
+  // Rakip sayısını kontrol et — arkadaş mı yabancı mı?
+  const isFriend = battleRoomCode && friendsListCache.some(f => {
+    const players = window._lastBattlePlayers || {};
+    return Object.keys(players).some(uid => uid !== battleMyUid && f.uid === uid);
+  });
+
+  const msg = isFriend
+    ? '😔 Arkadaşın yarışmadan ayrıldı'
+    : '👋 Rakip yarışmadan ayrıldı';
+
+  const notice = document.createElement('div');
+  notice.style.cssText = `
+    position:fixed;top:70px;left:50%;transform:translateX(-50%);
+    z-index:99400;padding:10px 20px;border-radius:12px;
+    background:rgba(255,110,199,.15);border:1px solid rgba(255,110,199,.3);
+    color:#ff6ec7;font-size:.8rem;font-family:'Space Grotesk',sans-serif;
+    font-weight:600;animation:slide-in .3s ease both;
+    box-shadow:0 4px 20px rgba(0,0,0,.4);
+  `;
+  notice.textContent = msg;
+  document.body.appendChild(notice);
+  setTimeout(()=>{ notice.style.opacity='0'; notice.style.transition='opacity .4s'; setTimeout(()=>notice.remove(),400); }, 3000);
 }
 
 function updateTimerUI(){
@@ -4756,6 +4834,8 @@ function updateTimerUI(){
 async function submitBattleAnswer(qi, oi){
   if(battleAnswers[qi] !== undefined) return;
   clearInterval(battleTimerInterval);
+  clearTimeout(window._battleWaitTimeout);
+  document.getElementById('battleWaitBar')?.remove();
   battleAnswers[qi] = oi;
 
   const q = battleQuestions[qi];
@@ -4799,9 +4879,28 @@ function updateBattleScoreboard(roomData){
   const sb = document.getElementById('battleScoreboard');
   if(!sb) return;
   const players = roomData.players || {};
-  const sorted = Object.entries(players).sort((a,b) => (b[1].score||0) - (a[1].score||0));
-  const maxScore = sorted[0]?.[1]?.score || 1;
 
+  // Önceki player listesiyle karşılaştır — biri ayrıldı mı?
+  if(window._lastBattlePlayers){
+    const prevUids = Object.keys(window._lastBattlePlayers);
+    const currUids = Object.keys(players);
+    const leftUids = prevUids.filter(uid => !currUids.includes(uid) && uid !== battleMyUid);
+    leftUids.forEach(uid => {
+      const p = window._lastBattlePlayers[uid];
+      const isFriend = friendsListCache.some(f => f.uid === uid);
+      const msg = isFriend
+        ? `😔 Arkadaşın @${p?.name||'?'} yarışmadan ayrıldı`
+        : `👋 @${p?.name||'Rakip'} yarışmadan ayrıldı`;
+      const notice = document.createElement('div');
+      notice.style.cssText = `position:fixed;top:70px;left:50%;transform:translateX(-50%);z-index:99400;padding:10px 20px;border-radius:12px;background:rgba(255,110,199,.15);border:1px solid rgba(255,110,199,.3);color:#ff6ec7;font-size:.8rem;font-family:'Space Grotesk',sans-serif;font-weight:600;animation:slide-in .3s ease both;box-shadow:0 4px 20px rgba(0,0,0,.4);white-space:nowrap`;
+      notice.textContent = msg;
+      document.body.appendChild(notice);
+      setTimeout(()=>{ notice.style.opacity='0'; notice.style.transition='opacity .4s'; setTimeout(()=>notice.remove(),400); }, 3500);
+    });
+  }
+  window._lastBattlePlayers = { ...players };
+
+  const sorted = Object.entries(players).sort((a,b) => (b[1].score||0) - (a[1].score||0));
   sb.innerHTML = sorted.map(([uid, p], i) => {
     const isMe = uid === battleMyUid;
     const isLeading = i === 0 && p.score > 0;
