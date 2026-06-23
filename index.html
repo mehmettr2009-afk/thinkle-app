@@ -369,6 +369,53 @@
   // Sayfa ziyaretini kaydet
   window.fbLogUsage('visits');
 
+  // ============ AKTİF KULLANICI SAYACI ============
+  // Kullanıcı sayfadayken presence yaz, çıkınca sil
+  (function setupPresence(){
+    const presenceId = 'p_' + Math.random().toString(36).slice(2,10) + '_' + Date.now();
+    const presenceRef = doc(db, 'presence', presenceId);
+
+    async function goOnline(){
+      try{
+        await setDoc(presenceRef, {
+          uid: window.currentUser?.uid || null,
+          at: new Date().toISOString(),
+          expires: Date.now() + 90000 // 90 saniye — heartbeat gelirse uzar
+        });
+      }catch(e){}
+    }
+
+    async function goOffline(){
+      try{ await deleteDoc(presenceRef); }catch(e){}
+    }
+
+    // Heartbeat — her 60 saniyede bir güncelle
+    goOnline();
+    const heartbeat = setInterval(goOnline, 60000);
+
+    // Sayfa kapanınca sil (sendBeacon ile garanti)
+    window.addEventListener('beforeunload', () => {
+      clearInterval(heartbeat);
+      goOffline();
+    });
+    document.addEventListener('visibilitychange', () => {
+      if(document.hidden){ clearInterval(heartbeat); goOffline(); }
+      else { goOnline(); setInterval(goOnline, 60000); }
+    });
+
+    // Aktif kullanıcı sayısını gerçek zamanlı izle
+    onSnapshot(collection(db, 'presence'), (snap) => {
+      const now = Date.now();
+      // Süresi dolmamış presence dokümanlarını say
+      const active = snap.docs.filter(d => {
+        const exp = d.data().expires;
+        return exp && exp > now;
+      }).length;
+      window.activeUserCount = active;
+      document.dispatchEvent(new CustomEvent('activeUsersUpdated', { detail: active }));
+    }, ()=>{});
+  })();
+
   // Gerçek zamanlı duyuru — sadece aktif duyuru varsa banner göster, otomatik tetiklemez
   let lastAnnText = null;
   onSnapshot(doc(db, 'config', 'announcement'), (snap) => {
@@ -2137,7 +2184,10 @@
   #staticBg{ animation:galaxy-pulse 8s ease-in-out infinite; }
 
   /* Visibility change — sayfadan çıkınca animasyon dur */
-  #staticBg.paused{ animation-play-state:paused; }  /* ===== FLASHCARD MODU ===== */
+  #staticBg.paused{ animation-play-state:paused; }  @keyframes pulse-dot{
+    0%,100%{ opacity:1; transform:scale(1); }
+    50%{ opacity:.5; transform:scale(1.4); }
+  }
   .flashcard-wrap{
     perspective:1200px; width:100%; max-width:600px; margin:0 auto;
     height:320px; cursor:pointer;
@@ -2464,6 +2514,26 @@
   <div class="topbar">
     <h2 id="topTitle" data-i18n="topTitleDefault">Başlamak için bir dosya yükle</h2>
     <div style="display:flex; gap:10px; align-items:center;">
+      <!-- Aktif kullanıcı sayacı -->
+      <div id="activeUsersBadge" style="
+        display:flex;align-items:center;gap:5px;
+        padding:5px 10px;border-radius:20px;
+        background:rgba(77,255,176,.07);
+        border:1px solid rgba(77,255,176,.2);
+        font-family:'Space Mono',monospace;font-size:.65rem;
+        color:rgba(77,255,176,.8);white-space:nowrap;
+        transition:all .4s ease;
+      ">
+        <span id="activeUsersDot" style="
+          width:6px;height:6px;border-radius:50%;
+          background:#4dffb0;flex-shrink:0;
+          box-shadow:0 0 6px #4dffb0;
+          animation:pulse-dot 2s ease-in-out infinite;
+        "></span>
+        <span id="activeUsersNum">—</span>
+        <span class="tr-text">aktif</span>
+        <span class="en-text">online</span>
+      </div>
       <div class="lang-toggle" id="langToggle">
         <button class="lang-opt active" data-lang="tr">TR</button>
         <button class="lang-opt" data-lang="en">EN</button>
@@ -5767,6 +5837,41 @@ kendini imha edecek.</span></div>`;
     return;
   }
 
+  // ============ AKILLI MOD TESPİTİ ============
+  const qLow2 = question.toLowerCase();
+
+  // QUIZ MODU — "YKS soruları çözmek istiyorum", "ehliyet soruları", "soru çöz" vb.
+  const isQuizRequest =
+    (qLow2.includes('soru') && (qLow2.includes('çöz') || qLow2.includes('test') || qLow2.includes('quiz') || qLow2.includes('sınav'))) ||
+    qLow2.includes('yks') || qLow2.includes('lys') || qLow2.includes('tyt') || qLow2.includes('ayt') ||
+    qLow2.includes('ehliyet') || qLow2.includes('kpss') || qLow2.includes('ales') ||
+    (qLow2.includes('çıkmış') && qLow2.includes('soru')) ||
+    (qLow2.includes('pratik') && qLow2.includes('yap')) ||
+    qLow2.includes('bana soru sor') || qLow2.includes('quiz yap') || qLow2.includes('test et');
+
+  // ÖĞREN MODU — "bunu öğrenmek istiyorum", "anlat", "öğret" vb.
+  const isLearnRequest =
+    (qLow2.includes('öğrenmek istiyorum') || qLow2.includes('öğrenmek istiyorum') ||
+     qLow2.includes('öğret') || qLow2.includes('anlat') || qLow2.includes('açıkla') ||
+     qLow2.includes('nedir') || qLow2.includes('ne demek') ||
+     qLow2.includes('hakkında bilgi') || qLow2.includes('hakkında anlat') ||
+     qLow2.includes('learn about') || qLow2.includes('explain') || qLow2.includes('teach me')) &&
+    !isQuizRequest;
+
+  if(isQuizRequest){
+    const thinkEl = addAiMessage('ai', t('aiThinking'), true);
+    if(btn) btn.disabled = false;
+    await startAiQuizMode(question, thinkEl);
+    return;
+  }
+
+  if(isLearnRequest){
+    const thinkEl = addAiMessage('ai', t('aiThinking'), true);
+    if(btn) btn.disabled = false;
+    await startAiLearnMode(question, thinkEl);
+    return;
+  }
+
   const thinkingEl = addAiMessage('ai', t('aiThinking'), true);
 
   try{
@@ -5857,6 +5962,195 @@ Her konuda yardımcı ol: ders, matematik, fen, tarih, kodlama, genel sohbet.`,
   }finally{
     if(btn) btn.disabled = false;
     getActiveAiChat().scrollTop = getActiveAiChat().scrollHeight;
+  }
+}
+
+// ============ AI QUIZ MODU ============
+async function startAiQuizMode(userRequest, thinkingEl){
+  const isTr = currentLang === 'tr';
+  const chat = getActiveAiChat();
+
+  try{
+    const resp = await fetch(PROXY_URL, {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({
+        model:'google/gemini-2.5-flash', max_tokens:2000,
+        uid: window.currentUser?.uid||'', sig: getRequestSignature(),
+        messages:[{ role:'user', content:
+          `Kullanıcı isteği: "${userRequest}"
+          
+${isTr ? `Bu isteğe uygun 5 çoktan seçmeli soru oluştur. Her soru farklı bir alt konuyu test etsin. Sorular gerçekçi, özgün ve zorlayıcı olsun. Sadece JSON döndür:
+{"topic":"konu başlığı","questions":[{"q":"soru metni","opts":["A) ...","B) ...","C) ...","D) ..."],"correct":0,"explanation":"kısa açıklama"}]}`
+: `Create 5 multiple choice questions matching this request. Each question should test a different subtopic. Questions should be realistic, original and challenging. Return only JSON:
+{"topic":"topic title","questions":[{"q":"question text","opts":["A) ...","B) ...","C) ...","D) ..."],"correct":0,"explanation":"brief explanation"}]}`}
+        `}]
+      })
+    });
+    const data = await resp.json();
+    const text = data.content?.find(b=>b.type==='text')?.text || '';
+    const clean = text.replace(/```json|```/g,'').trim();
+    const parsed = JSON.parse(clean);
+
+    thinkingEl.classList.remove('thinking');
+    thinkingEl.textContent = isTr
+      ? `📝 "${parsed.topic}" konusunda ${parsed.questions.length} soru hazırladım!`
+      : `📝 Prepared ${parsed.questions.length} questions on "${parsed.topic}"!`;
+
+    // Quiz UI'sini chat'e ekle
+    renderAiQuiz(parsed, chat);
+    aiHistory.push({ role:'user', content: userRequest });
+    aiHistory.push({ role:'assistant', content: `${parsed.topic} konusunda ${parsed.questions.length} soruluk quiz hazırladım.` });
+
+  }catch(e){
+    thinkingEl.classList.remove('thinking');
+    thinkingEl.textContent = isTr ? 'Quiz oluşturulamadı, tekrar dene.' : 'Could not create quiz, try again.';
+  }
+}
+
+function renderAiQuiz(data, chat){
+  const isTr = currentLang === 'tr';
+  let answers = {};
+  let score = 0;
+
+  const wrapper = document.createElement('div');
+  wrapper.style.cssText = 'width:100%;margin-top:8px';
+
+  function buildQuiz(){
+    wrapper.innerHTML = `
+      <div style="background:rgba(16,22,58,.7);border:1px solid rgba(110,231,255,.15);border-radius:14px;overflow:hidden">
+        <div style="padding:12px 14px;background:rgba(110,231,255,.06);border-bottom:1px solid rgba(110,231,255,.1);font-family:'Space Mono',monospace;font-size:.68rem;color:rgba(110,231,255,.8)">
+          📝 ${data.topic} — Quiz
+        </div>
+        <div style="padding:10px 14px">
+          ${data.questions.map((q,qi) => `
+            <div style="margin-bottom:14px;padding-bottom:14px;border-bottom:1px solid rgba(255,255,255,.05)" data-qi="${qi}">
+              <div style="font-size:.78rem;font-weight:600;margin-bottom:8px;line-height:1.4">${qi+1}. ${q.q.replace(/</g,'&lt;')}</div>
+              ${q.opts.map((opt,oi) => `
+                <button onclick="window._aiQuizAnswer(${qi},${oi})" style="
+                  display:block;width:100%;text-align:left;padding:7px 10px;margin-bottom:4px;
+                  border-radius:8px;border:1px solid rgba(255,255,255,.1);
+                  background:rgba(255,255,255,.03);color:rgba(220,210,255,.85);
+                  font-size:.74rem;cursor:pointer;touch-action:manipulation;
+                  font-family:'Space Grotesk',sans-serif;transition:.15s;
+                " id="ai-quiz-opt-${qi}-${oi}">${opt.replace(/</g,'&lt;')}</button>`).join('')}
+              <div id="ai-quiz-exp-${qi}" style="display:none;margin-top:6px;padding:7px 10px;border-radius:8px;font-size:.7rem;line-height:1.5"></div>
+            </div>`).join('')}
+          <div id="ai-quiz-result" style="display:none;text-align:center;padding:12px 0">
+            <div style="font-family:'Space Mono',monospace;font-size:1rem;font-weight:700;margin-bottom:4px"></div>
+            <button onclick="window._aiQuizRetry()" style="
+              margin-top:10px;padding:8px 18px;border-radius:10px;border:none;
+              background:linear-gradient(135deg,#6ee7ff,#b46bff);color:#070a18;
+              font-weight:700;cursor:pointer;font-size:.75rem;touch-action:manipulation
+            ">${isTr?'🔄 Yeni Sorular':'🔄 New Questions'}</button>
+          </div>
+        </div>
+      </div>`;
+
+    // Quiz cevap handler'ı
+    window._aiQuizAnswer = (qi, oi) => {
+      if(answers[qi] !== undefined) return;
+      answers[qi] = oi;
+      const correct = data.questions[qi].correct;
+
+      // Butonları renklendir
+      data.questions[qi].opts.forEach((_,i) => {
+        const btn = document.getElementById(`ai-quiz-opt-${qi}-${i}`);
+        if(!btn) return;
+        btn.disabled = true;
+        if(i === correct) btn.style.background = 'rgba(77,255,176,.2)', btn.style.borderColor = '#4dffb0', btn.style.color = '#4dffb0';
+        else if(i === oi) btn.style.background = 'rgba(255,110,199,.15)', btn.style.borderColor = '#ff6ec7', btn.style.color = '#ff6ec7';
+      });
+
+      // Açıklama göster
+      const exp = document.getElementById(`ai-quiz-exp-${qi}`);
+      if(exp){
+        exp.style.display = 'block';
+        exp.style.background = oi===correct ? 'rgba(77,255,176,.08)' : 'rgba(255,110,199,.08)';
+        exp.style.color = oi===correct ? '#4dffb0' : '#ff6ec7';
+        exp.style.border = `1px solid ${oi===correct?'rgba(77,255,176,.2)':'rgba(255,110,199,.2)'}`;
+        exp.textContent = (oi===correct ? '✓ ' : '✗ ') + data.questions[qi].explanation;
+      }
+
+      if(oi === correct) score++;
+
+      // Hepsi cevaplandıysa sonuç göster
+      if(Object.keys(answers).length === data.questions.length){
+        const pct = Math.round(score/data.questions.length*100);
+        const resultEl = document.getElementById('ai-quiz-result');
+        if(resultEl){
+          resultEl.style.display = 'block';
+          resultEl.querySelector('div').textContent = `${pct}% — ${score}/${data.questions.length}`;
+          resultEl.querySelector('div').style.color = pct >= 60 ? '#4dffb0' : '#ff6ec7';
+        }
+        chat.scrollTop = chat.scrollHeight;
+      }
+    };
+
+    window._aiQuizRetry = () => {
+      answers = {}; score = 0;
+      // Yeni sorular iste
+      const inp = getActiveAiInput();
+      inp.value = isTr ? `${data.topic} hakkında yeni sorular sor` : `Ask new questions about ${data.topic}`;
+      sendAiQuestion();
+    };
+  }
+
+  buildQuiz();
+  chat.appendChild(wrapper);
+  chat.scrollTop = chat.scrollHeight;
+}
+
+// ============ AI ÖĞREN + TEST MODU ============
+async function startAiLearnMode(userRequest, thinkingEl){
+  const isTr = currentLang === 'tr';
+  const chat = getActiveAiChat();
+
+  try{
+    const resp = await fetch(PROXY_URL, {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({
+        model:'google/gemini-2.5-flash', max_tokens:2500,
+        uid: window.currentUser?.uid||'', sig: getRequestSignature(),
+        messages:[{ role:'user', content:
+          `Kullanıcı isteği: "${userRequest}"
+
+${isTr ? `Önce konuyu net ve anlaşılır anlat (3-4 paragraf), sonra 3 kısa çoktan seçmeli soru ekle. Sadece JSON döndür:
+{"topic":"konu başlığı","explanation":"konunun açıklaması (markdown yok, düz metin, 3-4 paragraf)","questions":[{"q":"soru","opts":["A) ...","B) ...","C) ...","D) ..."],"correct":0}]}`
+: `First explain the topic clearly (3-4 paragraphs), then add 3 short multiple choice questions. Return only JSON:
+{"topic":"topic title","explanation":"topic explanation (no markdown, plain text, 3-4 paragraphs)","questions":[{"q":"question","opts":["A) ...","B) ...","C) ...","D) ..."],"correct":0}]}`}
+        `}]
+      })
+    });
+    const data = await resp.json();
+    const text = data.content?.find(b=>b.type==='text')?.text || '';
+    const clean = text.replace(/```json|```/g,'').trim();
+    const parsed = JSON.parse(clean);
+
+    thinkingEl.classList.remove('thinking');
+    thinkingEl.remove(); // thinkingEl'i kaldır, yerine özel UI koy
+
+    // Açıklama mesajı
+    const expEl = document.createElement('div');
+    expEl.className = 'ai-msg ai';
+    expEl.style.cssText = 'max-width:100%';
+    expEl.innerHTML = `
+      <div style="font-family:'Space Mono',monospace;font-size:.65rem;color:rgba(110,231,255,.6);margin-bottom:8px">📚 ${parsed.topic}</div>
+      <div style="font-size:.82rem;line-height:1.65;color:rgba(220,210,255,.9)">${parsed.explanation.replace(/\n/g,'<br>')}</div>
+      <div style="margin-top:12px;padding-top:12px;border-top:1px solid rgba(255,255,255,.07);font-size:.7rem;color:rgba(180,160,255,.5);font-family:'Space Mono',monospace">
+        ${isTr ? '✦ Anladıysan aşağıdaki mini quiz\'i çöz!' : '✦ Test your understanding with the mini quiz below!'}
+      </div>`;
+    chat.appendChild(expEl);
+
+    // Mini quiz ekle
+    renderAiQuiz({ topic: parsed.topic, questions: parsed.questions }, chat);
+
+    aiHistory.push({ role:'user', content: userRequest });
+    aiHistory.push({ role:'assistant', content: parsed.explanation });
+    chat.scrollTop = chat.scrollHeight;
+
+  }catch(e){
+    thinkingEl.classList.remove('thinking');
+    thinkingEl.textContent = isTr ? 'İçerik oluşturulamadı, tekrar dene.' : 'Could not generate content, try again.';
   }
 }
 
@@ -6141,6 +6435,12 @@ async function updateLimitBadges(){
   }catch(e){}
 }
 setTimeout(updateLimitBadges, 1500);
+
+// Aktif kullanıcı sayacını güncelle
+document.addEventListener('activeUsersUpdated', (e) => {
+  const num = document.getElementById('activeUsersNum');
+  if(num) num.textContent = e.detail;
+});
 
 const siteFooter = document.getElementById('siteFooter');
 let footerOpened = false;
