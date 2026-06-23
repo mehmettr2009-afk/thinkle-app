@@ -5991,15 +5991,13 @@ async function startAiQuizMode(userRequest, thinkingEl){
     const resp = await fetch(PROXY_URL, {
       method:'POST', headers:{'Content-Type':'application/json'},
       body: JSON.stringify({
-        model:'google/gemini-2.5-flash', max_tokens:2000,
+        model:'google/gemini-2.5-flash', max_tokens:2500,
         uid: window.currentUser?.uid||'', sig: getRequestSignature(),
-        isDeck: true, // JSON çıktısı bekleniyor
+        isDeck: true,
         messages:[
-          // Few-shot örnek — AI'a tam olarak nasıl yanıt vermesi gerektiğini göster
-          { role:'user', content:'Trafik işaretleri hakkında 2 soru sor. SADECE JSON.' },
-          { role:'assistant', content:'{"topic":"Trafik İşaretleri","questions":[{"q":"Kırmızı ışıkta ne yapılır?","opts":["A) Geçilir","B) Durulur","C) Yavaşlanır","D) Korna çalınır"],"correct":1,"explanation":"Kırmızı ışıkta durmak zorunludur."},{"q":"Dur işareti kaç köşelidir?","opts":["A) 4","B) 6","C) 8","D) 3"],"correct":2,"explanation":"Dur işareti 8 köşeli (oktagon) şeklindedir."}]}' },
-          { role:'user', content:`"${userRequest}" — Bu konu hakkında 5 soru oluştur. SADECE JSON, başka hiçbir şey yazma:
-{"topic":"...","questions":[{"q":"...","opts":["A) ...","B) ...","C) ...","D) ..."],"correct":0,"explanation":"..."},...]}` }
+          { role:'user', content: 'trafik işaretleri hakkında 2 soru' },
+          { role:'assistant', content: 'TOPIC:Trafik İşaretleri\n---\nQ:Kırmızı ışıkta ne yapılır?\nA:Geçilir\nB:Durulur\nC:Yavaşlanır\nD:Korna çalınır\nCORRECT:B\nEXP:Kırmızı ışıkta durmak zorunludur.\n---\nQ:Dur işareti kaç köşelidir?\nA:4\nB:6\nC:8\nD:3\nCORRECT:C\nEXP:Dur işareti 8 köşeli oktagon şeklindedir.\n---END' },
+          { role:'user', content: `"${userRequest}" hakkında 5 soru oluştur. SADECE bu formatta, başka hiçbir şey ekleme:\n\nTOPIC:konu adı\n---\nQ:soru metni\nA:seçenek a\nB:seçenek b\nC:seçenek c\nD:seçenek d\nCORRECT:doğru harf (A B C D)\nEXP:kısa açıklama\n---\n(5 soru için tekrarla)\n---END` }
         ]
       })
     });
@@ -6007,21 +6005,8 @@ async function startAiQuizMode(userRequest, thinkingEl){
     const data = await resp.json();
     const raw = data.content?.find(b=>b.type==='text')?.text || '';
 
-    // Agresif JSON çıkarma
-    let parsed;
-    const attempts = [
-      raw.trim(),
-      raw.replace(/```json/gi,'').replace(/```/g,'').trim(),
-      (raw.match(/\{[\s\S]*\}/) || [])[0] || '',
-      (raw.match(/\{[\s\S]*"questions"[\s\S]*\}/) || [])[0] || '',
-    ];
-
-    for(const attempt of attempts){
-      if(!attempt) continue;
-      try{ parsed = JSON.parse(attempt); break; }catch(e){}
-    }
-
-    if(!parsed?.questions?.length) throw new Error('parse failed');
+    const parsed = parseQuizText(raw);
+    if(!parsed?.questions?.length) throw new Error('parse failed: ' + raw.slice(0,200));
 
     thinkingEl.classList.remove('thinking');
     thinkingEl.textContent = isTr
@@ -6033,10 +6018,38 @@ async function startAiQuizMode(userRequest, thinkingEl){
     aiHistory.push({ role:'assistant', content: `${parsed.topic} hakkında ${parsed.questions.length} soruluk interaktif quiz hazırladım.` });
 
   }catch(e){
-    console.error('Quiz error:', e);
+    console.error('Quiz error:', e.message);
     thinkingEl.classList.remove('thinking');
     thinkingEl.textContent = currentLang==='tr' ? 'Quiz oluşturulamadı, tekrar dene.' : 'Could not create quiz, try again.';
   }
+}
+
+function parseQuizText(raw){
+  const topicMatch = raw.match(/TOPIC[:：]\s*(.+)/i);
+  const topic = topicMatch ? topicMatch[1].trim() : 'Quiz';
+  const questions = [];
+  const blocks = raw.split(/\n-{2,}\n?/);
+
+
+  for(const block of blocks){
+    if(!block.trim() || block.includes('TOPIC:') || block.trim()==='END') continue;
+    const qM = block.match(/Q[:：]\s*(.+)/i);
+    const aM = block.match(/^A[:：]\s*(.+)/im);
+    const bM = block.match(/^B[:：]\s*(.+)/im);
+    const cM = block.match(/^C[:：]\s*(.+)/im);
+    const dM = block.match(/^D[:：]\s*(.+)/im);
+    const corrM = block.match(/CORRECT[:：]\s*([ABCD])/i);
+    const expM = block.match(/EXP[:：]\s*(.+)/i);
+    if(!qM || !aM || !bM || !corrM) continue;
+    const corrIdx = ['A','B','C','D'].indexOf(corrM[1].toUpperCase());
+    questions.push({
+      q: qM[1].trim(),
+      opts: ['A) '+(aM?.[1]||'').trim(),'B) '+(bM?.[1]||'').trim(),'C) '+(cM?.[1]||'').trim(),'D) '+(dM?.[1]||'').trim()],
+      correct: corrIdx >= 0 ? corrIdx : 0,
+      explanation: expM ? expM[1].trim() : ''
+    });
+  }
+  return questions.length ? { topic, questions } : null;
 }
 
 function renderAiQuiz(data, chat){
