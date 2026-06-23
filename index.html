@@ -462,15 +462,124 @@
   const FOUNDER = 'l8Tih1awnjP7fRXnUsFVVAuXEZu2';
   onSnapshot(doc(db, 'config', 'maintenance'), (snap) => {
     if(!snap.exists() || !snap.data().active) return;
-    // Auth state'i bekle
     const checkAndApply = () => {
       const uid = window.currentUser?.uid || '';
-      if(uid === FOUNDER) return; // kurucu → hiçbir şey yapma
+      if(uid === FOUNDER) return;
       window.dispatchEvent(new CustomEvent('maintenanceMode'));
     };
     if(window.currentUser !== undefined) checkAndApply();
-    else setTimeout(checkAndApply, 2000); // auth yüklenene kadar bekle
+    else setTimeout(checkAndApply, 2000);
   }, ()=>{});
+
+  // ============ BATTLE ROOM SİSTEMİ ============
+  function generateRoomCode(){
+    const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+    let code = '';
+    for(let i=0;i<6;i++) code += chars[Math.floor(Math.random()*chars.length)];
+    return code;
+  }
+
+  window.fbCreateRoom = async (uid, username, category, questions) => {
+    try {
+      let code, exists = true;
+      while(exists){
+        code = generateRoomCode();
+        const snap = await getDoc(doc(db, 'battleRooms', code));
+        exists = snap.exists();
+      }
+      const roomData = {
+        code,
+        host: uid,
+        hostName: username || uid.slice(0,8),
+        category,
+        questions, // [{question, options, answerIndex}]
+        players: { [uid]: { name: username || uid.slice(0,8), ready: false, score: 0, answers: {}, finishedAt: null } },
+        status: 'waiting', // waiting | countdown | playing | finished
+        createdAt: new Date().toISOString(),
+        startedAt: null,
+        maxPlayers: 6
+      };
+      await setDoc(doc(db, 'battleRooms', code), roomData);
+      return { ok: true, code };
+    } catch(e){ return { ok: false }; }
+  };
+
+  window.fbJoinRoom = async (code, uid, username) => {
+    try {
+      const ref = doc(db, 'battleRooms', code.toUpperCase());
+      const snap = await getDoc(ref);
+      if(!snap.exists()) return { ok: false, reason: 'notfound' };
+      const data = snap.data();
+      if(data.status !== 'waiting') return { ok: false, reason: 'started' };
+      const playerCount = Object.keys(data.players || {}).length;
+      if(playerCount >= data.maxPlayers) return { ok: false, reason: 'full' };
+      await updateDoc(ref, {
+        [`players.${uid}`]: { name: username || uid.slice(0,8), ready: false, score: 0, answers: {}, finishedAt: null }
+      });
+      return { ok: true, data };
+    } catch(e){ return { ok: false, reason: 'error' }; }
+  };
+
+  window.fbSetReady = async (code, uid, ready) => {
+    try {
+      await updateDoc(doc(db, 'battleRooms', code), { [`players.${uid}.ready`]: ready });
+    } catch(e){}
+  };
+
+  window.fbStartRoom = async (code) => {
+    try {
+      await updateDoc(doc(db, 'battleRooms', code), {
+        status: 'countdown',
+        startedAt: new Date().toISOString()
+      });
+      // 3 saniye sonra playing'e al
+      setTimeout(async () => {
+        try { await updateDoc(doc(db, 'battleRooms', code), { status: 'playing' }); } catch(e){}
+      }, 3500);
+    } catch(e){}
+  };
+
+  window.fbSubmitAnswer = async (code, uid, qi, answerIndex, correct) => {
+    try {
+      const scoreIncrement = correct ? 100 : 0;
+      await updateDoc(doc(db, 'battleRooms', code), {
+        [`players.${uid}.answers.${qi}`]: { answerIndex, correct, time: Date.now() },
+        [`players.${uid}.score`]: increment(scoreIncrement)
+      });
+    } catch(e){}
+  };
+
+  window.fbPlayerFinished = async (code, uid) => {
+    try {
+      await updateDoc(doc(db, 'battleRooms', code), {
+        [`players.${uid}.finishedAt`]: new Date().toISOString()
+      });
+    } catch(e){}
+  };
+
+  window.fbWatchRoom = (code, callback) => {
+    return onSnapshot(doc(db, 'battleRooms', code), (snap) => {
+      if(snap.exists()) callback(snap.data());
+    }, ()=>{});
+  };
+
+  window.fbLeaveRoom = async (code, uid) => {
+    try {
+      const ref = doc(db, 'battleRooms', code);
+      const snap = await getDoc(ref);
+      if(!snap.exists()) return;
+      const data = snap.data();
+      const players = { ...data.players };
+      delete players[uid];
+      if(Object.keys(players).length === 0){
+        await deleteDoc(ref);
+      } else {
+        let newHost = data.host;
+        if(data.host === uid) newHost = Object.keys(players)[0];
+        await updateDoc(ref, { players, host: newHost, hostName: players[newHost]?.name || '' });
+      }
+    } catch(e){}
+  };
 </script>
 <style>
   :root{
@@ -2306,6 +2415,158 @@
   .diff-btn.active-medium{ background:rgba(255,200,0,.15);border-color:rgba(255,200,0,.5);color:#ffc800; }
   .diff-btn.active-hard{ background:rgba(255,100,100,.15);border-color:rgba(255,100,100,.5);color:#ff6464; }
 
+  /* ============ BATTLE ROOM CSS ============ */
+  .battle-modal{
+    position:fixed;inset:0;z-index:99100;
+    background:rgba(3,2,15,.95);backdrop-filter:blur(16px);
+    display:flex;align-items:center;justify-content:center;
+    padding:16px;box-sizing:border-box;overflow-y:auto;
+    animation:auth-appear .3s ease both;
+  }
+  .battle-box{
+    background:rgba(8,6,24,.98);
+    border:1px solid rgba(110,231,255,.2);
+    border-radius:24px;padding:28px 24px;
+    max-width:520px;width:100%;
+    box-shadow:0 20px 60px rgba(0,0,0,.7);
+    position:relative;max-height:92vh;overflow-y:auto;
+    animation:auth-slide .4s cubic-bezier(.16,1,.3,1) both;
+  }
+  .battle-title{
+    font-family:'Orbitron',sans-serif;font-size:1.1rem;font-weight:900;
+    background:linear-gradient(135deg,#ff6ec7,#b46bff,#6ee7ff);
+    -webkit-background-clip:text;-webkit-text-fill-color:transparent;
+    background-clip:text;margin:0 0 4px;
+  }
+  .category-grid{
+    display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:14px 0;
+  }
+  .cat-btn{
+    padding:12px 10px;border-radius:12px;
+    border:1px solid rgba(180,107,255,.2);
+    background:rgba(180,107,255,.05);
+    color:rgba(200,190,220,.8);font-size:.8rem;
+    cursor:pointer;touch-action:manipulation;
+    font-family:'Space Grotesk',sans-serif;font-weight:600;
+    text-align:center;transition:.15s;
+  }
+  .cat-btn:hover{ background:rgba(180,107,255,.15);border-color:rgba(180,107,255,.5); }
+  .cat-btn.selected{
+    background:linear-gradient(135deg,rgba(180,107,255,.25),rgba(110,231,255,.15));
+    border-color:rgba(110,231,255,.6);color:#6ee7ff;
+  }
+  .room-code{
+    font-family:'Orbitron',sans-serif;font-size:2.4rem;font-weight:900;
+    letter-spacing:.18em;text-align:center;
+    background:linear-gradient(135deg,#6ee7ff,#b46bff);
+    -webkit-background-clip:text;-webkit-text-fill-color:transparent;
+    background-clip:text;margin:12px 0;cursor:pointer;
+    transition:.2s;
+  }
+  .room-code:hover{ opacity:.75; }
+  .player-slot{
+    display:flex;align-items:center;gap:10px;
+    padding:10px 12px;border-radius:12px;
+    background:rgba(255,255,255,.03);
+    border:1px solid rgba(255,255,255,.07);
+    margin-bottom:6px;transition:.3s;
+  }
+  .player-slot.ready{ border-color:rgba(77,255,176,.4);background:rgba(77,255,176,.06); }
+  .player-avatar{
+    width:32px;height:32px;border-radius:50%;
+    display:flex;align-items:center;justify-content:center;
+    font-size:1.1rem;flex-shrink:0;
+    background:rgba(14,10,36,.8);border:1px solid rgba(180,107,255,.3);
+  }
+  .player-name{ flex:1;font-size:.82rem;font-weight:600; }
+  .player-ready-badge{
+    font-size:.62rem;font-family:'Space Mono',monospace;
+    padding:2px 8px;border-radius:6px;
+  }
+  /* Battle oyun ekranı */
+  .battle-screen{
+    position:fixed;inset:0;z-index:99200;
+    background:rgba(3,2,15,.97);
+    display:flex;flex-direction:column;overflow:hidden;
+  }
+  .battle-header{
+    display:flex;align-items:center;justify-content:space-between;
+    padding:10px 16px;border-bottom:1px solid rgba(255,255,255,.07);
+    background:rgba(8,6,24,.9);flex-shrink:0;
+  }
+  .battle-timer{
+    font-family:'Orbitron',sans-serif;font-size:1.4rem;font-weight:900;
+    width:48px;height:48px;border-radius:50%;
+    display:flex;align-items:center;justify-content:center;
+    border:2px solid;transition:color .3s,border-color .3s;
+  }
+  .battle-scoreboard{
+    display:flex;gap:6px;overflow-x:auto;padding:8px 12px;
+    border-bottom:1px solid rgba(255,255,255,.06);
+    flex-shrink:0;-webkit-overflow-scrolling:touch;
+  }
+  .battle-player-card{
+    flex-shrink:0;min-width:90px;padding:8px 10px;border-radius:10px;
+    background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);
+    text-align:center;transition:.3s;
+  }
+  .battle-player-card.me{
+    border-color:rgba(110,231,255,.4);background:rgba(110,231,255,.06);
+  }
+  .battle-player-card.leading{
+    border-color:rgba(255,200,0,.5);background:rgba(255,200,0,.06);
+  }
+  .battle-player-score{
+    font-family:'Space Mono',monospace;font-size:1rem;font-weight:700;
+  }
+  .battle-player-nick{ font-size:.6rem;color:rgba(255,255,255,.5);margin-top:2px; }
+  .battle-q-area{
+    flex:1;overflow-y:auto;padding:14px 16px;
+  }
+  .battle-q{
+    background:rgba(16,22,58,.6);border:1px solid rgba(255,255,255,.1);
+    border-radius:14px;padding:16px 18px;margin-bottom:10px;
+  }
+  .battle-q h3{ font-size:.95rem;margin:0 0 12px;line-height:1.4; }
+  .battle-opt{
+    display:block;width:100%;text-align:left;padding:9px 12px;margin-bottom:6px;
+    border:1px solid rgba(255,255,255,.1);border-radius:9px;
+    background:rgba(255,255,255,.03);color:rgba(220,210,255,.85);
+    font-size:.82rem;cursor:pointer;touch-action:manipulation;
+    font-family:'Space Grotesk',sans-serif;transition:.15s;
+  }
+  .battle-opt:hover:not(:disabled){ border-color:#6ee7ff;background:rgba(110,231,255,.07); }
+  .battle-opt.correct{ border-color:#4dffb0;background:rgba(77,255,176,.12);color:#4dffb0;font-weight:600; }
+  .battle-opt.wrong{ border-color:#ff6ec7;background:rgba(255,110,199,.1);color:#ff6ec7; }
+  .battle-opt.rival-correct{ border-color:rgba(255,200,0,.6);background:rgba(255,200,0,.08); }
+  .countdown-overlay{
+    position:fixed;inset:0;z-index:99300;
+    background:rgba(3,2,15,.92);backdrop-filter:blur(8px);
+    display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;
+  }
+  .countdown-num{
+    font-family:'Orbitron',sans-serif;font-size:6rem;font-weight:900;
+    background:linear-gradient(135deg,#ff6ec7,#b46bff,#6ee7ff);
+    -webkit-background-clip:text;-webkit-text-fill-color:transparent;
+    background-clip:text;
+    animation:countdown-pop .9s cubic-bezier(.16,1,.3,1) both;
+  }
+  @keyframes countdown-pop{
+    0%{transform:scale(2);opacity:0;}
+    60%{transform:scale(.9);opacity:1;}
+    100%{transform:scale(1);opacity:1;}
+  }
+  /* Battle butonu sidebar */
+  .battle-sidebar-btn{
+    margin:0 12px 8px;padding:9px 12px;border-radius:10px;
+    border:1px solid rgba(255,110,199,.3);
+    background:linear-gradient(135deg,rgba(255,110,199,.08),rgba(180,107,255,.08));
+    color:#ff6ec7;cursor:pointer;font-size:.75rem;
+    font-family:'Space Mono',monospace;letter-spacing:.04em;
+    touch-action:manipulation;display:flex;align-items:center;
+    justify-content:center;gap:6px;transition:.2s;width:calc(100% - 24px);
+  }
+  .battle-sidebar-btn:hover{ background:linear-gradient(135deg,rgba(255,110,199,.18),rgba(180,107,255,.18)); }
 </style>
 </head>
 <body>
@@ -2387,6 +2648,7 @@
   <div class="mam-divider"></div>
   <button id="mamSlides" onclick="var t=document.getElementById('tabs');if(t&&t.children.length>0)t.classList.add('open');document.getElementById('mobileActionsMenu').classList.remove('open')">📑 <span data-i18n="menuToggle">Slaytlar</span></button>
   <button id="mamRestart" onclick="document.getElementById('restartBtn')?.click();document.getElementById('mobileActionsMenu').classList.remove('open')">↺ <span data-i18n="restartBtn">Yeni dosya</span></button>
+  <button onclick="showBattleModal();document.getElementById('mobileActionsMenu').classList.remove('open')" style="color:#ff6ec7">⚔️ Yarışma Modu</button>
   <button id="mamExport" disabled onclick="document.getElementById('exportBtn')?.click();document.getElementById('mobileActionsMenu').classList.remove('open')">⬇ <span data-i18n="exportBtn">.pptx indir</span></button>
   <div class="mam-divider" id="mamFounderDivider" style="display:none"></div>
   <button id="mamFounderBtn" style="display:none;color:#ffd700" onclick="if(typeof showFounderWelcome==='function')showFounderWelcome();document.getElementById('mobileActionsMenu').classList.remove('open')">👑 Yönetici Paneli</button>
@@ -3569,6 +3831,7 @@ document.addEventListener('authChanged', e => {  const user = e.detail;
           👑 Yönetici Paneli
         </button>` : ''}
         <div id="galaxyApplyArea" style="margin:0 12px 10px"></div>
+        <button class="battle-sidebar-btn" onclick="showBattleModal()">⚔️ Yarışma Modu</button>
       </div>`;
 
     // Galaxy durumunu kontrol et ve uygun UI'yi göster
@@ -3787,6 +4050,590 @@ function showGalaxyApplyForm(user, isTr, onSuccess){
       submitBtn.style.opacity = '1';
     }
   };
+}
+
+// ============================================================
+// BATTLE ROOM SİSTEMİ — Gartic.io tarzı çok oyunculu quiz
+// ============================================================
+const BATTLE_CATEGORIES = [
+  { id:'general',   emoji:'🌍', label:'Genel Kültür' },
+  { id:'science',   emoji:'🔬', label:'Fen & Bilim' },
+  { id:'history',   emoji:'🏛️', label:'Tarih' },
+  { id:'geography', emoji:'🗺️', label:'Coğrafya' },
+  { id:'sports',    emoji:'⚽', label:'Spor' },
+  { id:'movies',    emoji:'🎬', label:'Film & Dizi' },
+  { id:'music',     emoji:'🎵', label:'Müzik' },
+  { id:'tech',      emoji:'💻', label:'Teknoloji' },
+  { id:'ehliyet',   emoji:'🚗', label:'Ehliyet Sınavı' },
+  { id:'math',      emoji:'➕', label:'Matematik' },
+];
+
+let battleRoomCode = null;
+let battleUnsubscribe = null;
+let battleIsHost = false;
+let battleMyUid = null;
+let battleMyName = null;
+let battleQuestions = [];
+let battleAnswers = {};
+let battleTimerInterval = null;
+let battleTimeLeft = 20;
+let battleCurrentQ = 0;
+let battleFinished = false;
+let battleSelectedCategory = null;
+
+function showBattleModal(){
+  const user = window.currentUser;
+  if(!user || user.isAnonymous){ showAuthModal(() => showBattleModal()); return; }
+  if(document.getElementById('battleModal')) return;
+
+  const modal = document.createElement('div');
+  modal.id = 'battleModal';
+  modal.className = 'battle-modal';
+  modal.innerHTML = `
+    <div class="battle-box">
+      <button onclick="closeBattleModal()" style="position:absolute;top:14px;right:14px;background:rgba(255,255,255,.08);border:none;border-radius:8px;width:28px;height:28px;cursor:pointer;color:rgba(255,255,255,.6);font-size:.8rem;touch-action:manipulation">✕</button>
+      <div style="text-align:center;margin-bottom:16px">
+        <div style="font-size:2rem;margin-bottom:6px">⚔️</div>
+        <h2 class="battle-title">Yarışma Modu</h2>
+        <div style="font-size:.72rem;color:rgba(180,160,255,.5)">Gartic tarzı çok oyunculu quiz · Maks 6 kişi</div>
+      </div>
+
+      <div style="display:flex;gap:8px;margin-bottom:18px">
+        <button id="btnCreateRoom" onclick="showCreateRoom()" style="flex:1;padding:12px;border-radius:12px;border:none;background:linear-gradient(135deg,#ff6ec7,#b46bff);color:#070a18;font-weight:700;font-size:.85rem;cursor:pointer;touch-action:manipulation;font-family:'Space Grotesk',sans-serif">
+          ➕ Oda Kur
+        </button>
+        <button id="btnJoinRoom" onclick="showJoinRoom()" style="flex:1;padding:12px;border-radius:12px;border:1px solid rgba(110,231,255,.3);background:rgba(110,231,255,.06);color:#6ee7ff;font-weight:700;font-size:.85rem;cursor:pointer;touch-action:manipulation;font-family:'Space Grotesk',sans-serif">
+          🔑 Odaya Katıl
+        </button>
+      </div>
+
+      <div id="battleModalContent"></div>
+    </div>`;
+  document.body.appendChild(modal);
+  modal.addEventListener('click', e => { if(e.target === modal) closeBattleModal(); });
+}
+
+function closeBattleModal(){
+  document.getElementById('battleModal')?.remove();
+}
+
+function showCreateRoom(){
+  const content = document.getElementById('battleModalContent');
+  if(!content) return;
+  content.innerHTML = `
+    <div style="font-size:.75rem;color:rgba(180,160,255,.6);margin-bottom:8px;font-weight:600">📂 Kategori Seç</div>
+    <div class="category-grid">
+      ${BATTLE_CATEGORIES.map(c => `
+        <button class="cat-btn" data-cat="${c.id}" onclick="selectBattleCategory('${c.id}',this)">
+          ${c.emoji} ${c.label}
+        </button>`).join('')}
+    </div>
+    <div style="font-size:.7rem;color:rgba(180,160,255,.4);margin-bottom:10px">⏱ Soru başına 20 saniye · 10 soru</div>
+    <button id="createRoomBtn" onclick="doCreateRoom()" disabled style="
+      width:100%;padding:13px;border-radius:12px;border:none;
+      background:linear-gradient(135deg,#ff6ec7,#b46bff);
+      color:#070a18;font-weight:700;font-size:.88rem;cursor:pointer;
+      touch-action:manipulation;font-family:'Space Grotesk',sans-serif;
+      opacity:.4;transition:.2s
+    ">🚀 Odayı Oluştur</button>`;
+  battleSelectedCategory = null;
+}
+
+function selectBattleCategory(id, btn){
+  battleSelectedCategory = id;
+  document.querySelectorAll('.cat-btn').forEach(b => b.classList.remove('selected'));
+  btn.classList.add('selected');
+  const createBtn = document.getElementById('createRoomBtn');
+  if(createBtn){ createBtn.disabled = false; createBtn.style.opacity = '1'; }
+}
+
+async function doCreateRoom(){
+  const user = window.currentUser;
+  if(!user || !battleSelectedCategory) return;
+  const btn = document.getElementById('createRoomBtn');
+  if(btn){ btn.disabled = true; btn.textContent = '⏳ Sorular hazırlanıyor...'; btn.style.opacity = '.7'; }
+
+  // AI ile soru üret
+  const catLabel = BATTLE_CATEGORIES.find(c=>c.id===battleSelectedCategory)?.label || battleSelectedCategory;
+  const questions = await generateBattleQuestions(catLabel);
+  if(!questions){ if(btn){ btn.disabled=false; btn.textContent='🚀 Odayı Oluştur'; btn.style.opacity='1'; } return; }
+
+  battleMyUid = user.uid;
+  battleMyName = window.currentUsername ? '@'+window.currentUsername : (user.displayName || user.uid.slice(0,8));
+  battleQuestions = questions;
+  battleIsHost = true;
+
+  const result = await window.fbCreateRoom(user.uid, battleMyName, battleSelectedCategory, questions);
+  if(!result.ok){ showToast('Oda oluşturulamadı, tekrar dene.'); return; }
+
+  battleRoomCode = result.code;
+  showWaitingRoom(result.code);
+}
+
+async function generateBattleQuestions(category){
+  try{
+    const resp = await fetch(PROXY_URL, {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({
+        model:'google/gemini-2.5-flash', max_tokens:2500,
+        uid: window.currentUser?.uid||'', sig: getRequestSignature(),
+        isDeck: true,
+        messages:[{role:'user', content:
+          `"${category}" kategorisinde tam olarak 10 çoktan seçmeli soru. SADECE bu format:
+
+TOPIC:${category}
+---
+Q:soru metni
+A:seçenek
+B:seçenek
+C:seçenek
+D:seçenek
+CORRECT:doğru harf
+EXP:kısa açıklama
+---
+(10 soru, her biri --- ile ayrılmış)
+---END
+
+Kurallar: Türkçe yaz. Sorular net ve kısa olsun. Yanıltıcı ama mantıklı yanlış seçenekler kullan.`
+        }]
+      })
+    });
+    const data = await resp.json();
+    const raw = data.content?.find(b=>b.type==='text')?.text || '';
+    const parsed = parseQuizText(raw);
+    if(!parsed?.questions?.length) return null;
+    return parsed.questions.map(q => ({
+      question: q.q,
+      options: q.opts,
+      answerIndex: q.correct,
+      explanation: q.explanation
+    }));
+  }catch(e){ return null; }
+}
+
+function showWaitingRoom(code){
+  const modal = document.getElementById('battleModal');
+  if(!modal) return;
+  const box = modal.querySelector('.battle-box');
+  if(!box) return;
+
+  const catLabel = BATTLE_CATEGORIES.find(c=>c.id===battleSelectedCategory)?.label || '';
+
+  box.innerHTML = `
+    <button onclick="leaveBattleRoom()" style="position:absolute;top:14px;right:14px;background:rgba(255,255,255,.08);border:none;border-radius:8px;width:28px;height:28px;cursor:pointer;color:rgba(255,255,255,.6);font-size:.8rem;touch-action:manipulation">✕</button>
+    <div style="text-align:center;margin-bottom:16px">
+      <div style="font-size:.7rem;color:rgba(180,160,255,.5);font-family:'Space Mono',monospace;margin-bottom:4px">ODA KODU — arkadaşınla paylaş</div>
+      <div class="room-code" onclick="copyRoomCode('${code}')" title="Kopyala">${code}</div>
+      <div style="font-size:.65rem;color:rgba(255,255,255,.3);margin-bottom:8px">Tıkla → Kopyala · ${catLabel}</div>
+      <div style="display:inline-flex;align-items:center;gap:6px;padding:5px 12px;border-radius:20px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08)">
+        <span style="width:6px;height:6px;border-radius:50%;background:#4dffb0;animation:pulse-dot 1.5s infinite"></span>
+        <span id="waitingCount" style="font-size:.7rem;color:rgba(255,255,255,.5);font-family:'Space Mono',monospace">1 / 6 oyuncu</span>
+      </div>
+    </div>
+
+    <div id="playerList" style="margin-bottom:14px"></div>
+
+    <div id="hostControls" style="${battleIsHost?'':'display:none'}">
+      <button id="startBattleBtn" onclick="doStartBattle()" disabled style="
+        width:100%;padding:13px;border-radius:12px;border:none;
+        background:linear-gradient(135deg,#ff6ec7,#b46bff);
+        color:#070a18;font-weight:700;font-size:.88rem;cursor:pointer;
+        touch-action:manipulation;font-family:'Space Grotesk',sans-serif;
+        opacity:.4;transition:.2s;
+      ">🚀 Yarışmayı Başlat</button>
+      <div style="font-size:.65rem;color:rgba(180,160,255,.4);text-align:center;margin-top:6px">En az 2 oyuncu hazır olmalı</div>
+    </div>
+    <div id="guestWaiting" style="${battleIsHost?'display:none':'text-align:center;color:rgba(180,160,255,.5);font-size:.78rem;padding:10px'}">
+      ⏳ Host başlatmasını bekliyorsun...
+    </div>
+
+    <div style="margin-top:12px;text-align:center">
+      <button id="myReadyBtn" onclick="toggleMyReady()" style="
+        padding:9px 20px;border-radius:10px;
+        border:1px solid rgba(77,255,176,.3);
+        background:rgba(77,255,176,.06);color:#4dffb0;
+        cursor:pointer;font-size:.78rem;touch-action:manipulation;
+        font-family:'Space Grotesk',sans-serif;font-weight:600;
+      ">✓ Hazırım</button>
+    </div>`;
+
+  // Oda değişikliklerini dinle
+  if(battleUnsubscribe) battleUnsubscribe();
+  battleUnsubscribe = window.fbWatchRoom(code, (roomData) => {
+    updateWaitingRoom(roomData);
+    if(roomData.status === 'countdown') startCountdown(roomData);
+    if(roomData.status === 'playing') startBattleGame(roomData);
+  });
+}
+
+let myReady = false;
+function toggleMyReady(){
+  myReady = !myReady;
+  const btn = document.getElementById('myReadyBtn');
+  if(btn){
+    btn.textContent = myReady ? '✓ Hazırım ✔' : '✓ Hazırım';
+    btn.style.background = myReady ? 'rgba(77,255,176,.2)' : 'rgba(77,255,176,.06)';
+    btn.style.borderColor = myReady ? 'rgba(77,255,176,.6)' : 'rgba(77,255,176,.3)';
+  }
+  if(battleRoomCode && battleMyUid) window.fbSetReady(battleRoomCode, battleMyUid, myReady);
+}
+
+function updateWaitingRoom(roomData){
+  const players = roomData.players || {};
+  const uids = Object.keys(players);
+  const count = uids.length;
+  const readyCount = uids.filter(u => players[u].ready).length;
+
+  const countEl = document.getElementById('waitingCount');
+  if(countEl) countEl.textContent = `${count} / 6 oyuncu · ${readyCount} hazır`;
+
+  const listEl = document.getElementById('playerList');
+  if(listEl){
+    listEl.innerHTML = uids.map(uid => {
+      const p = players[uid];
+      const isMe = uid === battleMyUid;
+      const avatarEmoji = uid === battleMyUid ? (window.currentAvatar || '🚀') : '👤';
+      return `
+        <div class="player-slot ${p.ready?'ready':''}">
+          <div class="player-avatar">${avatarEmoji}</div>
+          <div class="player-name">${escapeHtml(p.name)} ${isMe?'<span style="font-size:.6rem;color:rgba(110,231,255,.5)">(sen)</span>':''}</div>
+          ${uid === roomData.host ? '<span style="font-size:.6rem;color:#ffd700;font-family:Space Mono,monospace">HOST</span>' : ''}
+          <span class="player-ready-badge" style="background:${p.ready?'rgba(77,255,176,.15)':'rgba(255,255,255,.06)'};color:${p.ready?'#4dffb0':'rgba(255,255,255,.3)'}">
+            ${p.ready ? '✓ Hazır' : '⏳ Bekliyor'}
+          </span>
+        </div>`;
+    }).join('');
+  }
+
+  // Host kontrolü — 2+ kişi varsa ve en az 2 hazırsa başlat butonu aktif
+  if(battleIsHost){
+    const startBtn = document.getElementById('startBattleBtn');
+    const canStart = count >= 2 && readyCount >= 2;
+    if(startBtn){ startBtn.disabled = !canStart; startBtn.style.opacity = canStart ? '1' : '.4'; }
+  }
+}
+
+function copyRoomCode(code){
+  navigator.clipboard.writeText(code).then(()=>{
+    showToast('✓ Oda kodu kopyalandı: ' + code);
+  }).catch(()=>{
+    showToast('Kod: ' + code);
+  });
+}
+
+async function doStartBattle(){
+  if(!battleRoomCode || !battleIsHost) return;
+  const btn = document.getElementById('startBattleBtn');
+  if(btn){ btn.disabled=true; btn.textContent='⏳ Başlatılıyor...'; }
+  await window.fbStartRoom(battleRoomCode);
+}
+
+function showJoinRoom(){
+  const content = document.getElementById('battleModalContent');
+  if(!content) return;
+  content.innerHTML = `
+    <div style="font-size:.75rem;color:rgba(180,160,255,.6);margin-bottom:8px;font-weight:600">🔑 Oda Kodu Gir</div>
+    <input id="joinCodeInput" type="text" maxlength="6" placeholder="ÖRNEK: AB3K7P"
+      style="width:100%;padding:12px 14px;border:1px solid rgba(110,231,255,.25);border-radius:12px;background:rgba(255,255,255,.04);color:#fff;font-size:1.2rem;font-family:'Orbitron',sans-serif;font-weight:700;letter-spacing:.15em;text-align:center;text-transform:uppercase;box-sizing:border-box;outline:none;-webkit-user-select:text;user-select:text;margin-bottom:10px"
+    >
+    <div id="joinError" style="font-size:.72rem;color:#ff6ec7;min-height:1.2em;margin-bottom:8px"></div>
+    <button onclick="doJoinRoom()" style="
+      width:100%;padding:13px;border-radius:12px;border:none;
+      background:linear-gradient(135deg,#6ee7ff,#b46bff);
+      color:#070a18;font-weight:700;font-size:.88rem;cursor:pointer;
+      touch-action:manipulation;font-family:'Space Grotesk',sans-serif;
+    ">🔑 Odaya Gir</button>`;
+
+  const inp = document.getElementById('joinCodeInput');
+  if(inp){
+    inp.addEventListener('input', () => { inp.value = inp.value.toUpperCase().replace(/[^A-Z0-9]/g,''); });
+    inp.addEventListener('keydown', e => { if(e.key==='Enter') doJoinRoom(); });
+    setTimeout(()=>inp.focus(), 100);
+  }
+}
+
+async function doJoinRoom(){
+  const user = window.currentUser;
+  if(!user) return;
+  const inp = document.getElementById('joinCodeInput');
+  const errEl = document.getElementById('joinError');
+  const code = inp?.value.trim().toUpperCase();
+  if(!code || code.length < 6){ if(errEl) errEl.textContent = '6 haneli kodu eksiksiz gir'; return; }
+
+  battleMyUid = user.uid;
+  battleMyName = window.currentUsername ? '@'+window.currentUsername : (user.displayName || user.uid.slice(0,8));
+  battleIsHost = false;
+
+  const result = await window.fbJoinRoom(code, user.uid, battleMyName);
+  if(!result.ok){
+    const msgs = { notfound:'Oda bulunamadı', started:'Yarışma başlamış', full:'Oda dolu (6/6)', error:'Hata oluştu' };
+    if(errEl) errEl.textContent = msgs[result.reason] || 'Hata';
+    return;
+  }
+  battleRoomCode = code;
+  battleQuestions = result.data.questions || [];
+  battleSelectedCategory = result.data.category;
+  showWaitingRoom(code);
+}
+
+async function leaveBattleRoom(){
+  if(battleUnsubscribe){ battleUnsubscribe(); battleUnsubscribe = null; }
+  if(battleRoomCode && battleMyUid) await window.fbLeaveRoom(battleRoomCode, battleMyUid);
+  battleRoomCode = null; battleIsHost = false;
+  document.getElementById('battleModal')?.remove();
+  document.getElementById('battleScreen')?.remove();
+}
+
+// ============ GERİ SAYIM ============
+function startCountdown(roomData){
+  // Waiting room'u kapat
+  document.getElementById('battleModal')?.remove();
+  if(document.getElementById('countdownOverlay')) return;
+
+  battleQuestions = roomData.questions || battleQuestions;
+
+  const overlay = document.createElement('div');
+  overlay.id = 'countdownOverlay';
+  overlay.className = 'countdown-overlay';
+  overlay.innerHTML = `
+    <div style="font-family:'Space Mono',monospace;font-size:.9rem;color:rgba(180,160,255,.7);letter-spacing:.1em">HAZIR OL</div>
+    <div class="countdown-num" id="cdNum">3</div>
+    <div style="font-size:.8rem;color:rgba(255,255,255,.4)">${BATTLE_CATEGORIES.find(c=>c.id===roomData.category)?.label || ''}</div>`;
+  document.body.appendChild(overlay);
+
+  let n = 3;
+  const iv = setInterval(()=>{
+    n--;
+    const el = document.getElementById('cdNum');
+    if(el){
+      el.style.animation='none'; void el.offsetWidth;
+      el.style.animation='countdown-pop .9s cubic-bezier(.16,1,.3,1) both';
+      el.textContent = n > 0 ? n : 'BAŞLA!';
+    }
+    if(n <= 0){
+      clearInterval(iv);
+      setTimeout(()=>{ overlay.remove(); }, 900);
+    }
+  }, 1000);
+}
+
+// ============ BATTLE OYUN EKRANI ============
+function startBattleGame(roomData){
+  if(document.getElementById('battleScreen')) return;
+  document.getElementById('countdownOverlay')?.remove();
+
+  battleQuestions = roomData.questions || battleQuestions;
+  battleAnswers = {};
+  battleCurrentQ = 0;
+  battleFinished = false;
+
+  const screen = document.createElement('div');
+  screen.id = 'battleScreen';
+  screen.className = 'battle-screen';
+  screen.innerHTML = `
+    <div class="battle-header">
+      <div style="font-family:'Orbitron',sans-serif;font-size:.7rem;color:rgba(180,160,255,.6);letter-spacing:.08em">⚔️ YARIŞMA</div>
+      <div class="battle-timer" id="battleTimer" style="color:#4dffb0;border-color:#4dffb0">20</div>
+      <div style="font-size:.7rem;color:rgba(255,255,255,.4);font-family:'Space Mono',monospace" id="battleQNum">1 / ${battleQuestions.length}</div>
+    </div>
+    <div class="battle-scoreboard" id="battleScoreboard"></div>
+    <div class="battle-q-area" id="battleQArea"></div>`;
+  document.body.appendChild(screen);
+
+  // Oda değişikliklerini dinle
+  if(battleUnsubscribe) battleUnsubscribe();
+  battleUnsubscribe = window.fbWatchRoom(battleRoomCode, (data) => {
+    updateBattleScoreboard(data);
+    updateRivalAnswers(data);
+    if(data.status === 'finished') showBattleResult(data);
+  });
+
+  renderBattleQuestion(0, roomData);
+}
+
+function renderBattleQuestion(qi, roomData){
+  if(qi >= battleQuestions.length){ endBattle(); return; }
+  battleCurrentQ = qi;
+  clearInterval(battleTimerInterval);
+  battleTimeLeft = 20;
+
+  const q = battleQuestions[qi];
+  const qArea = document.getElementById('battleQArea');
+  const qNumEl = document.getElementById('battleQNum');
+  if(qNumEl) qNumEl.textContent = `${qi+1} / ${battleQuestions.length}`;
+
+  if(qArea){
+    qArea.innerHTML = `
+      <div class="battle-q" id="bq-${qi}">
+        <div style="font-size:.65rem;color:rgba(110,231,255,.5);font-family:'Space Mono',monospace;margin-bottom:6px">SORU ${qi+1}</div>
+        <h3>${escapeHtml(q.question)}</h3>
+        ${q.options.map((opt,oi)=>`
+          <button class="battle-opt" id="bopt-${qi}-${oi}" data-oi="${oi}" onclick="submitBattleAnswer(${qi},${oi})">
+            ${escapeHtml(opt)}
+          </button>`).join('')}
+        <div id="bexp-${qi}" style="display:none;margin-top:8px;padding:8px 10px;border-radius:8px;font-size:.72rem;line-height:1.5"></div>
+      </div>`;
+  }
+
+  // Timer
+  updateTimerUI();
+  battleTimerInterval = setInterval(()=>{
+    battleTimeLeft--;
+    updateTimerUI();
+    if(battleTimeLeft <= 0){
+      clearInterval(battleTimerInterval);
+      // Süre doldu — yanlış cevap gibi işle
+      if(battleAnswers[qi] === undefined){
+        lockQuestion(qi, -1, q.answerIndex);
+        setTimeout(()=> renderBattleQuestion(qi+1, {}), 2000);
+      }
+    }
+  }, 1000);
+}
+
+function updateTimerUI(){
+  const el = document.getElementById('battleTimer');
+  if(!el) return;
+  el.textContent = battleTimeLeft;
+  if(battleTimeLeft > 10){ el.style.color='#4dffb0'; el.style.borderColor='#4dffb0'; }
+  else if(battleTimeLeft > 5){ el.style.color='#ffd700'; el.style.borderColor='#ffd700'; }
+  else { el.style.color='#ff6ec7'; el.style.borderColor='#ff6ec7'; }
+}
+
+async function submitBattleAnswer(qi, oi){
+  if(battleAnswers[qi] !== undefined) return;
+  clearInterval(battleTimerInterval);
+  battleAnswers[qi] = oi;
+
+  const q = battleQuestions[qi];
+  const correct = oi === q.answerIndex;
+  const timeBonus = Math.round(battleTimeLeft / 20 * 50); // hız bonusu maks 50
+  const score = correct ? 100 + timeBonus : 0;
+
+  await window.fbSubmitAnswer(battleRoomCode, battleMyUid, qi, oi, correct);
+  lockQuestion(qi, oi, q.answerIndex, q.explanation);
+
+  setTimeout(()=>{
+    if(qi + 1 >= battleQuestions.length){
+      endBattle();
+    } else {
+      renderBattleQuestion(qi+1, {});
+    }
+  }, 2200);
+}
+
+function lockQuestion(qi, myOi, correctOi, explanation){
+  battleQuestions[qi]?.options.forEach((_,oi)=>{
+    const btn = document.getElementById(`bopt-${qi}-${oi}`);
+    if(!btn) return;
+    btn.disabled = true;
+    if(oi === correctOi) btn.classList.add('correct');
+    else if(oi === myOi) btn.classList.add('wrong');
+  });
+  if(explanation){
+    const expEl = document.getElementById(`bexp-${qi}`);
+    if(expEl){
+      expEl.style.display = 'block';
+      expEl.style.background = myOi === correctOi ? 'rgba(77,255,176,.08)' : 'rgba(255,110,199,.08)';
+      expEl.style.color = myOi === correctOi ? '#4dffb0' : '#ff6ec7';
+      expEl.style.border = `1px solid ${myOi===correctOi?'rgba(77,255,176,.2)':'rgba(255,110,199,.2)'}`;
+      expEl.textContent = (myOi === correctOi ? '✓ ' : '✗ ') + explanation;
+    }
+  }
+}
+
+function updateBattleScoreboard(roomData){
+  const sb = document.getElementById('battleScoreboard');
+  if(!sb) return;
+  const players = roomData.players || {};
+  const sorted = Object.entries(players).sort((a,b) => (b[1].score||0) - (a[1].score||0));
+  const maxScore = sorted[0]?.[1]?.score || 1;
+
+  sb.innerHTML = sorted.map(([uid, p], i) => {
+    const isMe = uid === battleMyUid;
+    const isLeading = i === 0 && p.score > 0;
+    return `
+      <div class="battle-player-card ${isMe?'me':''} ${isLeading&&!isMe?'leading':''}">
+        <div style="font-size:1rem;margin-bottom:2px">${isMe?(window.currentAvatar||'🚀'):'👤'}</div>
+        <div class="battle-player-score" style="color:${isLeading?'#ffd700':isMe?'#6ee7ff':'#fff'}">${p.score||0}</div>
+        <div class="battle-player-nick">${escapeHtml((p.name||'').slice(0,10))}</div>
+        ${p.finishedAt ? '<div style="font-size:.55rem;color:rgba(77,255,176,.6);margin-top:2px">✓ Bitti</div>' : ''}
+      </div>`;
+  }).join('');
+}
+
+function updateRivalAnswers(roomData){
+  // Rakiplerin cevaplarını göster (correct/wrong overlay)
+  const players = roomData.players || {};
+  Object.entries(players).forEach(([uid, p]) => {
+    if(uid === battleMyUid) return;
+    const qi = battleCurrentQ;
+    const ans = p.answers?.[qi];
+    if(ans === undefined) return;
+    const btn = document.getElementById(`bopt-${qi}-${ans.answerIndex}`);
+    if(btn && ans.correct && !btn.classList.contains('correct')){
+      btn.classList.add('rival-correct');
+      btn.title = `${p.name} doğru yaptı`;
+    }
+  });
+}
+
+async function endBattle(){
+  if(battleFinished) return;
+  battleFinished = true;
+  clearInterval(battleTimerInterval);
+  await window.fbPlayerFinished(battleRoomCode, battleMyUid);
+
+  // Bekle — diğerleri bitsin
+  const waitEl = document.createElement('div');
+  waitEl.style.cssText = 'position:fixed;bottom:80px;left:50%;transform:translateX(-50%);background:rgba(14,10,36,.95);border:1px solid rgba(255,255,255,.1);border-radius:12px;padding:10px 18px;font-size:.78rem;color:rgba(180,160,255,.7);z-index:99300;font-family:Space Grotesk,sans-serif';
+  waitEl.textContent = '⏳ Diğer oyuncular bekleniyor...';
+  waitEl.id = 'waitingOthers';
+  document.body.appendChild(waitEl);
+}
+
+function showBattleResult(roomData){
+  document.getElementById('waitingOthers')?.remove();
+  const screen = document.getElementById('battleScreen');
+  if(!screen) return;
+  clearInterval(battleTimerInterval);
+
+  const players = roomData.players || {};
+  const sorted = Object.entries(players).sort((a,b)=>(b[1].score||0)-(a[1].score||0));
+  const myEntry = players[battleMyUid];
+  const myRank = sorted.findIndex(([uid])=>uid===battleMyUid)+1;
+  const rankEmoji = myRank===1?'🏆':myRank===2?'🥈':myRank===3?'🥉':'😅';
+
+  screen.innerHTML = `
+    <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;padding:24px;text-align:center;gap:16px">
+      <div style="font-size:3rem">${rankEmoji}</div>
+      <div style="font-family:'Orbitron',sans-serif;font-size:1.4rem;font-weight:900;background:linear-gradient(135deg,#ff6ec7,#b46bff,#6ee7ff);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text">
+        ${myRank === 1 ? 'Kazandın!' : `${myRank}. Sıra`}
+      </div>
+      <div style="font-size:2rem;font-weight:700;font-family:'Space Mono',monospace;color:#ffd700">${myEntry?.score||0} puan</div>
+
+      <div style="background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:16px;padding:16px;width:100%;max-width:360px">
+        <div style="font-size:.68rem;color:rgba(180,160,255,.5);font-family:'Space Mono',monospace;margin-bottom:10px">🏆 SIRALAMА</div>
+        ${sorted.map(([uid,p],i)=>`
+          <div style="display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:9px;margin-bottom:4px;background:${uid===battleMyUid?'rgba(110,231,255,.07)':'rgba(255,255,255,.03)'};border:1px solid ${uid===battleMyUid?'rgba(110,231,255,.2)':'transparent'}">
+            <span style="font-size:.85rem;width:20px">${i===0?'🥇':i===1?'🥈':i===2?'🥉':`${i+1}.`}</span>
+            <span style="flex:1;font-size:.8rem;font-weight:600;text-align:left">${escapeHtml(p.name)}</span>
+            <span style="font-family:'Space Mono',monospace;font-size:.82rem;color:#ffd700;font-weight:700">${p.score||0}</span>
+          </div>`).join('')}
+      </div>
+
+      <div style="display:flex;gap:10px;width:100%;max-width:320px">
+        <button onclick="leaveBattleRoom();document.getElementById('battleScreen')?.remove()" style="flex:1;padding:12px;border-radius:12px;border:1px solid rgba(255,255,255,.15);background:rgba(255,255,255,.05);color:#fff;cursor:pointer;font-family:'Space Grotesk',sans-serif;font-size:.82rem;touch-action:manipulation">
+          Ana Sayfa
+        </button>
+        <button onclick="document.getElementById('battleScreen')?.remove();showBattleModal()" style="flex:2;padding:12px;border-radius:12px;border:none;background:linear-gradient(135deg,#ff6ec7,#b46bff);color:#070a18;font-weight:700;cursor:pointer;font-family:'Space Grotesk',sans-serif;font-size:.82rem;touch-action:manipulation">
+          ⚔️ Yeni Yarışma
+        </button>
+      </div>
+    </div>`;
+
+  // Cleanup
+  if(battleUnsubscribe){ battleUnsubscribe(); battleUnsubscribe = null; }
 }
 
 function showFounderWelcome(){
