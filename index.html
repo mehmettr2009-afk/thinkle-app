@@ -274,10 +274,19 @@
   };
 
   // Kurucu: başvuruyu onayla
-  window.fbApproveGalaxy = async (uid) => {
+  window.fbApproveGalaxy = async (uid, expiresAt) => {
     try {
+      const expiry = expiresAt || null;
       await updateDoc(doc(db, 'galaxyApplications', uid), { status:'approved', decidedAt:new Date().toISOString() });
-      await setDoc(doc(db, 'users', uid), { galaxy: true }, { merge:true });
+      await setDoc(doc(db, 'users', uid), { galaxy: true, galaxyExpiresAt: expiry }, { merge:true });
+      return true;
+    } catch(e){ return false; }
+  };
+
+  // Kurucu: Galaxy bitiş tarihini güncelle
+  window.fbSetGalaxyExpiry = async (uid, expiresAt) => {
+    try {
+      await setDoc(doc(db, 'users', uid), { galaxyExpiresAt: expiresAt }, { merge:true });
       return true;
     } catch(e){ return false; }
   };
@@ -350,6 +359,15 @@
       _galaxyUnsubscribe = onSnapshot(doc(db, 'users', user.uid), (snap) => {
         const data = snap.data() || {};
         const isGalaxy = !!data.galaxy;
+        window.galaxyExpiresAt = data.galaxyExpiresAt || null;
+
+        // Süre dolmuşsa otomatik kaldır
+        if(isGalaxy && data.galaxyExpiresAt){
+          const exp = new Date(data.galaxyExpiresAt).getTime();
+          if(Date.now() > exp){
+            window.fbRevokeGalaxy(user.uid).catch(()=>{});
+          }
+        }
         window.currentUsername = data.username || null;
         window.currentAvatar = data.avatar || null;
 
@@ -3461,14 +3479,14 @@
 
           <!-- Kullanım koşulları -->
           <div class="footer-terms">
-            <p class="tr-text"><strong>Yasal Özet:</strong> Thinkle eğitim amaçlı bir yapay zeka platformudur. Google ile giriş yapan kullanıcıların kullanıcı adı ve kullanım istatistikleri Firebase'de saklanır (KVKK &amp; GDPR uyumlu). Yüklenen dosyalar işlem sonrası silinir. Sor &amp; Öğren konuşmaları güvenlik amaçlı analiz edilir; şüpheli içerik yalnızca kurucu tarafından görülebilir. Telif hakkı sorumluluğu kullanıcıya aittir. Yapay zeka çıktıları bilgi amaçlıdır, kesin doğruluk garantisi verilmez. Hizmet "olduğu gibi" sunulur. 13 yaş altı kullanım yasaktır.</p>
-            <p class="en-text"><strong>Legal Summary:</strong> Thinkle is an AI-powered educational platform. Username and usage statistics of Google sign-in users are stored in Firebase (KVKK &amp; GDPR compliant). Uploaded files are deleted after processing. Ask &amp; Learn conversations are analyzed for security purposes; suspicious content is visible only to the founder. Copyright responsibility belongs to the user. AI outputs are for informational purposes only, no accuracy guarantee is provided. Service is provided "as is". Use by children under 13 is prohibited.</p>
+            <p class="tr-text"><strong>Yasal Özet:</strong> Thinkle eğitim amaçlı bir yapay zeka platformudur. Google ile giriş yapan kullanıcıların kullanıcı adı, profil bilgileri ve kullanım istatistikleri Firebase'de saklanır (KVKK &amp; GDPR uyumlu). Yüklenen dosyalar işlem sonrası silinir. Sor &amp; Öğren konuşmaları güvenlik amaçlı analiz edilir; şüpheli içerik yalnızca kurucu tarafından görülebilir. Arkadaşlık sistemi ve Yarışma Modu verileri (oda bilgileri, skorlar) geçici olarak saklanır ve oyun sonrası silinebilir. Telif hakkı sorumluluğu kullanıcıya aittir. Yapay zeka çıktıları bilgi amaçlıdır, kesin doğruluk garantisi verilmez. Hizmet "olduğu gibi" sunulur. 13 yaş altı kullanım yasaktır.</p>
+            <p class="en-text"><strong>Legal Summary:</strong> Thinkle is an AI-powered educational platform. Username, profile information and usage statistics of Google sign-in users are stored in Firebase (KVKK &amp; GDPR compliant). Uploaded files are deleted after processing. Ask &amp; Learn conversations are analyzed for security purposes; suspicious content is visible only to the founder. Friends system and Battle Mode data (room info, scores) are stored temporarily and may be deleted after the game. Copyright responsibility belongs to the user. AI outputs are for informational purposes only, no accuracy guarantee is provided. Service is provided "as is". Use by children under 13 is prohibited.</p>
           </div>
 
           <!-- Alt: copyright -->
           <div class="footer-bottom">
             <span>© 2026 Thinkle · <span class="tr-text">Tüm hakları saklıdır</span><span class="en-text">All rights reserved</span></span>
-            <span class="footer-made"><span class="tr-text">Yapay zeka destekli öğrenme platformu</span><span class="en-text">AI-powered learning platform</span> 🌌</span>
+            <span class="footer-made"><span class="tr-text">Yapay zeka destekli öğrenme &amp; yarışma platformu</span><span class="en-text">AI-powered learning &amp; battle platform</span> 🌌⚔️</span>
             <a href="mailto:thinklespace@gmail.com" class="footer-mail">thinklespace@gmail.com</a>
           </div>
 
@@ -4109,12 +4127,33 @@ async function initGalaxyUI(user){
   const isMember = window.fbIsGalaxyMember ? await window.fbIsGalaxyMember(user.uid) : false;
   if(isMember){
     if(badge) badge.style.display = 'inline-block';
+
+    // Bitiş tarihi
+    const expiresAt = window.galaxyExpiresAt || null;
+    let expiryHtml = '';
+    if(expiresAt){
+      const expMs = new Date(expiresAt).getTime();
+      const remaining = expMs - Date.now();
+      if(remaining > 0){
+        const days = Math.floor(remaining / 86400000);
+        const hours = Math.floor((remaining % 86400000) / 3600000);
+        const mins = Math.floor((remaining % 3600000) / 60000);
+        const timeStr = days > 0 ? `${days} gün ${hours} saat` : hours > 0 ? `${hours} saat ${mins} dk` : `${mins} dk`;
+        expiryHtml = `
+          <div style="margin-top:6px;padding:5px 8px;border-radius:7px;background:rgba(255,200,0,.07);border:1px solid rgba(255,200,0,.15)">
+            <div style="font-size:.58rem;color:rgba(255,200,0,.6);font-family:'Space Mono',monospace;letter-spacing:.04em">⏳ ${isTr?'Bitiş':'Expires'}: ${timeStr}</div>
+          </div>`;
+      } else {
+        expiryHtml = `<div style="font-size:.58rem;color:#ff6ec7;margin-top:4px">⚠ ${isTr?'Süre doldu':'Expired'}</div>`;
+      }
+    }
+
     area.innerHTML = `
       <div style="padding:8px 12px;border-radius:10px;border:1px solid rgba(140,110,255,.2);background:rgba(140,110,255,.05);text-align:center">
         <div style="font-family:'Orbitron',sans-serif;font-size:.58rem;font-weight:900;background:linear-gradient(135deg,#8a5cff,#5c8aff);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;letter-spacing:.06em">✦ GALAXY ÜYESİ ✦</div>
         <div style="font-size:.6rem;color:rgba(180,160,255,.45);margin-top:2px">${isTr?'Sınırsız erişim aktif':'Unlimited access active'}</div>
+        ${expiryHtml}
       </div>`;
-    // Sınırsız badge'ini de güncelle
     if(typeof updateLimitBadges === 'function') updateLimitBadges();
     return;
   }
@@ -4635,6 +4674,34 @@ async function doJoinRoom(){
   showWaitingRoom(code);
 }
 
+function confirmLeaveBattle(){
+  const isTr = currentLang === 'tr';
+  const confirm_el = document.createElement('div');
+  confirm_el.style.cssText = `position:fixed;inset:0;z-index:99600;background:rgba(3,2,15,.88);backdrop-filter:blur(10px);display:flex;align-items:center;justify-content:center;padding:20px;box-sizing:border-box;`;
+  confirm_el.innerHTML = `
+    <div style="background:rgba(10,6,28,.98);border:1px solid rgba(255,110,199,.3);border-radius:20px;padding:28px 24px;max-width:320px;width:100%;text-align:center;box-shadow:0 20px 60px rgba(0,0,0,.6)">
+      <div style="font-size:2rem;margin-bottom:10px">⚠️</div>
+      <div style="font-family:'Orbitron',sans-serif;font-size:.95rem;font-weight:700;color:#ff6ec7;margin-bottom:8px">Yarışmadan Ayrıl?</div>
+      <div style="font-size:.78rem;color:rgba(180,160,255,.6);margin-bottom:20px;line-height:1.5">Puanların sıfırlanacak ve yarışma sona erecek.</div>
+      <div style="display:flex;gap:10px">
+        <button onclick="this.closest('div[style]').remove()" style="flex:1;padding:11px;border-radius:12px;border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.05);color:rgba(255,255,255,.7);cursor:pointer;font-family:'Space Grotesk',sans-serif;font-size:.82rem;touch-action:manipulation">İptal</button>
+        <button onclick="this.closest('div[style]').remove();doLeaveBattle()" style="flex:1;padding:11px;border-radius:12px;border:none;background:linear-gradient(135deg,#ff6ec7,#b46bff);color:#070a18;font-weight:700;cursor:pointer;font-family:'Space Grotesk',sans-serif;font-size:.82rem;touch-action:manipulation">Ayrıl</button>
+      </div>
+    </div>`;
+  document.body.appendChild(confirm_el);
+}
+
+async function doLeaveBattle(){
+  clearInterval(battleTimerInterval);
+  clearTimeout(window._battleWaitTimeout);
+  if(battleUnsubscribe){ battleUnsubscribe(); battleUnsubscribe = null; }
+  if(battleRoomCode && battleMyUid) await window.fbLeaveRoom(battleRoomCode, battleMyUid);
+  battleRoomCode = null; battleIsHost = false; battleFinished = false; _battleResultShown = false;
+  document.getElementById('battleScreen')?.remove();
+  document.getElementById('battleModal')?.remove();
+  document.getElementById('waitingOthers')?.remove();
+}
+
 async function leaveBattleRoom(){
   if(battleUnsubscribe){ battleUnsubscribe(); battleUnsubscribe = null; }
   if(battleRoomCode && battleMyUid) await window.fbLeaveRoom(battleRoomCode, battleMyUid);
@@ -4691,7 +4758,10 @@ function startBattleGame(roomData){
   screen.className = 'battle-screen';
   screen.innerHTML = `
     <div class="battle-header">
-      <div style="font-family:'Orbitron',sans-serif;font-size:.7rem;color:rgba(180,160,255,.6);letter-spacing:.08em">⚔️ YARIŞMA</div>
+      <div style="display:flex;align-items:center;gap:8px">
+        <button onclick="confirmLeaveBattle()" style="background:rgba(255,110,199,.12);border:1px solid rgba(255,110,199,.25);border-radius:8px;padding:5px 10px;cursor:pointer;color:#ff6ec7;font-size:.7rem;font-family:'Space Grotesk',sans-serif;touch-action:manipulation;font-weight:600">✕ Ayrıl</button>
+        <div style="font-family:'Orbitron',sans-serif;font-size:.7rem;color:rgba(180,160,255,.6);letter-spacing:.08em">⚔️ YARIŞMA</div>
+      </div>
       <div class="battle-timer" id="battleTimer" style="color:#4dffb0;border-color:#4dffb0">20</div>
       <div style="font-size:.7rem;color:rgba(255,255,255,.4);font-family:'Space Mono',monospace" id="battleQNum">1 / ${battleQuestions.length}</div>
     </div>
@@ -5367,9 +5437,32 @@ async function inviteFriendToBattle(friendUid, friendName, device){
 // Davet toast
 function showBattleInviteToast(invite){
   if(document.getElementById('battleInviteToast')) return;
+
+  // Arka plan overlay
+  const overlay = document.createElement('div');
+  overlay.id = 'battleInviteOverlay';
+  overlay.style.cssText = 'position:fixed;inset:0;z-index:99499;background:rgba(0,0,0,.6);backdrop-filter:blur(4px)';
+  overlay.onclick = () => { overlay.remove(); document.getElementById('battleInviteToast')?.remove(); };
+  document.body.appendChild(overlay);
+
   const toast = document.createElement('div');
   toast.id = 'battleInviteToast';
-  toast.style.cssText = `position:fixed;top:60px;left:50%;transform:translateX(-50%);z-index:99500;min-width:280px;max-width:340px;background:rgba(10,6,28,.98);backdrop-filter:blur(16px);border:1px solid rgba(255,110,199,.4);border-radius:16px;padding:14px 16px;box-shadow:0 8px 40px rgba(0,0,0,.6);animation:slide-in .4s cubic-bezier(.16,1,.3,1) both;`;
+  toast.style.cssText = `
+    position:fixed;
+    top:50%;left:50%;
+    transform:translate(-50%,-50%);
+    z-index:99500;
+    width:calc(100vw - 32px);
+    max-width:340px;
+    background:rgba(10,6,28,.98);
+    backdrop-filter:blur(16px);
+    border:1px solid rgba(255,110,199,.4);
+    border-radius:20px;
+    padding:20px 18px;
+    box-shadow:0 8px 40px rgba(0,0,0,.7);
+    animation:auth-slide .4s cubic-bezier(.16,1,.3,1) both;
+    box-sizing:border-box;
+  `;
   toast.innerHTML = `
     <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
       <span style="font-size:1.4rem">⚔️</span>
@@ -5389,6 +5482,7 @@ function showBattleInviteToast(invite){
 
 async function acceptBattleInvite(roomCode){
   document.getElementById('battleInviteToast')?.remove();
+  document.getElementById('battleInviteOverlay')?.remove();
   const user = window.currentUser;
   if(!user) return;
   await window.fbClearBattleInvite(user.uid);
@@ -5411,6 +5505,7 @@ async function acceptBattleInvite(roomCode){
 
 async function declineBattleInvite(){
   document.getElementById('battleInviteToast')?.remove();
+  document.getElementById('battleInviteOverlay')?.remove();
   const user = window.currentUser;
   if(user) await window.fbClearBattleInvite(user.uid);
 }
@@ -5873,17 +5968,35 @@ function showFounderWelcome(){
       : `<div class="fw-empty">Banlı kullanıcı yok</div>`;
 
     const galaxyHtml = galaxyMembers.length
-      ? galaxyMembers.map(m => `
-        <div class="fw-list-item">
-          <div style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1">
-            <div style="font-size:.7rem;display:flex;align-items:center;gap:6px">
-              ${(m.displayName||'İsimsiz').replace(/</g,'&lt;')}
-              <span style="font-family:'Orbitron',sans-serif;font-size:.55rem;font-weight:900;padding:1px 5px;border-radius:4px;background:linear-gradient(135deg,#8a5cff,#5c8aff);color:#fff">GALAXY</span>
-            </div>
-            <div style="font-size:.6rem;color:rgba(140,110,255,.5);font-family:'Space Mono',monospace">${m.uid.slice(0,16)}…</div>
-          </div>
-          <button class="fw-btn fw-btn-red" data-revoke-galaxy="${m.uid}" style="padding:5px 10px;font-size:.65rem">Çıkar</button>
-        </div>`).join('')
+      ? galaxyMembers.map(m => {
+          const expAt = m.galaxyExpiresAt;
+          let expiryLabel = '<span style="font-size:.58rem;color:rgba(180,160,255,.35)">∞ Sınırsız</span>';
+          if(expAt){
+            const rem = new Date(expAt).getTime() - Date.now();
+            if(rem > 0){
+              const days = Math.floor(rem/86400000);
+              expiryLabel = `<span style="font-size:.58rem;color:#ffd700">⏳ ${days} gün kaldı</span>`;
+            } else {
+              expiryLabel = `<span style="font-size:.58rem;color:#ff6ec7">⚠ Süresi dolmuş</span>`;
+            }
+          }
+          return `
+            <div class="fw-list-item" style="flex-wrap:wrap;gap:6px">
+              <div style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1;min-width:0">
+                <div style="font-size:.7rem;display:flex;align-items:center;gap:6px;flex-wrap:wrap">
+                  ${(m.displayName||'İsimsiz').replace(/</g,'&lt;')}
+                  <span style="font-family:'Orbitron',sans-serif;font-size:.55rem;font-weight:900;padding:1px 5px;border-radius:4px;background:linear-gradient(135deg,#8a5cff,#5c8aff);color:#fff">GALAXY</span>
+                  ${expiryLabel}
+                </div>
+                <div style="font-size:.6rem;color:rgba(140,110,255,.5);font-family:'Space Mono',monospace">${m.uid.slice(0,16)}…</div>
+              </div>
+              <div style="display:flex;gap:4px;align-items:center">
+                <input type="date" data-expiry-uid="${m.uid}" style="padding:3px 6px;border-radius:6px;border:1px solid rgba(255,200,0,.2);background:rgba(255,200,0,.05);color:#ffd700;font-size:.6rem;width:110px">
+                <button class="fw-btn" data-set-expiry="${m.uid}" style="padding:3px 8px;font-size:.6rem;background:rgba(255,200,0,.12);color:#ffd700;border:1px solid rgba(255,200,0,.25)">⏱</button>
+                <button class="fw-btn fw-btn-red" data-revoke-galaxy="${m.uid}" style="padding:3px 8px;font-size:.6rem">✕</button>
+              </div>
+            </div>`;
+        }).join('')
       : `<div class="fw-empty">Henüz onaylanmış Galaxy üyesi yok</div>`;
 
     // Manuel sınırsız erişim verilenler (galaxy başvurusu olmayan, doğrudan UID ile eklenenler)
@@ -5901,7 +6014,12 @@ function showFounderWelcome(){
       <div class="fw-card">
         <div style="font-size:.7rem;color:rgba(255,255,255,.5);font-family:'Space Mono',monospace;margin-bottom:10px">🔍 KULLANICI YÖNETİMİ (UID ile)</div>
         <input id="fwTargetUid" class="fw-input" placeholder="Kullanıcı UID'si yapıştır..." style="margin-bottom:8px">
-        <input id="fwBanReason" class="fw-input" placeholder="Ban sebebi (opsiyonel)" style="margin-bottom:10px">
+        <input id="fwBanReason" class="fw-input" placeholder="Ban sebebi (opsiyonel)" style="margin-bottom:8px">
+        <div style="font-size:.65rem;color:rgba(180,160,255,.5);margin-bottom:4px;font-family:'Space Mono',monospace">⏳ GALAXY BİTİŞ TARİHİ (boş = sınırsız)</div>
+        <div style="display:flex;gap:8px;margin-bottom:10px;align-items:center">
+          <input id="fwExpiryDate" type="date" class="fw-input" style="flex:1">
+          <button id="fwSetExpiryBtn" class="fw-btn" style="background:rgba(255,200,0,.15);color:#ffd700;border:1px solid rgba(255,200,0,.3);white-space:nowrap">⏱ Süre Ata</button>
+        </div>
         <div style="display:flex;gap:8px;flex-wrap:wrap">
           <button id="fwBanBtn" class="fw-btn fw-btn-red">🚫 Banla</button>
           <button id="fwGrantBtn" class="fw-btn" style="background:linear-gradient(135deg,rgba(138,92,255,.25),rgba(92,138,255,.25));color:#a78bfa;border:1px solid rgba(138,92,255,.4)">🌌 GALAXY Ver</button>
@@ -5928,15 +6046,28 @@ function showFounderWelcome(){
       cachedStats = null;
       renderUsers();
     };
+
+    document.getElementById('fwSetExpiryBtn').onclick = async () => {
+      const uid = document.getElementById('fwTargetUid').value.trim();
+      const dateVal = document.getElementById('fwExpiryDate').value;
+      if(!uid){ showToast('UID gir'); return; }
+      const btn = document.getElementById('fwSetExpiryBtn');
+      btn.disabled = true; btn.textContent = '⏳...';
+      const expiresAt = dateVal ? new Date(dateVal + 'T23:59:59').toISOString() : null;
+      if(window.fbSetGalaxyExpiry) await window.fbSetGalaxyExpiry(uid, expiresAt);
+      btn.textContent = '✓ Atandı'; btn.style.color = '#4dff96';
+      setTimeout(()=>{ btn.disabled=false; btn.textContent='⏱ Süre Ata'; btn.style.color=''; }, 1500);
+    };
+
     document.getElementById('fwGrantBtn').onclick = async () => {
       const uid = document.getElementById('fwTargetUid').value.trim();
       if(!uid) return;
       const btn = document.getElementById('fwGrantBtn');
+      const dateVal = document.getElementById('fwExpiryDate').value;
+      const expiresAt = dateVal ? new Date(dateVal + 'T23:59:59').toISOString() : null;
       btn.disabled = true; btn.textContent = '⏳ Veriliyor...';
-      // Server'da sınırsız erişim
       await adminFetch('/api/admin/grant-unlimited', { targetUid: uid });
-      // Firestore'da GALAXY rozeti
-      if(window.fbApproveGalaxy) await window.fbApproveGalaxy(uid);
+      if(window.fbApproveGalaxy) await window.fbApproveGalaxy(uid, expiresAt);
       btn.textContent = '✓ Verildi'; btn.style.color = '#4dff96';
       setTimeout(()=>{ btn.disabled=false; btn.textContent='🌌 GALAXY Ver'; btn.style.color=''; cachedStats=null; renderUsers(); }, 1500);
     };
@@ -5959,13 +6090,27 @@ function showFounderWelcome(){
       };
     });
     // Galaxy üyeliğini kaldır — hem server'daki sınırsız erişimi hem Firestore rozetini kaldırır
+    // Süre ata butonları
+    contentEl.querySelectorAll('[data-set-expiry]').forEach(btn => {
+      btn.onclick = async () => {
+        const uid = btn.dataset.setExpiry;
+        const dateInput = contentEl.querySelector(`[data-expiry-uid="${uid}"]`);
+        const dateVal = dateInput?.value;
+        if(!dateVal){ showToast('Tarih seç'); return; }
+        btn.disabled = true; btn.textContent = '⏳';
+        const expiresAt = new Date(dateVal + 'T23:59:59').toISOString();
+        if(window.fbSetGalaxyExpiry) await window.fbSetGalaxyExpiry(uid, expiresAt);
+        btn.textContent = '✓'; btn.style.color = '#4dff96';
+        setTimeout(()=>{ cachedStats=null; renderUsers(); }, 1200);
+      };
+    });
+
     contentEl.querySelectorAll('[data-revoke-galaxy]').forEach(btn => {
       btn.onclick = async () => {
         btn.disabled = true; btn.textContent = '...';
         const uid = btn.dataset.revokeGalaxy;
         if(window.fbRevokeGalaxy) await window.fbRevokeGalaxy(uid);
         await adminFetch('/api/admin/revoke-unlimited', { targetUid: uid });
-        // Eğer mevcut kullanıcı oysa rozetini kaldır
         if(window.currentUser?.uid === uid){
           const badge = document.getElementById('galaxyBadge');
           if(badge) badge.style.display = 'none';
