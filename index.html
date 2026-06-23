@@ -2863,6 +2863,23 @@
               </div>
             </div>
 
+            <div class="footer-acc">
+              <button class="footer-acc-btn">
+                <span>🧠 <span class="tr-text">Sor & Öğren — Akıllı Quiz & Öğrenme</span><span class="en-text">Ask & Learn — Smart Quiz & Learning</span></span>
+                <span class="acc-arrow">▾</span>
+              </button>
+              <div class="footer-acc-body">
+                <p class="tr-text">Sor &amp; Öğren paneli sadece sohbet için değil — iki özel mod sunar:<br><br>
+                <strong style="color:rgba(110,231,255,.9)">📝 Quiz Modu:</strong> "YKS soruları çözmek istiyorum", "Ehliyet soruları sor", "Matematik testi yap" gibi bir şey yazarsan Thinkle AI otomatik olarak 5 çoktan seçmeli soru oluşturur. Her soruyu cevaplayınca doğru şık ve açıklaması gösterilir. Bittikten sonra "Yeni Sorular" ile farklı sorular üretebilirsin — her seferinde özgün sorular gelir.<br><br>
+                <strong style="color:rgba(180,107,255,.9)">📚 Öğren + Test Modu:</strong> "Fotosentezi öğrenmek istiyorum", "Newton'un yasalarını anlat" gibi bir şey yazarsan Thinkle önce konuyu açık ve anlaşılır şekilde anlatır, ardından anlayışını ölçen 3 soruluk mini quiz ekler. Öğren ve hemen test et.<br><br>
+                Her iki mod da herhangi bir konu için çalışır: sınav hazırlığı, genel kültür, yabancı dil, fen bilimleri, tarih ve daha fazlası.</p>
+                <p class="en-text">The Ask &amp; Learn panel isn't just for chatting — it offers two special modes:<br><br>
+                <strong style="color:rgba(110,231,255,.9)">📝 Quiz Mode:</strong> Write something like "I want to practice SAT questions", "Ask me driving test questions", or "Make a math quiz" and Thinkle AI automatically generates 5 multiple choice questions. After each answer, the correct option and explanation are shown. When done, use "New Questions" to get different questions — every time they're original.<br><br>
+                <strong style="color:rgba(180,107,255,.9)">📚 Learn + Test Mode:</strong> Write something like "I want to learn photosynthesis" or "Explain Newton's laws" and Thinkle first explains the topic clearly, then adds a 3-question mini quiz to test your understanding. Learn and test immediately.<br><br>
+                Both modes work for any topic: exam prep, general knowledge, foreign language, science, history and more.</p>
+              </div>
+            </div>
+
             <div class="footer-acc" id="acc-contact">
               <button class="footer-acc-btn">
                 <span>📬 <span class="tr-text">İletişim &amp; Destek</span><span class="en-text">Contact &amp; Support</span></span>
@@ -5976,32 +5993,49 @@ async function startAiQuizMode(userRequest, thinkingEl){
       body: JSON.stringify({
         model:'google/gemini-2.5-flash', max_tokens:2000,
         uid: window.currentUser?.uid||'', sig: getRequestSignature(),
+        system: 'Sen bir quiz oluşturma motorusun. SADECE geçerli JSON döndür, hiçbir açıklama, markdown, kod bloğu veya başka metin ekleme. Yanıtın direkt { karakteriyle başlamalı.',
         messages:[{ role:'user', content:
-          `Kullanıcı isteği: "${userRequest}"
-          
-${isTr ? `Bu isteğe uygun 5 çoktan seçmeli soru oluştur. Her soru farklı bir alt konuyu test etsin. Sorular gerçekçi, özgün ve zorlayıcı olsun. Sadece JSON döndür:
-{"topic":"konu başlığı","questions":[{"q":"soru metni","opts":["A) ...","B) ...","C) ...","D) ..."],"correct":0,"explanation":"kısa açıklama"}]}`
-: `Create 5 multiple choice questions matching this request. Each question should test a different subtopic. Questions should be realistic, original and challenging. Return only JSON:
-{"topic":"topic title","questions":[{"q":"question text","opts":["A) ...","B) ...","C) ...","D) ..."],"correct":0,"explanation":"brief explanation"}]}`}
-        `}]
+          `"${userRequest}" isteğine uygun 5 çoktan seçmeli soru oluştur.
+
+Tam olarak bu JSON formatında döndür (başka hiçbir şey yazma):
+{"topic":"konunun adı","questions":[{"q":"soru metni","opts":["A) seçenek","B) seçenek","C) seçenek","D) seçenek"],"correct":0,"explanation":"doğru cevabın kısa açıklaması"},{"q":"...","opts":["A) ...","B) ...","C) ...","D) ..."],"correct":1,"explanation":"..."},{"q":"...","opts":["A) ...","B) ...","C) ...","D) ..."],"correct":2,"explanation":"..."},{"q":"...","opts":["A) ...","B) ...","C) ...","D) ..."],"correct":3,"explanation":"..."},{"q":"...","opts":["A) ...","B) ...","C) ...","D) ..."],"correct":0,"explanation":"..."}]}
+
+"correct" değeri 0,1,2,3 arasında — hangi şıkkın doğru olduğunun indexi.
+${isTr ? 'Türkçe yaz.' : 'Write in English.'}`
+        }]
       })
     });
     const data = await resp.json();
     const text = data.content?.find(b=>b.type==='text')?.text || '';
-    const clean = text.replace(/```json|```/g,'').trim();
-    const parsed = JSON.parse(clean);
+
+    let parsed;
+    // 3 aşamalı parse — mümkün olan her durumu yakala
+    try{
+      parsed = JSON.parse(text.trim());
+    }catch(e1){
+      try{
+        const clean = text.replace(/```json/gi,'').replace(/```/g,'').trim();
+        parsed = JSON.parse(clean);
+      }catch(e2){
+        const match = text.match(/\{[\s\S]*\}/);
+        if(!match) throw new Error('JSON bulunamadı');
+        parsed = JSON.parse(match[0]);
+      }
+    }
+
+    if(!parsed?.questions?.length) throw new Error('Sorular boş');
 
     thinkingEl.classList.remove('thinking');
     thinkingEl.textContent = isTr
-      ? `📝 "${parsed.topic}" konusunda ${parsed.questions.length} soru hazırladım!`
-      : `📝 Prepared ${parsed.questions.length} questions on "${parsed.topic}"!`;
+      ? `📝 "${parsed.topic}" — ${parsed.questions.length} soru hazır!`
+      : `📝 "${parsed.topic}" — ${parsed.questions.length} questions ready!`;
 
-    // Quiz UI'sini chat'e ekle
     renderAiQuiz(parsed, chat);
     aiHistory.push({ role:'user', content: userRequest });
-    aiHistory.push({ role:'assistant', content: `${parsed.topic} konusunda ${parsed.questions.length} soruluk quiz hazırladım.` });
+    aiHistory.push({ role:'assistant', content: `${parsed.topic} hakkında ${parsed.questions.length} soruluk quiz hazırladım.` });
 
   }catch(e){
+    console.error('Quiz error:', e);
     thinkingEl.classList.remove('thinking');
     thinkingEl.textContent = isTr ? 'Quiz oluşturulamadı, tekrar dene.' : 'Could not create quiz, try again.';
   }
@@ -6123,11 +6157,15 @@ ${isTr ? `Önce konuyu net ve anlaşılır anlat (3-4 paragraf), sonra 3 kısa �
     });
     const data = await resp.json();
     const text = data.content?.find(b=>b.type==='text')?.text || '';
-    const clean = text.replace(/```json|```/g,'').trim();
-    const parsed = JSON.parse(clean);
-
-    thinkingEl.classList.remove('thinking');
-    thinkingEl.remove(); // thinkingEl'i kaldır, yerine özel UI koy
+    let parsed;
+    try{
+      const clean = text.replace(/```json/g,'').replace(/```/g,'').trim();
+      parsed = JSON.parse(clean);
+    }catch(e){
+      const match = text.match(/\{[\s\S]*\}/);
+      if(!match) throw new Error('no json');
+      parsed = JSON.parse(match[0]);
+    }
 
     // Açıklama mesajı
     const expEl = document.createElement('div');
