@@ -551,9 +551,19 @@
 
   window.fbPlayerFinished = async (code, uid) => {
     try {
-      await updateDoc(doc(db, 'battleRooms', code), {
+      const ref = doc(db, 'battleRooms', code);
+      await updateDoc(ref, {
         [`players.${uid}.finishedAt`]: new Date().toISOString()
       });
+      // Herkes bitti mi kontrol et
+      const snap = await getDoc(ref);
+      if(!snap.exists()) return;
+      const data = snap.data();
+      const players = data.players || {};
+      const allDone = Object.values(players).every(p => !!p.finishedAt);
+      if(allDone){
+        await updateDoc(ref, { status: 'finished' });
+      }
     } catch(e){}
   };
 
@@ -4584,56 +4594,168 @@ async function endBattle(){
   clearInterval(battleTimerInterval);
   await window.fbPlayerFinished(battleRoomCode, battleMyUid);
 
-  // Bekle — diğerleri bitsin
+  // "Bekleniyor" toast'u göster
   const waitEl = document.createElement('div');
-  waitEl.style.cssText = 'position:fixed;bottom:80px;left:50%;transform:translateX(-50%);background:rgba(14,10,36,.95);border:1px solid rgba(255,255,255,.1);border-radius:12px;padding:10px 18px;font-size:.78rem;color:rgba(180,160,255,.7);z-index:99300;font-family:Space Grotesk,sans-serif';
-  waitEl.textContent = '⏳ Diğer oyuncular bekleniyor...';
   waitEl.id = 'waitingOthers';
+  waitEl.style.cssText = 'position:fixed;bottom:80px;left:50%;transform:translateX(-50%);background:rgba(14,10,36,.97);border:1px solid rgba(180,107,255,.3);border-radius:16px;padding:12px 22px;font-size:.8rem;color:rgba(180,160,255,.8);z-index:99300;font-family:"Space Grotesk",sans-serif;display:flex;align-items:center;gap:10px;box-shadow:0 8px 30px rgba(0,0,0,.5)';
+  waitEl.innerHTML = '<span style="animation:pulse-dot 1.5s infinite;width:8px;height:8px;border-radius:50%;background:#b46bff;display:inline-block;flex-shrink:0"></span> Diğer oyuncular bekleniyor…';
   document.body.appendChild(waitEl);
+
+  // 15 saniye içinde herkes bitmediyse yine de sonucu göster
+  setTimeout(async () => {
+    if(!document.getElementById('battleScreen')) return;
+    const { getFirestore, doc, getDoc } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js').catch(()=>({}));
+    // Doğrudan mevcut roomData ile göster
+    document.getElementById('waitingOthers')?.remove();
+    // Firestore'dan güncel veriyi çek ve göster
+    try{
+      const snap = await window._lastRoomData;
+      if(snap) showBattleResult(snap);
+    }catch(e){}
+  }, 15000);
 }
 
+let _battleResultShown = false;
+
 function showBattleResult(roomData){
+  // Zaten gösterilmişse tekrar çizme
+  if(_battleResultShown) return;
+
+  // Herkes bitti mi kontrol et — bitmemişse bekle
+  const players = roomData.players || {};
+  const uids = Object.keys(players);
+  const allDone = uids.every(uid => !!players[uid].finishedAt);
+  if(!allDone && uids.length > 1){
+    // En az biri bitmemiş — listener devam etsin, henüz gösterme
+    window._lastRoomData = Promise.resolve(roomData);
+    return;
+  }
+
+  _battleResultShown = true;
   document.getElementById('waitingOthers')?.remove();
+  clearInterval(battleTimerInterval);
+  if(battleUnsubscribe){ battleUnsubscribe(); battleUnsubscribe = null; }
+
   const screen = document.getElementById('battleScreen');
   if(!screen) return;
-  clearInterval(battleTimerInterval);
 
-  const players = roomData.players || {};
-  const sorted = Object.entries(players).sort((a,b)=>(b[1].score||0)-(a[1].score||0));
-  const myEntry = players[battleMyUid];
-  const myRank = sorted.findIndex(([uid])=>uid===battleMyUid)+1;
-  const rankEmoji = myRank===1?'🏆':myRank===2?'🥈':myRank===3?'🥉':'😅';
+  const sorted = Object.entries(players).sort((a,b) => (b[1].score||0) - (a[1].score||0));
+  const winner = sorted[0];
+  const myEntry = players[battleMyUid] || {};
+  const myRank = sorted.findIndex(([uid]) => uid === battleMyUid) + 1;
+  const iWon = myRank === 1;
+  const winnerName = escapeHtml(winner?.[1]?.name || '');
+
+  // Kazanan mesajı
+  const heroMsg = iWon
+    ? '🏆 Kazandın!'
+    : myRank === 2 ? '🥈 İkinci oldun!'
+    : myRank === 3 ? '🥉 Üçüncü oldun!'
+    : `😅 ${myRank}. sırada bitirdin`;
+
+  const heroSub = iWon
+    ? 'Tebrikler, rakiplerini geride bıraktın!'
+    : `${winnerName} yarışmayı kazandı!`;
+
+  const heroColor = iWon ? '#ffd700' : myRank === 2 ? '#c0c0c0' : myRank === 3 ? '#cd7f32' : '#ff6ec7';
+
+  // Her oyuncunun kaç doğru yaptığını hesapla
+  function correctCount(p){
+    return Object.values(p.answers || {}).filter(a => a.correct).length;
+  }
 
   screen.innerHTML = `
-    <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;padding:24px;text-align:center;gap:16px">
-      <div style="font-size:3rem">${rankEmoji}</div>
-      <div style="font-family:'Orbitron',sans-serif;font-size:1.4rem;font-weight:900;background:linear-gradient(135deg,#ff6ec7,#b46bff,#6ee7ff);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text">
-        ${myRank === 1 ? 'Kazandın!' : `${myRank}. Sıra`}
+    <div style="
+      min-height:100vh;overflow-y:auto;
+      background:linear-gradient(180deg,rgba(8,4,20,.98) 0%,rgba(4,2,12,.99) 100%);
+      display:flex;flex-direction:column;align-items:center;
+      padding:32px 16px 48px;gap:0;
+    ">
+      <!-- Kazan/kaybet animasyon başlık -->
+      <div style="text-align:center;margin-bottom:24px;animation:slide-up .6s cubic-bezier(.16,1,.3,1) both">
+        <div style="font-size:4rem;margin-bottom:8px;animation:countdown-pop .7s cubic-bezier(.16,1,.3,1) both">
+          ${iWon ? '🏆' : myRank===2?'🥈':myRank===3?'🥉':'😅'}
+        </div>
+        <div style="font-family:'Orbitron',sans-serif;font-size:1.6rem;font-weight:900;color:${heroColor};margin-bottom:6px;letter-spacing:.04em">
+          ${heroMsg}
+        </div>
+        <div style="font-size:.85rem;color:rgba(200,190,220,.7);line-height:1.5">
+          ${heroSub}
+        </div>
+        <div style="margin-top:10px;display:inline-flex;gap:16px;padding:8px 18px;border-radius:20px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08)">
+          <span style="font-size:.75rem;color:rgba(255,255,255,.5)">senin puanın</span>
+          <span style="font-family:'Space Mono',monospace;font-size:.85rem;font-weight:700;color:${heroColor}">${myEntry.score||0} puan</span>
+          <span style="font-size:.75rem;color:rgba(255,255,255,.3)">·</span>
+          <span style="font-size:.75rem;color:rgba(255,255,255,.5)">${correctCount(myEntry)} / ${battleQuestions.length} doğru</span>
+        </div>
       </div>
-      <div style="font-size:2rem;font-weight:700;font-family:'Space Mono',monospace;color:#ffd700">${myEntry?.score||0} puan</div>
 
-      <div style="background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:16px;padding:16px;width:100%;max-width:360px">
-        <div style="font-size:.68rem;color:rgba(180,160,255,.5);font-family:'Space Mono',monospace;margin-bottom:10px">🏆 SIRALAMА</div>
-        ${sorted.map(([uid,p],i)=>`
-          <div style="display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:9px;margin-bottom:4px;background:${uid===battleMyUid?'rgba(110,231,255,.07)':'rgba(255,255,255,.03)'};border:1px solid ${uid===battleMyUid?'rgba(110,231,255,.2)':'transparent'}">
-            <span style="font-size:.85rem;width:20px">${i===0?'🥇':i===1?'🥈':i===2?'🥉':`${i+1}.`}</span>
-            <span style="flex:1;font-size:.8rem;font-weight:600;text-align:left">${escapeHtml(p.name)}</span>
-            <span style="font-family:'Space Mono',monospace;font-size:.82rem;color:#ffd700;font-weight:700">${p.score||0}</span>
-          </div>`).join('')}
+      <!-- Sıralama tablosu -->
+      <div style="width:100%;max-width:420px;background:rgba(14,10,36,.8);border:1px solid rgba(255,255,255,.08);border-radius:20px;overflow:hidden;margin-bottom:20px;animation:slide-up .7s .1s cubic-bezier(.16,1,.3,1) both">
+        <div style="padding:12px 16px;border-bottom:1px solid rgba(255,255,255,.06);display:flex;align-items:center;gap:8px">
+          <span style="font-size:.65rem;font-family:'Space Mono',monospace;color:rgba(180,160,255,.5);letter-spacing:.08em">⚔️ SONUÇ SIRALAМASI</span>
+        </div>
+        ${sorted.map(([uid, p], i) => {
+          const isMe = uid === battleMyUid;
+          const isWinner = i === 0;
+          const medal = i===0?'🥇':i===1?'🥈':i===2?'🥉':`${i+1}.`;
+          const correct = correctCount(p);
+          const wrong = battleQuestions.length - correct;
+          const rowBg = isMe
+            ? 'rgba(110,231,255,.07)'
+            : isWinner ? 'rgba(255,200,0,.05)' : 'rgba(255,255,255,.02)';
+          const rowBorder = isMe
+            ? 'rgba(110,231,255,.25)'
+            : isWinner ? 'rgba(255,200,0,.2)' : 'rgba(255,255,255,.05)';
+          return `
+            <div style="display:flex;align-items:center;gap:12px;padding:12px 16px;border-bottom:1px solid rgba(255,255,255,.04);background:${rowBg};border-left:3px solid ${rowBorder};transition:.2s">
+              <span style="font-size:1.2rem;width:28px;text-align:center;flex-shrink:0">${medal}</span>
+              <div style="flex:1;min-width:0">
+                <div style="font-size:.85rem;font-weight:700;color:${isWinner?'#ffd700':isMe?'#6ee7ff':'rgba(220,210,255,.9)'};overflow:hidden;text-overflow:ellipsis;white-space:nowrap">
+                  ${escapeHtml(p.name)} ${isMe?'<span style="font-size:.6rem;color:rgba(110,231,255,.5);font-weight:400">(sen)</span>':''}
+                </div>
+                <div style="display:flex;gap:8px;margin-top:3px">
+                  <span style="font-size:.65rem;color:rgba(77,255,176,.7)">✓ ${correct} doğru</span>
+                  <span style="font-size:.65rem;color:rgba(255,110,199,.6)">✗ ${wrong} yanlış</span>
+                </div>
+              </div>
+              <div style="text-align:right;flex-shrink:0">
+                <div style="font-family:'Space Mono',monospace;font-size:.95rem;font-weight:700;color:${isWinner?'#ffd700':'rgba(255,255,255,.8)'}">${p.score||0}</div>
+                <div style="font-size:.58rem;color:rgba(255,255,255,.3)">puan</div>
+              </div>
+            </div>`;
+        }).join('')}
       </div>
 
-      <div style="display:flex;gap:10px;width:100%;max-width:320px">
-        <button onclick="leaveBattleRoom();document.getElementById('battleScreen')?.remove()" style="flex:1;padding:12px;border-radius:12px;border:1px solid rgba(255,255,255,.15);background:rgba(255,255,255,.05);color:#fff;cursor:pointer;font-family:'Space Grotesk',sans-serif;font-size:.82rem;touch-action:manipulation">
-          Ana Sayfa
-        </button>
-        <button onclick="document.getElementById('battleScreen')?.remove();showBattleModal()" style="flex:2;padding:12px;border-radius:12px;border:none;background:linear-gradient(135deg,#ff6ec7,#b46bff);color:#070a18;font-weight:700;cursor:pointer;font-family:'Space Grotesk',sans-serif;font-size:.82rem;touch-action:manipulation">
-          ⚔️ Yeni Yarışma
-        </button>
+      <!-- Butonlar -->
+      <div style="width:100%;max-width:420px;display:flex;flex-direction:column;gap:10px;animation:slide-up .8s .2s cubic-bezier(.16,1,.3,1) both">
+        <button onclick="
+          _battleResultShown=false;
+          battleFinished=false;
+          document.getElementById('battleScreen')?.remove();
+          showBattleModal();
+        " style="
+          width:100%;padding:14px;border-radius:14px;border:none;
+          background:linear-gradient(135deg,#ff6ec7,#b46bff);
+          color:#070a18;font-weight:700;font-size:.92rem;cursor:pointer;
+          touch-action:manipulation;font-family:'Space Grotesk',sans-serif;
+          box-shadow:0 4px 20px rgba(180,107,255,.4);
+        ">⚔️ Tekrar Oyna</button>
+
+        <button onclick="
+          _battleResultShown=false;
+          battleFinished=false;
+          leaveBattleRoom();
+          document.getElementById('battleScreen')?.remove();
+        " style="
+          width:100%;padding:13px;border-radius:14px;
+          border:1px solid rgba(255,255,255,.12);
+          background:rgba(255,255,255,.05);color:rgba(220,210,255,.8);
+          font-weight:600;font-size:.88rem;cursor:pointer;
+          touch-action:manipulation;font-family:'Space Grotesk',sans-serif;
+        ">← Ana Sayfaya Dön</button>
       </div>
     </div>`;
-
-  // Cleanup
-  if(battleUnsubscribe){ battleUnsubscribe(); battleUnsubscribe = null; }
 }
 
 function showFounderWelcome(){
