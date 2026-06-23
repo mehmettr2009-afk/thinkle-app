@@ -1973,13 +1973,13 @@
 
   .footer-terms{
     background:rgba(255,255,255,.03); border-radius:12px;
-    padding:14px 18px; margin-bottom:22px;
+    padding:16px 20px; margin-bottom:22px;
     border:1px solid rgba(255,255,255,.06);
   }
   .footer-terms p{
-    font-size:.73rem; line-height:1.6; color:rgba(180,170,200,.65); margin:0;
+    font-size:.78rem; line-height:1.7; color:rgba(185,175,205,.7); margin:0;
   }
-  .footer-terms strong{ color:rgba(210,200,255,.8); }
+  .footer-terms strong{ color:rgba(215,205,255,.85); }
 
   .footer-bottom{
     display:flex; align-items:center; justify-content:space-between;
@@ -1996,11 +1996,16 @@
   .footer-mail:hover{ color:var(--accent); }
 
   @media(max-width:860px){
-    .footer-inner{ padding:28px 18px 20px; border-radius:16px; }
+    .footer-inner{ padding:24px 14px 20px; border-radius:16px; }
     .footer-cols{ grid-template-columns:1fr; gap:20px; }
     .footer-top{ flex-direction:column; gap:14px; }
     .footer-nav{ gap:14px; }
     .footer-bottom{ flex-direction:column; align-items:flex-start; gap:6px; }
+    .footer-acc-btn{ padding:12px 14px; font-size:.84rem; }
+    .footer-acc-body{ padding:0 12px; }
+    .footer-acc.open .footer-acc-body{ padding:12px 14px 16px; }
+    .footer-acc-body p{ font-size:.8rem; line-height:1.7; }
+    .footer-terms p{ font-size:.78rem; }
     #siteFooter{ margin-top:50px; }
   }
   .footer-orb{
@@ -2143,14 +2148,20 @@
   .footer-acc.open .acc-arrow{ transform:rotate(180deg); }
   .footer-acc-body{
     max-height:0; overflow:hidden;
-    transition:max-height .35s ease, padding .25s ease;
+    transition:max-height .4s ease, padding .25s ease;
     padding:0 18px;
   }
   .footer-acc.open .footer-acc-body{
-    max-height:300px; padding:12px 18px 16px;
+    max-height:1200px; padding:14px 18px 18px;
   }
   .footer-acc-body p{
-    font-size:.8rem; line-height:1.65; color:rgba(200,190,220,.75); margin:0;
+    font-size:.82rem; line-height:1.75; color:rgba(200,190,220,.8); margin:0;
+  }
+  .footer-acc-body p + p{
+    margin-top:10px;
+  }
+  .footer-acc-body strong{
+    color:rgba(220,210,240,.95);
   }
 
   /* Dil gösterimi */
