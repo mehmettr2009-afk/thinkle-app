@@ -5993,37 +5993,35 @@ async function startAiQuizMode(userRequest, thinkingEl){
       body: JSON.stringify({
         model:'google/gemini-2.5-flash', max_tokens:2000,
         uid: window.currentUser?.uid||'', sig: getRequestSignature(),
-        system: 'Sen bir quiz oluşturma motorusun. SADECE geçerli JSON döndür, hiçbir açıklama, markdown, kod bloğu veya başka metin ekleme. Yanıtın direkt { karakteriyle başlamalı.',
-        messages:[{ role:'user', content:
-          `"${userRequest}" isteğine uygun 5 çoktan seçmeli soru oluştur.
-
-Tam olarak bu JSON formatında döndür (başka hiçbir şey yazma):
-{"topic":"konunun adı","questions":[{"q":"soru metni","opts":["A) seçenek","B) seçenek","C) seçenek","D) seçenek"],"correct":0,"explanation":"doğru cevabın kısa açıklaması"},{"q":"...","opts":["A) ...","B) ...","C) ...","D) ..."],"correct":1,"explanation":"..."},{"q":"...","opts":["A) ...","B) ...","C) ...","D) ..."],"correct":2,"explanation":"..."},{"q":"...","opts":["A) ...","B) ...","C) ...","D) ..."],"correct":3,"explanation":"..."},{"q":"...","opts":["A) ...","B) ...","C) ...","D) ..."],"correct":0,"explanation":"..."}]}
-
-"correct" değeri 0,1,2,3 arasında — hangi şıkkın doğru olduğunun indexi.
-${isTr ? 'Türkçe yaz.' : 'Write in English.'}`
-        }]
+        isDeck: true, // JSON çıktısı bekleniyor
+        messages:[
+          // Few-shot örnek — AI'a tam olarak nasıl yanıt vermesi gerektiğini göster
+          { role:'user', content:'Trafik işaretleri hakkında 2 soru sor. SADECE JSON.' },
+          { role:'assistant', content:'{"topic":"Trafik İşaretleri","questions":[{"q":"Kırmızı ışıkta ne yapılır?","opts":["A) Geçilir","B) Durulur","C) Yavaşlanır","D) Korna çalınır"],"correct":1,"explanation":"Kırmızı ışıkta durmak zorunludur."},{"q":"Dur işareti kaç köşelidir?","opts":["A) 4","B) 6","C) 8","D) 3"],"correct":2,"explanation":"Dur işareti 8 köşeli (oktagon) şeklindedir."}]}' },
+          { role:'user', content:`"${userRequest}" — Bu konu hakkında 5 soru oluştur. SADECE JSON, başka hiçbir şey yazma:
+{"topic":"...","questions":[{"q":"...","opts":["A) ...","B) ...","C) ...","D) ..."],"correct":0,"explanation":"..."},...]}` }
+        ]
       })
     });
-    const data = await resp.json();
-    const text = data.content?.find(b=>b.type==='text')?.text || '';
 
+    const data = await resp.json();
+    const raw = data.content?.find(b=>b.type==='text')?.text || '';
+
+    // Agresif JSON çıkarma
     let parsed;
-    // 3 aşamalı parse — mümkün olan her durumu yakala
-    try{
-      parsed = JSON.parse(text.trim());
-    }catch(e1){
-      try{
-        const clean = text.replace(/```json/gi,'').replace(/```/g,'').trim();
-        parsed = JSON.parse(clean);
-      }catch(e2){
-        const match = text.match(/\{[\s\S]*\}/);
-        if(!match) throw new Error('JSON bulunamadı');
-        parsed = JSON.parse(match[0]);
-      }
+    const attempts = [
+      raw.trim(),
+      raw.replace(/```json/gi,'').replace(/```/g,'').trim(),
+      (raw.match(/\{[\s\S]*\}/) || [])[0] || '',
+      (raw.match(/\{[\s\S]*"questions"[\s\S]*\}/) || [])[0] || '',
+    ];
+
+    for(const attempt of attempts){
+      if(!attempt) continue;
+      try{ parsed = JSON.parse(attempt); break; }catch(e){}
     }
 
-    if(!parsed?.questions?.length) throw new Error('Sorular boş');
+    if(!parsed?.questions?.length) throw new Error('parse failed');
 
     thinkingEl.classList.remove('thinking');
     thinkingEl.textContent = isTr
@@ -6032,12 +6030,12 @@ ${isTr ? 'Türkçe yaz.' : 'Write in English.'}`
 
     renderAiQuiz(parsed, chat);
     aiHistory.push({ role:'user', content: userRequest });
-    aiHistory.push({ role:'assistant', content: `${parsed.topic} hakkında ${parsed.questions.length} soruluk quiz hazırladım.` });
+    aiHistory.push({ role:'assistant', content: `${parsed.topic} hakkında ${parsed.questions.length} soruluk interaktif quiz hazırladım.` });
 
   }catch(e){
     console.error('Quiz error:', e);
     thinkingEl.classList.remove('thinking');
-    thinkingEl.textContent = isTr ? 'Quiz oluşturulamadı, tekrar dene.' : 'Could not create quiz, try again.';
+    thinkingEl.textContent = currentLang==='tr' ? 'Quiz oluşturulamadı, tekrar dene.' : 'Could not create quiz, try again.';
   }
 }
 
