@@ -2205,7 +2205,9 @@
   #staticBg{ animation:galaxy-pulse 8s ease-in-out infinite; }
 
   /* Visibility change — sayfadan çıkınca animasyon dur */
-  #staticBg.paused{ animation-play-state:paused; }  @keyframes pulse-dot{
+  #staticBg.paused{ animation-play-state:paused; }
+
+  @keyframes pulse-dot{
     0%,100%{ opacity:1; transform:scale(1); }
     50%{ opacity:.5; transform:scale(1.4); }
   }
