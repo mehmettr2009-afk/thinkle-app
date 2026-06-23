@@ -5878,7 +5878,8 @@ kendini imha edecek.</span></div>`;
   if(isQuizRequest){
     const thinkEl = addAiMessage('ai', t('aiThinking'), true);
     if(btn) btn.disabled = false;
-    await startAiQuizMode(question, thinkEl);
+    // Önce onay sor
+    await askQuizConfirmation(question, thinkEl);
     return;
   }
 
@@ -5982,47 +5983,141 @@ Her konuda yardımcı ol: ders, matematik, fen, tarih, kodlama, genel sohbet.`,
   }
 }
 
-// ============ AI QUIZ MODU ============
-async function startAiQuizMode(userRequest, thinkingEl){
+// ============ AI QUIZ MODU — ANA EKRANA ENTEGRE ============
+async function askQuizConfirmation(userRequest, thinkingEl){
   const isTr = currentLang === 'tr';
   const chat = getActiveAiChat();
 
+  // Konuyu AI'dan çıkar — kısa bir analiz
+  thinkingEl.classList.remove('thinking');
+
+  // Konu tespiti için kısa sistem yanıtı
+  let topic = userRequest;
+  const topicKeywords = ['hakkında','konusunda','üzerine','soruları','quizi','testi','about','questions','quiz'];
+  for(const kw of topicKeywords){
+    const idx = userRequest.toLowerCase().indexOf(kw);
+    if(idx > 0){ topic = userRequest.slice(0, idx).trim(); break; }
+  }
+  if(topic.length > 40) topic = topic.slice(0,40);
+
+  thinkingEl.innerHTML = `
+    <div style="line-height:1.6">${isTr
+      ? `📝 <strong style="color:#6ee7ff">"${topic.replace(/</g,'&lt;')}"</strong> konusunda 10 soruluk bir quiz hazırlayayım mı?`
+      : `📝 Shall I prepare a 10-question quiz on <strong style="color:#6ee7ff">"${topic.replace(/</g,'&lt;')}"</strong>?`
+    }</div>
+    <div style="display:flex;gap:8px;margin-top:10px">
+      <button id="aiQuizConfirmYes" style="
+        padding:8px 18px;border-radius:10px;border:none;
+        background:linear-gradient(135deg,#6ee7ff,#b46bff);
+        color:#070a18;font-weight:700;cursor:pointer;font-size:.8rem;
+        touch-action:manipulation;font-family:'Space Grotesk',sans-serif
+      ">✓ ${isTr?'Hazırla':'Generate'}</button>
+      <button id="aiQuizConfirmNo" style="
+        padding:8px 14px;border-radius:10px;border:1px solid rgba(255,255,255,.15);
+        background:rgba(255,255,255,.05);color:rgba(180,160,255,.7);
+        cursor:pointer;font-size:.8rem;touch-action:manipulation;
+        font-family:'Space Grotesk',sans-serif
+      ">${isTr?'Hayır, vazgeç':'Cancel'}</button>
+    </div>`;
+
+  document.getElementById('aiQuizConfirmYes').onclick = async () => {
+    thinkingEl.innerHTML = `<div>${isTr?'⏳ Quiz hazırlanıyor...':'⏳ Generating quiz...'}</div>`;
+    await generateAndLaunchQuiz(userRequest, topic, thinkingEl);
+  };
+  document.getElementById('aiQuizConfirmNo').onclick = () => {
+    thinkingEl.textContent = isTr ? 'Tamam, başka bir şey sorar mısın?' : 'Okay, feel free to ask something else!';
+  };
+}
+
+async function generateAndLaunchQuiz(userRequest, topic, statusEl){
+  const isTr = currentLang === 'tr';
+
   try{
+    // Loading ekranını aç
+    if(statusEl) statusEl.textContent = isTr ? '⏳ Sorular üretiliyor...' : '⏳ Generating questions...';
+
     const resp = await fetch(PROXY_URL, {
       method:'POST', headers:{'Content-Type':'application/json'},
       body: JSON.stringify({
-        model:'google/gemini-2.5-flash', max_tokens:2500,
+        model:'google/gemini-2.5-flash', max_tokens:3000,
         uid: window.currentUser?.uid||'', sig: getRequestSignature(),
         isDeck: true,
         messages:[
-          { role:'user', content: 'trafik işaretleri hakkında 2 soru' },
+          { role:'user', content: 'trafik işaretleri 2 soru' },
           { role:'assistant', content: 'TOPIC:Trafik İşaretleri\n---\nQ:Kırmızı ışıkta ne yapılır?\nA:Geçilir\nB:Durulur\nC:Yavaşlanır\nD:Korna çalınır\nCORRECT:B\nEXP:Kırmızı ışıkta durmak zorunludur.\n---\nQ:Dur işareti kaç köşelidir?\nA:4\nB:6\nC:8\nD:3\nCORRECT:C\nEXP:Dur işareti 8 köşeli oktagon şeklindedir.\n---END' },
-          { role:'user', content: `"${userRequest}" hakkında 5 soru oluştur. SADECE bu formatta, başka hiçbir şey ekleme:\n\nTOPIC:konu adı\n---\nQ:soru metni\nA:seçenek a\nB:seçenek b\nC:seçenek c\nD:seçenek d\nCORRECT:doğru harf (A B C D)\nEXP:kısa açıklama\n---\n(5 soru için tekrarla)\n---END` }
+          { role:'user', content: `"${userRequest}" için tam olarak 10 çoktan seçmeli soru. SADECE bu format, başka hiçbir şey:\n\nTOPIC:${topic}\n---\nQ:soru\nA:seçenek\nB:seçenek\nC:seçenek\nD:seçenek\nCORRECT:doğru harf\nEXP:açıklama\n---\n(10 soru, her biri --- ile ayrılmış)\n---END` }
         ]
       })
     });
 
     const data = await resp.json();
     const raw = data.content?.find(b=>b.type==='text')?.text || '';
-
     const parsed = parseQuizText(raw);
-    if(!parsed?.questions?.length) throw new Error('parse failed: ' + raw.slice(0,200));
 
-    thinkingEl.classList.remove('thinking');
-    thinkingEl.textContent = isTr
-      ? `📝 "${parsed.topic}" — ${parsed.questions.length} soru hazır!`
-      : `📝 "${parsed.topic}" — ${parsed.questions.length} questions ready!`;
+    if(!parsed?.questions?.length) throw new Error('parse failed');
 
-    renderAiQuiz(parsed, chat);
+    // Ana quiz formatına dönüştür — deck.quiz ile uyumlu
+    const aiQuiz = parsed.questions.map(q => ({
+      question: q.q,
+      options: q.opts,
+      answerIndex: q.correct,
+      explanation: q.explanation
+    }));
+
+    // Eğer deck yoksa geçici bir deck oluştur
+    if(!deck){
+      deck = {
+        title: parsed.topic,
+        slides: [{ heading: parsed.topic, bullets: [isTr?'AI tarafından oluşturuldu':'Generated by AI'], explanation:'' }],
+        quiz: aiQuiz
+      };
+      buildTabs();
+    } else {
+      // Mevcut deck'e quiz ekle — başlığı güncelle
+      deck.quiz = aiQuiz;
+    }
+
+    quizAnswers = {};
+
+    // Yükleme ekranı göster
+    if(statusEl) statusEl.textContent = isTr ? '✓ Quiz hazır! Yükleniyor...' : '✓ Quiz ready! Loading...';
+
+    // Loading ekranı animasyonu
+    uploadScreen.classList.add('hidden');
+    loadingScreen.classList.remove('hidden');
+    startLoadingAnimation();
+    loadingText.textContent = isTr ? 'Quiz hazırlanıyor...' : 'Preparing quiz...';
+
+    // Kısa animasyon göster
+    await new Promise(r => setTimeout(r, 1500));
+
+    loadingScreen.classList.add('hidden');
+    stopLoadingAnimation();
+    deckScreen.classList.remove('hidden');
+    exportBtn.disabled = false;
+    exportBtn.onclick = exportPptx;
+
+    // Topbar başlığını güncelle
+    topTitle.textContent = parsed.topic;
+    setTimeout(positionSolarSystem, 50);
+
+    // Ana quiz ekranına geç — zorluk seçimiyle
+    renderQuiz();
+
     aiHistory.push({ role:'user', content: userRequest });
-    aiHistory.push({ role:'assistant', content: `${parsed.topic} hakkında ${parsed.questions.length} soruluk interaktif quiz hazırladım.` });
+    aiHistory.push({ role:'assistant', content: `${parsed.topic} hakkında ${aiQuiz.length} soruluk quiz hazırladım!` });
+
+    // Mobil float paneli kapat
+    document.getElementById('aiFloatPanel')?.classList.remove('open');
 
   }catch(e){
-    console.error('Quiz error:', e.message);
-    thinkingEl.classList.remove('thinking');
-    thinkingEl.textContent = currentLang==='tr' ? 'Quiz oluşturulamadı, tekrar dene.' : 'Could not create quiz, try again.';
+    console.error('Quiz gen error:', e);
+    loadingScreen.classList.add('hidden');
+    stopLoadingAnimation();
+    if(statusEl) statusEl.textContent = isTr ? '❌ Quiz oluşturulamadı, tekrar dene.' : '❌ Could not create quiz, try again.';
   }
 }
+
 
 function parseQuizText(raw){
   const topicMatch = raw.match(/TOPIC[:：]\s*(.+)/i);
