@@ -405,17 +405,13 @@
   (function setupPresence(){
     const presenceId = 'p_' + Math.random().toString(36).slice(2,10) + '_' + Date.now();
     const presenceRef = doc(db, 'presence', presenceId);
-    // Cihaz tespiti
-    const isMobileDevice = /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent);
-    const deviceType = isMobileDevice ? 'mobile' : 'desktop';
 
     async function goOnline(){
       try{
         await setDoc(presenceRef, {
           uid: window.currentUser?.uid || null,
           at: new Date().toISOString(),
-          expires: Date.now() + 90000,
-          device: deviceType
+          expires: Date.now() + 90000 // 90 saniye — heartbeat gelirse uzar
         });
       }catch(e){}
     }
@@ -669,56 +665,30 @@
     try {
       const snap = await getDocs(collection(db, 'presence'));
       const now = Date.now();
-      const onlineMap = {};
-      snap.docs
-        .filter(d => d.data().expires > now && d.data().uid)
-        .forEach(d => { onlineMap[d.data().uid] = d.data().device || 'desktop'; });
-      return friendUids
-        .filter(uid => onlineMap[uid])
-        .map(uid => ({ uid, device: onlineMap[uid] }));
+      const onlineUids = new Set(
+        snap.docs
+          .filter(d => d.data().expires > now && d.data().uid)
+          .map(d => d.data().uid)
+      );
+      return friendUids.filter(uid => onlineUids.has(uid));
     } catch(e){ return []; }
   };
 
-  // Arkadaş presence'ı gerçek zamanlı izle — device bilgisiyle
+  // Arkadaş presence'ı gerçek zamanlı izle
   window.fbWatchFriendsOnline = (friendUids, callback) => {
     return onSnapshot(collection(db, 'presence'), (snap) => {
       const now = Date.now();
-      const onlineMap = {};
-      snap.docs
-        .filter(d => d.data().expires > now && d.data().uid)
-        .forEach(d => { onlineMap[d.data().uid] = d.data().device || 'desktop'; });
-      // friendUids içindeki online olanları { uid, device } olarak döndür
-      const onlineFriends = friendUids
-        .filter(uid => onlineMap[uid])
-        .map(uid => ({ uid, device: onlineMap[uid] }));
-      callback(onlineFriends);
+      const onlineUids = new Set(
+        snap.docs
+          .filter(d => d.data().expires > now && d.data().uid)
+          .map(d => d.data().uid)
+      );
+      callback(friendUids.filter(uid => onlineUids.has(uid)));
     }, ()=>{});
   };
 
-  // Arkadaşa yarışma daveti gönder
-  window.fbSendBattleInvite = async (fromUid, fromName, toUid, roomCode, category) => {
-    try {
-      await setDoc(doc(db, `battleInvites/${toUid}`), {
-        fromUid, fromName, roomCode, category,
-        sentAt: new Date().toISOString()
-      });
-      return { ok: true };
-    } catch(e){ return { ok: false }; }
-  };
-
-  // Daveti izle — gerçek zamanlı
-  window.fbWatchBattleInvite = (uid, callback) => {
-    return onSnapshot(doc(db, `battleInvites/${uid}`), (snap) => {
-      if(snap.exists()) callback(snap.data());
-      else callback(null);
-    }, ()=>{});
-  };
-
-  // Daveti sil (kabul/reddet sonrası)
-  window.fbClearBattleInvite = async (uid) => {
-    try { await deleteDoc(doc(db, `battleInvites/${uid}`)); } catch(e){}
-  };
-
+  // Bekleyen istek sayısı — gerçek zamanlı
+  window.fbWatchFriendRequests = (uid, callback) => {
     const q = query(collection(db, `friends/${uid}/requests`), where('status','==','pending'));
     return onSnapshot(q, (snap) => {
       callback(snap.docs.map(d => ({ id: d.id, ...d.data() })));
@@ -4420,17 +4390,6 @@ async function doCreateRoom(){
 
   battleRoomCode = result.code;
   showWaitingRoom(result.code);
-
-  // Bekleyen davet varsa gönder
-  if(window._pendingBattleInvite){
-    const { friendUid, friendName } = window._pendingBattleInvite;
-    window._pendingBattleInvite = null;
-    const user = window.currentUser;
-    const myName = window.currentUsername ? '@'+window.currentUsername : (user?.displayName||'Birisi');
-    const catLabel = BATTLE_CATEGORIES.find(c=>c.id===battleSelectedCategory)?.label || '';
-    await window.fbSendBattleInvite(user.uid, myName, friendUid, result.code, catLabel);
-    showToast(`⚔️ @${friendName} davet edildi! Kod: ${result.code}`);
-  }
 }
 
 async function generateBattleQuestions(category){
@@ -5015,11 +4974,10 @@ function showBattleResult(roomData){
 // ARKADAŞ SİSTEMİ
 // ============================================================
 let friendsOpen = false;
-let friendsOnlineMap = new Map(); // uid → 'mobile' | 'desktop'
+let friendsOnlineUids = new Set();
 let friendsListCache = [];
 let friendsUnsubReq = null;
 let friendsUnsubOnline = null;
-let friendsUnsubInvite = null;
 let currentFriendTab = 'list';
 
 function toggleFriendsPanel(){
@@ -5035,6 +4993,7 @@ function toggleFriendsPanel(){
   if(friendsOpen){
     initFriendsPanel();
   } else {
+    // Listener'ları temizle
     if(friendsUnsubOnline){ friendsUnsubOnline(); friendsUnsubOnline = null; }
   }
 }
@@ -5043,9 +5002,20 @@ async function initFriendsPanel(){
   const user = window.currentUser;
   if(!user) return;
 
+  // Arkadaş listesini yükle
   friendsListCache = await window.fbGetFriends(user.uid);
-  startFriendsOnlineWatcher();
 
+  // Online izlemeyi başlat
+  if(friendsUnsubOnline) friendsUnsubOnline();
+  const friendUids = friendsListCache.map(f => f.uid);
+  if(friendUids.length > 0){
+    friendsUnsubOnline = window.fbWatchFriendsOnline(friendUids, (onlineUids) => {
+      friendsOnlineUids = new Set(onlineUids);
+      if(currentFriendTab === 'list') renderFriendList();
+    });
+  }
+
+  // İstek listener
   if(friendsUnsubReq) friendsUnsubReq();
   friendsUnsubReq = window.fbWatchFriendRequests(user.uid, (reqs) => {
     updateRequestBadge(reqs.length);
@@ -5055,18 +5025,8 @@ async function initFriendsPanel(){
   switchFriendTab('list', document.querySelector('.fp-tab[data-tab="list"]'));
 }
 
-function startFriendsOnlineWatcher(){
-  if(friendsUnsubOnline){ friendsUnsubOnline(); friendsUnsubOnline = null; }
-  const friendUids = friendsListCache.map(f => f.uid);
-  if(!friendUids.length) return;
-
-  friendsUnsubOnline = window.fbWatchFriendsOnline(friendUids, (onlineFriends) => {
-    friendsOnlineMap = new Map(onlineFriends.map(f => [f.uid, f.device]));
-    if(currentFriendTab === 'list') renderFriendList();
-  });
-}
-
 function updateRequestBadge(count){
+  // Sidebar badge
   ['friendReqBadge','friendReqBadgeMobile','reqTabBadge'].forEach(id => {
     const el = document.getElementById(id);
     if(!el) return;
@@ -5077,6 +5037,7 @@ function updateRequestBadge(count){
 
 function switchFriendTab(tab, btn){
   currentFriendTab = tab;
+  // Tab butonlarını güncelle
   document.querySelectorAll('.fp-tab').forEach(b => {
     b.style.color = 'rgba(180,160,255,.7)';
     b.style.borderBottom = '2px solid transparent';
@@ -5108,23 +5069,19 @@ function renderFriendList(){
 
   // Online önce, offline sonra
   const sorted = [...friends].sort((a,b) => {
-    return (friendsOnlineMap.has(b.uid)?1:0) - (friendsOnlineMap.has(a.uid)?1:0);
+    const aOnline = friendsOnlineUids.has(a.uid) ? 1 : 0;
+    const bOnline = friendsOnlineUids.has(b.uid) ? 1 : 0;
+    return bOnline - aOnline;
   });
 
-  const onlineCount = friends.filter(f => friendsOnlineMap.has(f.uid)).length;
-
   content.innerHTML = `
-    <div style="padding:8px 14px;font-size:.62rem;color:rgba(180,160,255,.4);font-family:'Space Mono',monospace;letter-spacing:.06em;border-bottom:1px solid rgba(255,255,255,.05);display:flex;justify-content:space-between">
-      <span>${friends.length} ARKADAŞ</span>
-      <span style="color:#4dffb0">${onlineCount} ONLINE</span>
+    <div style="padding:10px 14px;font-size:.62rem;color:rgba(180,160,255,.4);font-family:'Space Mono',monospace;letter-spacing:.06em;border-bottom:1px solid rgba(255,255,255,.05)">
+      ${friends.length} ARKADAŞ · ${friendsOnlineUids.size} ONLINE
     </div>
     ${sorted.map(f => {
-      const device = friendsOnlineMap.get(f.uid); // undefined = offline
-      const isOnline = !!device;
-      const deviceIcon = device === 'mobile' ? '📱' : device === 'desktop' ? '🖥️' : '';
-      const deviceLabel = device === 'mobile' ? 'Telefon' : device === 'desktop' ? 'Bilgisayar' : '';
+      const isOnline = friendsOnlineUids.has(f.uid);
       return `
-        <div class="friend-item">
+        <div class="friend-item" id="fi-${f.uid}">
           <div class="friend-avatar">
             <span>${f.avatar || '👤'}</span>
             <div class="online-dot ${isOnline?'online':'offline'}"></div>
@@ -5132,22 +5089,12 @@ function renderFriendList(){
           <div style="flex:1;min-width:0">
             <div class="friend-name">@${escapeHtml(f.name||f.uid.slice(0,8))}</div>
             <div class="friend-status ${isOnline?'online':''}">
-              ${isOnline
-                ? `● Online ${deviceIcon} <span style="font-size:.58rem;opacity:.7">${deviceLabel}</span>`
-                : '○ Offline'}
+              ${isOnline ? '● Online' : '○ Offline'}
             </div>
           </div>
-          <div style="display:flex;gap:4px;align-items:center">
-            <button onclick="inviteFriendToBattle('${f.uid}','${escapeHtml(f.name||'')}','${device||''}')"
-              title="${isOnline?'Yarışmaya davet et':'Offline - davet gönderilemiyor'}"
-              style="background:${isOnline?'rgba(255,110,199,.15)':'rgba(255,255,255,.04)'};border:1px solid ${isOnline?'rgba(255,110,199,.3)':'rgba(255,255,255,.08)'};border-radius:7px;padding:5px 8px;cursor:${isOnline?'pointer':'default'};font-size:.75rem;color:${isOnline?'#ff6ec7':'rgba(255,255,255,.2)'};touch-action:manipulation">
-              ⚔️
-            </button>
-            <button onclick="removeFriend('${f.uid}','${escapeHtml(f.name||'')}',this)"
-              title="Arkadaşı sil"
-              style="background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:7px;padding:5px 8px;cursor:pointer;font-size:.7rem;color:rgba(255,255,255,.25);touch-action:manipulation">
-              ✕
-            </button>
+          <div style="display:flex;gap:4px">
+            <button onclick="inviteFriendToBattle('${f.uid}','${escapeHtml(f.name||'')}',${isOnline})" title="Yarışmaya davet et" style="background:rgba(255,110,199,.1);border:1px solid rgba(255,110,199,.2);border-radius:7px;padding:5px 8px;cursor:pointer;font-size:.7rem;color:#ff6ec7;touch-action:manipulation">⚔️</button>
+            <button onclick="removeFriend('${f.uid}','${escapeHtml(f.name||'')}',this)" title="Arkadaşı sil" style="background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);border-radius:7px;padding:5px 8px;cursor:pointer;font-size:.7rem;color:rgba(255,255,255,.3);touch-action:manipulation">✕</button>
           </div>
         </div>`;
     }).join('')}`;
@@ -5182,14 +5129,8 @@ function renderFriendRequests(reqs){
         </div>
       </div>
       <div style="display:flex;gap:8px;width:100%">
-        <button onclick="acceptFriendReq('${req.fromUid}','${escapeHtml(req.fromName||'')}',this)"
-          style="flex:1;padding:7px;border-radius:9px;border:none;background:rgba(77,255,176,.2);color:#4dffb0;cursor:pointer;font-size:.75rem;font-weight:600;touch-action:manipulation;font-family:'Space Grotesk',sans-serif">
-          ✓ Kabul Et
-        </button>
-        <button onclick="declineFriendReq('${req.fromUid}',this)"
-          style="flex:1;padding:7px;border-radius:9px;border:1px solid rgba(255,255,255,.1);background:rgba(255,255,255,.04);color:rgba(255,255,255,.4);cursor:pointer;font-size:.75rem;touch-action:manipulation;font-family:'Space Grotesk',sans-serif">
-          ✕ Reddet
-        </button>
+        <button onclick="acceptFriendReq('${req.fromUid}','${escapeHtml(req.fromName||'')}',this)" style="flex:1;padding:7px;border-radius:9px;border:none;background:rgba(77,255,176,.2);color:#4dffb0;cursor:pointer;font-size:.75rem;font-weight:600;touch-action:manipulation;font-family:'Space Grotesk',sans-serif">✓ Kabul Et</button>
+        <button onclick="declineFriendReq('${req.fromUid}',this)" style="flex:1;padding:7px;border-radius:9px;border:1px solid rgba(255,255,255,.1);background:rgba(255,255,255,.04);color:rgba(255,255,255,.4);cursor:pointer;font-size:.75rem;touch-action:manipulation;font-family:'Space Grotesk',sans-serif">✕ Reddet</button>
       </div>
     </div>`).join('');
 }
@@ -5240,10 +5181,9 @@ async function doFriendSearch(){
     return;
   }
 
+  // Zaten arkadaş mı?
   const alreadyFriend = friendsListCache.some(f => f.uid === found.uid);
-  const device = friendsOnlineMap.get(found.uid);
-  const isOnline = !!device;
-  const deviceIcon = device === 'mobile' ? '📱' : device === 'desktop' ? '🖥️' : '';
+  const isOnline = friendsOnlineUids.has(found.uid);
 
   resultEl.innerHTML = `
     <div class="friend-item" style="border:1px solid rgba(110,231,255,.15);border-radius:12px;margin-top:4px">
@@ -5253,16 +5193,11 @@ async function doFriendSearch(){
       </div>
       <div style="flex:1;min-width:0">
         <div class="friend-name">@${escapeHtml(found.username||'')}</div>
-        <div class="friend-status ${isOnline?'online':''}">
-          ${isOnline ? `● Online ${deviceIcon}` : '○ Offline'}
-        </div>
+        <div class="friend-status ${isOnline?'online':''}">${isOnline?'● Online':'○ Offline'}</div>
       </div>
       ${alreadyFriend
         ? `<span style="font-size:.65rem;color:rgba(77,255,176,.7);font-family:'Space Mono',monospace">✓ Arkadaş</span>`
-        : `<button id="addFriendBtn" onclick="sendFriendReq('${found.uid}','${escapeHtml(found.username||found.uid.slice(0,8))}',this)"
-            style="padding:7px 12px;border-radius:9px;border:none;background:linear-gradient(135deg,#6ee7ff,#b46bff);color:#070a18;font-weight:700;cursor:pointer;font-size:.72rem;touch-action:manipulation;font-family:'Space Grotesk',sans-serif;white-space:nowrap">
-            + Ekle
-          </button>`
+        : `<button id="addFriendBtn" onclick="sendFriendReq('${found.uid}','${escapeHtml(found.username||found.uid.slice(0,8))}',this)" style="padding:7px 12px;border-radius:9px;border:none;background:linear-gradient(135deg,#6ee7ff,#b46bff);color:#070a18;font-weight:700;cursor:pointer;font-size:.72rem;touch-action:manipulation;font-family:'Space Grotesk',sans-serif;white-space:nowrap">+ Ekle</button>`
       }
     </div>`;
 }
@@ -5277,7 +5212,7 @@ async function sendFriendReq(toUid, toName, btn){
     if(btn){ btn.textContent='✓ Gönderildi'; btn.style.background='rgba(77,255,176,.2)'; btn.style.color='#4dffb0'; }
   } else {
     if(btn){ btn.disabled=false; btn.textContent='+ Ekle'; }
-    showToast('İstek gönderilemedi.');
+    showToast('İstek gönderilemedi, tekrar dene.');
   }
 }
 
@@ -5288,10 +5223,8 @@ async function acceptFriendReq(fromUid, fromName, btn){
   const myName = window.currentUsername ? '@'+window.currentUsername : (user.displayName||user.uid.slice(0,8));
   const result = await window.fbAcceptFriend(user.uid, myName, fromUid, fromName);
   if(result.ok){
-    // Listeyi güncelle ve anında göster
+    // Listeyi güncelle
     friendsListCache = await window.fbGetFriends(user.uid);
-    // Online watcher'ı yeniden başlat — yeni arkadaş eklendi
-    startFriendsOnlineWatcher();
     await renderFriendRequestsTab();
     showToast('✓ Arkadaş eklendi!');
   }
@@ -5300,8 +5233,7 @@ async function acceptFriendReq(fromUid, fromName, btn){
 async function declineFriendReq(fromUid, btn){
   const user = window.currentUser;
   if(!user) return;
-  const item = btn?.closest('.friend-item');
-  if(item){ item.style.opacity='.4'; item.style.pointerEvents='none'; }
+  if(btn){ btn.closest('.friend-item').style.opacity='.4'; btn.closest('.friend-item').style.pointerEvents='none'; }
   await window.fbDeclineFriend(user.uid, fromUid);
   await renderFriendRequestsTab();
 }
@@ -5312,151 +5244,36 @@ async function removeFriend(friendUid, friendName, btn){
   if(!confirm(`@${friendName} arkadaşlıktan çıkarılsın mı?`)) return;
   await window.fbRemoveFriend(user.uid, friendUid);
   friendsListCache = friendsListCache.filter(f => f.uid !== friendUid);
-  friendsOnlineMap.delete(friendUid);
-  startFriendsOnlineWatcher();
   renderFriendList();
   showToast('Arkadaş silindi.');
 }
 
-async function inviteFriendToBattle(friendUid, friendName, device){
-  if(!device){
+function inviteFriendToBattle(friendUid, friendName, isOnline){
+  if(!isOnline){
     showToast(`@${friendName} şu an offline.`);
     return;
   }
-  const user = window.currentUser;
-  if(!user) return;
-
-  // Oda zaten var mı?
-  if(battleRoomCode){
-    // Mevcut odaya davet gönder
-    const myName = window.currentUsername ? '@'+window.currentUsername : (user.displayName||'Birisi');
-    const catLabel = BATTLE_CATEGORIES.find(c=>c.id===battleSelectedCategory)?.label || 'Bilinmiyor';
-    await window.fbSendBattleInvite(user.uid, myName, friendUid, battleRoomCode, catLabel);
-    showToast(`⚔️ @${friendName} davet edildi! Kod: ${battleRoomCode}`);
-    return;
-  }
-
-  // Oda yok — önce kategori seçtir, oda kur, sonra davet et
-  toggleFriendsPanel(); // paneli kapat
+  // Önce yarışma modalını aç
+  toggleFriendsPanel();
   showBattleModal();
-
-  // Oda kurulunca arkadaşa davet gönder — hook ekle
-  window._pendingBattleInvite = { friendUid, friendName };
-  showToast(`⚔️ Oda kurulduktan sonra @${friendName} otomatik davet edilecek`);
+  showToast(`⚔️ Oda kodunu @${friendName} ile paylaş!`);
 }
 
-// Oda kurulunca bekleyen daveti gönder
-const _origDoCreateRoom = typeof doCreateRoom !== 'undefined' ? doCreateRoom : null;
-
-// Auth değişince friend badge + invite listener
+// Auth değişince friend badge listener'ı başlat
 document.addEventListener('authChanged', (e) => {
   const user = e.detail;
   if(user && !user.isAnonymous){
+    // Bekleyen istekleri izle
     if(friendsUnsubReq) friendsUnsubReq();
     friendsUnsubReq = window.fbWatchFriendRequests(user.uid, (reqs) => {
       updateRequestBadge(reqs.length);
       if(currentFriendTab === 'requests' && friendsOpen) renderFriendRequests(reqs);
     });
-
-    // Yarışma davetlerini izle
-    if(friendsUnsubInvite) friendsUnsubInvite();
-    friendsUnsubInvite = window.fbWatchBattleInvite(user.uid, (invite) => {
-      if(!invite) return;
-      showBattleInviteToast(invite);
-    });
   } else {
     if(friendsUnsubReq){ friendsUnsubReq(); friendsUnsubReq = null; }
-    if(friendsUnsubInvite){ friendsUnsubInvite(); friendsUnsubInvite = null; }
     updateRequestBadge(0);
   }
 });
-
-function showBattleInviteToast(invite){
-  // Zaten gösterilmişse tekrar gösterme
-  if(document.getElementById('battleInviteToast')) return;
-
-  const toast = document.createElement('div');
-  toast.id = 'battleInviteToast';
-  toast.style.cssText = `
-    position:fixed;top:60px;left:50%;transform:translateX(-50%);
-    z-index:99500;min-width:280px;max-width:340px;
-    background:rgba(10,6,28,.98);backdrop-filter:blur(16px);
-    border:1px solid rgba(255,110,199,.4);border-radius:16px;
-    padding:14px 16px;box-shadow:0 8px 40px rgba(0,0,0,.6);
-    animation:slide-in .4s cubic-bezier(.16,1,.3,1) both;
-  `;
-  const catLabel = invite.category || 'Yarışma';
-  toast.innerHTML = `
-    <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
-      <span style="font-size:1.4rem">⚔️</span>
-      <div>
-        <div style="font-size:.82rem;font-weight:700;color:#fff">Yarışma Daveti!</div>
-        <div style="font-size:.72rem;color:rgba(180,160,255,.7)">
-          <strong style="color:#ff6ec7">${escapeHtml(invite.fromName)}</strong> seni davet etti
-        </div>
-        <div style="font-size:.65rem;color:rgba(255,255,255,.35);margin-top:2px">
-          📂 ${escapeHtml(catLabel)} · Kod: <strong style="color:#6ee7ff;font-family:'Orbitron',sans-serif;letter-spacing:.1em">${invite.roomCode}</strong>
-        </div>
-      </div>
-    </div>
-    <div style="display:flex;gap:8px">
-      <button onclick="acceptBattleInvite('${invite.roomCode}')" style="
-        flex:2;padding:9px;border-radius:10px;border:none;
-        background:linear-gradient(135deg,#ff6ec7,#b46bff);
-        color:#070a18;font-weight:700;font-size:.8rem;cursor:pointer;
-        touch-action:manipulation;font-family:'Space Grotesk',sans-serif;
-      ">⚔️ Katıl!</button>
-      <button onclick="declineBattleInvite()" style="
-        flex:1;padding:9px;border-radius:10px;
-        border:1px solid rgba(255,255,255,.1);background:rgba(255,255,255,.05);
-        color:rgba(255,255,255,.5);font-size:.8rem;cursor:pointer;
-        touch-action:manipulation;font-family:'Space Grotesk',sans-serif;
-      ">Reddet</button>
-    </div>`;
-  document.body.appendChild(toast);
-
-  // 30 saniye sonra otomatik kapat
-  setTimeout(() => toast.remove(), 30000);
-}
-
-async function acceptBattleInvite(roomCode){
-  document.getElementById('battleInviteToast')?.remove();
-  const user = window.currentUser;
-  if(!user) return;
-  await window.fbClearBattleInvite(user.uid);
-
-  // Direkt odaya katıl
-  battleMyUid = user.uid;
-  battleMyName = window.currentUsername ? '@'+window.currentUsername : (user.displayName||user.uid.slice(0,8));
-  battleIsHost = false;
-
-  const result = await window.fbJoinRoom(roomCode, user.uid, battleMyName);
-  if(!result.ok){
-    showToast('Odaya katılınamadı: ' + (result.reason||'hata'));
-    return;
-  }
-  battleRoomCode = roomCode;
-  battleQuestions = result.data.questions || [];
-  battleSelectedCategory = result.data.category;
-
-  // Önce modal aç, sonra waiting room göster
-  if(!document.getElementById('battleModal')){
-    const modal = document.createElement('div');
-    modal.id = 'battleModal';
-    modal.className = 'battle-modal';
-    const box = document.createElement('div');
-    box.className = 'battle-box';
-    modal.appendChild(box);
-    document.body.appendChild(modal);
-  }
-  showWaitingRoom(roomCode);
-}
-
-async function declineBattleInvite(){
-  document.getElementById('battleInviteToast')?.remove();
-  const user = window.currentUser;
-  if(user) await window.fbClearBattleInvite(user.uid);
-}
 
 function showFounderWelcome(){
   const existing = document.getElementById('founderWelcome');
