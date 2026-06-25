@@ -1542,13 +1542,10 @@
     background:rgba(180,107,255,.06);
   }
   .dropzone .filename{ margin-top:10px; font-size:.85rem; color:var(--accent); font-family:'Space Mono',monospace; }
-  .dropzone.distort1{ transform:rotate(-1deg) scale(.99); }
-  .dropzone.distort2{ transform:rotate(2deg) skewX(-2deg) scale(.97); filter:blur(.4px); }
-  .dropzone.distort3{ transform:rotate(-4deg) skewX(4deg) scale(.92); filter:blur(1px); animation:dz-shake .4s ease-in-out infinite alternate; }
-  @keyframes dz-shake{
-    from{ transform:rotate(-4deg) skewX(4deg) scale(.92) translateX(0); }
-    to{   transform:rotate(-4deg) skewX(4deg) scale(.92) translateX(-6px); }
-  }
+  .dropzone.distort1{ }
+  .dropzone.distort2{ }
+  .dropzone.distort3{ }
+  @keyframes dz-shake{ }
   input[type=file]{display:none;}
 
   .api-key-row{margin-top:24px; text-align:left;}
@@ -2183,10 +2180,10 @@
     to{ width:46%; height:22%; border-radius:0 0 50px 50px; }
   }
   @media (max-width: 860px){
-    /* Galaksiyi geri getir ama animasyonları yavaşlat */
-    #galaxy { opacity:.6; }
-    .spiral-glow { animation-duration:80s !important; }
-    .galaxy-core { animation:none !important; }
+    /* Mobilde galaksi ve spiral tamamen gizli — PC'de eski haliyle */
+    #galaxy { display:none !important; }
+    .spiral-glow { display:none !important; }
+    .galaxy-core { display:none !important; }
   }
   @media (min-width: 861px){
     .star, .orbiter, .planet, .asteroid, .space-ship {
@@ -2195,20 +2192,27 @@
     .sol { will-change: transform; }
   }
   @media (max-width: 860px){
-    /* Sadece JS spawn'lu CPU döngüleri kapat */
-    .space-ship, .asteroid { display:none !important; }
-    .dropzone-ring, .dropzone::before { display:none !important; }
+    /* Galaksiyi gizle — mobilde sade arka plan */
+    #galaxy { display:none !important; }
+    .spiral-glow { display:none !important; }
+    .galaxy-core { display:none !important; }
+    .bg-planet { display:none !important; }
+    .space-ship { display:none !important; }
+    .asteroid { display:none !important; }
+    .dropzone-ring { display:none !important; }
 
-    /* Blur — en büyük FPS katili */
+    /* Gezegen yörüngeleri çok yavaşlat */
+    .orbiter { animation-duration: calc(var(--orbit-dur,30s) * 3) !important; }
+    .sol { animation:none !important; }
+
+    /* Blur tamamen kapat — en büyük FPS katili */
     .footer-inner { backdrop-filter:none !important; background:rgba(8,6,20,.97) !important; }
     .slide-card { backdrop-filter:none !important; }
-    .auth-modal-box { backdrop-filter:none !important; }
-
-    /* Gezegenler ve yıldızlar kalır ama daha yavaş döner */
-    .orbiter { animation-duration: calc(var(--orbit-dur,30s) * 1.8) !important; }
-    .spiral-glow { animation-duration:80s !important; }
-    .bg-planet { animation:none !important; }
-    .sol { animation:none !important; }
+    .battle-box { backdrop-filter:none !important; background:rgba(8,6,24,.99) !important; }
+    .friends-panel { backdrop-filter:none !important; background:rgba(7,10,24,.99) !important; }
+    .ai-float-panel { backdrop-filter:none !important; background:rgba(7,10,24,.99) !important; }
+    .left-column { backdrop-filter:none !important; }
+    #mobileHeader { backdrop-filter:none !important; }
 
     /* will-change kaldır */
     *, *::before, *::after { will-change:auto !important; }
@@ -3535,7 +3539,7 @@
   resize();
   window.addEventListener('resize', resize);
 
-  const starCount = window.innerWidth <= 860 ? 80 : 160;
+  const starCount = window.innerWidth <= 860 ? 20 : 160;
   for(let i=0;i<starCount;i++){
     stars.push({
       x:Math.random()*window.innerWidth,
@@ -4150,7 +4154,7 @@ async function initGalaxyUI(user){
 
     area.innerHTML = `
       <div style="padding:8px 12px;border-radius:10px;border:1px solid rgba(140,110,255,.2);background:rgba(140,110,255,.05);text-align:center">
-        <div style="font-family:'Orbitron',sans-serif;font-size:.58rem;font-weight:900;background:linear-gradient(135deg,#8a5cff,#5c8aff);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;letter-spacing:.06em">✦ GALAXY ÜYESİ ✦</div>
+        <div style="font-family:'Orbitron',sans-serif;font-size:.58rem;font-weight:900;background:linear-gradient(135deg,#8a5cff,#5c8aff);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;letter-spacing:.06em">${isTr?'✦ GALAXY ÜYESİ ✦':'✦ GALAXY MEMBER ✦'}</div>
         <div style="font-size:.6rem;color:rgba(180,160,255,.45);margin-top:2px">${isTr?'Sınırsız erişim aktif':'Unlimited access active'}</div>
         ${expiryHtml}
       </div>`;
@@ -4344,16 +4348,16 @@ function showGalaxyApplyForm(user, isTr, onSuccess){
 // BATTLE ROOM SİSTEMİ — Gartic.io tarzı çok oyunculu quiz
 // ============================================================
 const BATTLE_CATEGORIES = [
-  { id:'general',   emoji:'🌍', label:'Genel Kültür' },
-  { id:'science',   emoji:'🔬', label:'Fen & Bilim' },
-  { id:'history',   emoji:'🏛️', label:'Tarih' },
-  { id:'geography', emoji:'🗺️', label:'Coğrafya' },
-  { id:'sports',    emoji:'⚽', label:'Spor' },
-  { id:'movies',    emoji:'🎬', label:'Film & Dizi' },
-  { id:'music',     emoji:'🎵', label:'Müzik' },
-  { id:'tech',      emoji:'💻', label:'Teknoloji' },
-  { id:'ehliyet',   emoji:'🚗', label:'Ehliyet Sınavı' },
-  { id:'math',      emoji:'➕', label:'Matematik' },
+  { id:'general',   emoji:'🌍', label:'Genel Kültür',   labelEn:'General Knowledge' },
+  { id:'science',   emoji:'🔬', label:'Fen & Bilim',    labelEn:'Science' },
+  { id:'history',   emoji:'🏛️', label:'Tarih',          labelEn:'History' },
+  { id:'geography', emoji:'🗺️', label:'Coğrafya',       labelEn:'Geography' },
+  { id:'sports',    emoji:'⚽', label:'Spor',            labelEn:'Sports' },
+  { id:'movies',    emoji:'🎬', label:'Film & Dizi',    labelEn:'Movies & TV' },
+  { id:'music',     emoji:'🎵', label:'Müzik',           labelEn:'Music' },
+  { id:'tech',      emoji:'💻', label:'Teknoloji',       labelEn:'Technology' },
+  { id:'ehliyet',   emoji:'🚗', label:'Ehliyet Sınavı', labelEn:'Driving Test' },
+  { id:'math',      emoji:'➕', label:'Matematik',       labelEn:'Mathematics' },
 ];
 
 let battleRoomCode = null;
@@ -4373,6 +4377,7 @@ function showBattleModal(){
   const user = window.currentUser;
   if(!user || user.isAnonymous){ showAuthModal(() => showBattleModal()); return; }
   if(document.getElementById('battleModal')) return;
+  const isTr = currentLang === 'tr';
 
   const modal = document.createElement('div');
   modal.id = 'battleModal';
@@ -4382,19 +4387,17 @@ function showBattleModal(){
       <button onclick="closeBattleModal()" style="position:absolute;top:14px;right:14px;background:rgba(255,255,255,.08);border:none;border-radius:8px;width:28px;height:28px;cursor:pointer;color:rgba(255,255,255,.6);font-size:.8rem;touch-action:manipulation">✕</button>
       <div style="text-align:center;margin-bottom:16px">
         <div style="font-size:2rem;margin-bottom:6px">⚔️</div>
-        <h2 class="battle-title">Yarışma Modu</h2>
-        <div style="font-size:.72rem;color:rgba(180,160,255,.5)">Gartic tarzı çok oyunculu quiz · Maks 6 kişi</div>
+        <h2 class="battle-title">${isTr?'Yarışma Modu':'Battle Mode'}</h2>
+        <div style="font-size:.72rem;color:rgba(180,160,255,.5)">${isTr?'Gartic tarzı çok oyunculu quiz · Maks 6 kişi':'Gartic-style multiplayer quiz · Max 6 players'}</div>
       </div>
-
       <div style="display:flex;gap:8px;margin-bottom:18px">
         <button id="btnCreateRoom" onclick="showCreateRoom()" style="flex:1;padding:12px;border-radius:12px;border:none;background:linear-gradient(135deg,#ff6ec7,#b46bff);color:#070a18;font-weight:700;font-size:.85rem;cursor:pointer;touch-action:manipulation;font-family:'Space Grotesk',sans-serif">
-          ➕ Oda Kur
+          ➕ ${isTr?'Oda Kur':'Create Room'}
         </button>
         <button id="btnJoinRoom" onclick="showJoinRoom()" style="flex:1;padding:12px;border-radius:12px;border:1px solid rgba(110,231,255,.3);background:rgba(110,231,255,.06);color:#6ee7ff;font-weight:700;font-size:.85rem;cursor:pointer;touch-action:manipulation;font-family:'Space Grotesk',sans-serif">
-          🔑 Odaya Katıl
+          🔑 ${isTr?'Odaya Katıl':'Join Room'}
         </button>
       </div>
-
       <div id="battleModalContent"></div>
     </div>`;
   document.body.appendChild(modal);
@@ -4408,22 +4411,23 @@ function closeBattleModal(){
 function showCreateRoom(){
   const content = document.getElementById('battleModalContent');
   if(!content) return;
+  const isTr = currentLang === 'tr';
   content.innerHTML = `
-    <div style="font-size:.75rem;color:rgba(180,160,255,.6);margin-bottom:8px;font-weight:600">📂 Kategori Seç</div>
+    <div style="font-size:.75rem;color:rgba(180,160,255,.6);margin-bottom:8px;font-weight:600">📂 ${isTr?'Kategori Seç':'Choose Category'}</div>
     <div class="category-grid">
       ${BATTLE_CATEGORIES.map(c => `
         <button class="cat-btn" data-cat="${c.id}" onclick="selectBattleCategory('${c.id}',this)">
-          ${c.emoji} ${c.label}
+          ${c.emoji} ${isTr ? c.label : c.labelEn}
         </button>`).join('')}
     </div>
-    <div style="font-size:.7rem;color:rgba(180,160,255,.4);margin-bottom:10px">⏱ Soru başına 20 saniye · 10 soru</div>
+    <div style="font-size:.7rem;color:rgba(180,160,255,.4);margin-bottom:10px">⏱ ${isTr?'Soru başına 20 saniye · 10 soru':'20 seconds per question · 10 questions'}</div>
     <button id="createRoomBtn" onclick="doCreateRoom()" disabled style="
       width:100%;padding:13px;border-radius:12px;border:none;
       background:linear-gradient(135deg,#ff6ec7,#b46bff);
       color:#070a18;font-weight:700;font-size:.88rem;cursor:pointer;
       touch-action:manipulation;font-family:'Space Grotesk',sans-serif;
       opacity:.4;transition:.2s
-    ">🚀 Odayı Oluştur</button>`;
+    ">🚀 ${isTr?'Odayı Oluştur':'Create Room'}</button>`;
   battleSelectedCategory = null;
 }
 
@@ -4514,18 +4518,19 @@ function showWaitingRoom(code){
   if(!modal) return;
   const box = modal.querySelector('.battle-box');
   if(!box) return;
-
-  const catLabel = BATTLE_CATEGORIES.find(c=>c.id===battleSelectedCategory)?.label || '';
+  const isTr = currentLang === 'tr';
+  const catObj = BATTLE_CATEGORIES.find(c=>c.id===battleSelectedCategory);
+  const catLabel = catObj ? (isTr ? catObj.label : catObj.labelEn) : '';
 
   box.innerHTML = `
     <button onclick="leaveBattleRoom()" style="position:absolute;top:14px;right:14px;background:rgba(255,255,255,.08);border:none;border-radius:8px;width:28px;height:28px;cursor:pointer;color:rgba(255,255,255,.6);font-size:.8rem;touch-action:manipulation">✕</button>
     <div style="text-align:center;margin-bottom:16px">
-      <div style="font-size:.7rem;color:rgba(180,160,255,.5);font-family:'Space Mono',monospace;margin-bottom:4px">ODA KODU — arkadaşınla paylaş</div>
-      <div class="room-code" onclick="copyRoomCode('${code}')" title="Kopyala">${code}</div>
-      <div style="font-size:.65rem;color:rgba(255,255,255,.3);margin-bottom:8px">Tıkla → Kopyala · ${catLabel}</div>
+      <div style="font-size:.7rem;color:rgba(180,160,255,.5);font-family:'Space Mono',monospace;margin-bottom:4px">${isTr?'ODA KODU — arkadaşınla paylaş':'ROOM CODE — share with friends'}</div>
+      <div class="room-code" onclick="copyRoomCode('${code}')" title="${isTr?'Kopyala':'Copy'}">${code}</div>
+      <div style="font-size:.65rem;color:rgba(255,255,255,.3);margin-bottom:8px">${isTr?'Tıkla → Kopyala':'Click → Copy'} · ${catLabel}</div>
       <div style="display:inline-flex;align-items:center;gap:6px;padding:5px 12px;border-radius:20px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08)">
         <span style="width:6px;height:6px;border-radius:50%;background:#4dffb0;animation:pulse-dot 1.5s infinite"></span>
-        <span id="waitingCount" style="font-size:.7rem;color:rgba(255,255,255,.5);font-family:'Space Mono',monospace">1 / 6 oyuncu</span>
+        <span id="waitingCount" style="font-size:.7rem;color:rgba(255,255,255,.5);font-family:'Space Mono',monospace">1 / 6 ${isTr?'oyuncu':'players'}</span>
       </div>
     </div>
 
@@ -4538,11 +4543,11 @@ function showWaitingRoom(code){
         color:#070a18;font-weight:700;font-size:.88rem;cursor:pointer;
         touch-action:manipulation;font-family:'Space Grotesk',sans-serif;
         opacity:.4;transition:.2s;
-      ">🚀 Yarışmayı Başlat</button>
-      <div style="font-size:.65rem;color:rgba(180,160,255,.4);text-align:center;margin-top:6px">En az 2 oyuncu hazır olmalı</div>
+      ">🚀 ${isTr?'Yarışmayı Başlat':'Start Battle'}</button>
+      <div style="font-size:.65rem;color:rgba(180,160,255,.4);text-align:center;margin-top:6px">${isTr?'En az 2 oyuncu hazır olmalı':'At least 2 players must be ready'}</div>
     </div>
     <div id="guestWaiting" style="${battleIsHost?'display:none':'text-align:center;color:rgba(180,160,255,.5);font-size:.78rem;padding:10px'}">
-      ⏳ Host başlatmasını bekliyorsun...
+      ⏳ ${isTr?'Host başlatmasını bekliyorsun...':'Waiting for host to start...'}
     </div>
 
     <div style="margin-top:12px;text-align:center">
@@ -4552,7 +4557,7 @@ function showWaitingRoom(code){
         background:rgba(77,255,176,.06);color:#4dffb0;
         cursor:pointer;font-size:.78rem;touch-action:manipulation;
         font-family:'Space Grotesk',sans-serif;font-weight:600;
-      ">✓ Hazırım</button>
+      ">✓ ${isTr?'Hazırım':'Ready'}</button>
     </div>`;
 
   // Oda değişikliklerini dinle
@@ -4567,9 +4572,10 @@ function showWaitingRoom(code){
 let myReady = false;
 function toggleMyReady(){
   myReady = !myReady;
+  const isTr = currentLang === 'tr';
   const btn = document.getElementById('myReadyBtn');
   if(btn){
-    btn.textContent = myReady ? '✓ Hazırım ✔' : '✓ Hazırım';
+    btn.textContent = myReady ? `✓ ${isTr?'Hazırım ✔':'Ready ✔'}` : `✓ ${isTr?'Hazırım':'Ready'}`;
     btn.style.background = myReady ? 'rgba(77,255,176,.2)' : 'rgba(77,255,176,.06)';
     btn.style.borderColor = myReady ? 'rgba(77,255,176,.6)' : 'rgba(77,255,176,.3)';
   }
@@ -4629,9 +4635,10 @@ async function doStartBattle(){
 function showJoinRoom(){
   const content = document.getElementById('battleModalContent');
   if(!content) return;
+  const isTr = currentLang === 'tr';
   content.innerHTML = `
-    <div style="font-size:.75rem;color:rgba(180,160,255,.6);margin-bottom:8px;font-weight:600">🔑 Oda Kodu Gir</div>
-    <input id="joinCodeInput" type="text" maxlength="6" placeholder="ÖRNEK: AB3K7P"
+    <div style="font-size:.75rem;color:rgba(180,160,255,.6);margin-bottom:8px;font-weight:600">🔑 ${isTr?'Oda Kodu Gir':'Enter Room Code'}</div>
+    <input id="joinCodeInput" type="text" maxlength="6" placeholder="${isTr?'ÖRNEK: AB3K7P':'EXAMPLE: AB3K7P'}"
       style="width:100%;padding:12px 14px;border:1px solid rgba(110,231,255,.25);border-radius:12px;background:rgba(255,255,255,.04);color:#fff;font-size:1.2rem;font-family:'Orbitron',sans-serif;font-weight:700;letter-spacing:.15em;text-align:center;text-transform:uppercase;box-sizing:border-box;outline:none;-webkit-user-select:text;user-select:text;margin-bottom:10px"
     >
     <div id="joinError" style="font-size:.72rem;color:#ff6ec7;min-height:1.2em;margin-bottom:8px"></div>
@@ -4640,7 +4647,7 @@ function showJoinRoom(){
       background:linear-gradient(135deg,#6ee7ff,#b46bff);
       color:#070a18;font-weight:700;font-size:.88rem;cursor:pointer;
       touch-action:manipulation;font-family:'Space Grotesk',sans-serif;
-    ">🔑 Odaya Gir</button>`;
+    ">🔑 ${isTr?'Odaya Gir':'Join Room'}</button>`;
 
   const inp = document.getElementById('joinCodeInput');
   if(inp){
@@ -4700,6 +4707,14 @@ async function doLeaveBattle(){
   document.getElementById('battleScreen')?.remove();
   document.getElementById('battleModal')?.remove();
   document.getElementById('waitingOthers')?.remove();
+  // Arka plan animasyonlarını geri aç
+  if(IS_MOBILE){
+    document.getElementById('staticBg')?.classList.remove('paused');
+    const stars = document.getElementById('stars');
+    if(stars) stars.style.display = '';
+    const orbit = document.getElementById('orbitContainer');
+    if(orbit) orbit.style.display = '';
+  }
 }
 
 async function leaveBattleRoom(){
@@ -4768,6 +4783,13 @@ function startBattleGame(roomData){
     <div class="battle-scoreboard" id="battleScoreboard"></div>
     <div class="battle-q-area" id="battleQArea"></div>`;
   document.body.appendChild(screen);
+
+  // Mobil optimizasyon — arka plan animasyonlarını durdur
+  if(IS_MOBILE){
+    document.getElementById('staticBg')?.classList.add('paused');
+    document.getElementById('stars')?.style && (document.getElementById('stars').style.display = 'none');
+    document.getElementById('orbitContainer')?.style && (document.getElementById('orbitContainer').style.display = 'none');
+  }
 
   // Oda değişikliklerini dinle
   if(battleUnsubscribe) battleUnsubscribe();
@@ -4985,19 +5007,7 @@ function updateBattleScoreboard(roomData){
 }
 
 function updateRivalAnswers(roomData){
-  // Rakiplerin cevaplarını göster (correct/wrong overlay)
-  const players = roomData.players || {};
-  Object.entries(players).forEach(([uid, p]) => {
-    if(uid === battleMyUid) return;
-    const qi = battleCurrentQ;
-    const ans = p.answers?.[qi];
-    if(ans === undefined) return;
-    const btn = document.getElementById(`bopt-${qi}-${ans.answerIndex}`);
-    if(btn && ans.correct && !btn.classList.contains('correct')){
-      btn.classList.add('rival-correct');
-      btn.title = `${p.name} doğru yaptı`;
-    }
-  });
+  // Rakiplerin cevapları artık gösterilmiyor — herkes sadece kendi cevabını görür
 }
 
 async function endBattle(){
@@ -6290,7 +6300,7 @@ const IS_MOBILE = window.innerWidth <= 860;
 
 // Yıldızlar
 const starsEl = document.getElementById('stars');
-const STAR_COUNT = IS_MOBILE ? 30 : 80;
+const STAR_COUNT = IS_MOBILE ? 10 : 80;
 const activeShipCount = IS_MOBILE ? 0 : 1;
 for(let i=0;i<STAR_COUNT;i++){
   const s = document.createElement('div');
@@ -6433,7 +6443,7 @@ function updateSolEyes(){
     if(p) p.style.transform=`translate(calc(-50% + ${ox.toFixed(1)}px), calc(-50% + ${oy.toFixed(1)}px))`;
   });
 }
-setInterval(updateSolEyes, IS_MOBILE ? 1000 : 180);
+setInterval(updateSolEyes, IS_MOBILE ? 99999 : 180); // mobilde göz takibini kapat
 
 // ===== GÜNEŞ KİŞİLİĞİ — rastgele duygular =====
 const solMouth  = () => solEl.querySelector('.sol-mouth');
@@ -6545,7 +6555,7 @@ const orbitDefs = [
 ];
 
 // Mobilde daha az gezegen
-const activeDefs = IS_MOBILE ? orbitDefs.slice(0, 2) : orbitDefs.slice(0, 5);
+const activeDefs = IS_MOBILE ? [] : orbitDefs.slice(0, 5);
 activeDefs.forEach((def, i) => {
   const orbitR = BASE_R + i * STEP_R;
   const delay = -(Math.random() * def.dur);
@@ -6945,21 +6955,55 @@ fileInput.addEventListener('change', e => {
 
 function selectFile(file){
   pendingFile = file;
-  fileNameEl.classList.remove('file-eaten');
-  fileNameEl.textContent = '✓ ' + file.name;
-  // restart animation
-  void fileNameEl.offsetWidth;
-  fileNameEl.classList.add('file-eaten');
-  growBlackHole();
-  if(typeof solGetAngry === 'function') solGetAngry();
+  const name = file.name.toLowerCase();
+  const isImage = name.endsWith('.jpg')||name.endsWith('.jpeg')||name.endsWith('.png');
+
+  if(isImage){
+    // Fotoğraf önizleme — küçük resim göster
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      // Dropzone içinde önizleme alanı
+      let preview = document.getElementById('dzPreview');
+      if(!preview){
+        preview = document.createElement('div');
+        preview.id = 'dzPreview';
+        preview.style.cssText = 'margin-top:10px;display:flex;align-items:center;gap:10px;padding:8px 12px;background:rgba(255,255,255,.04);border:1px solid rgba(110,231,255,.2);border-radius:10px;animation:bullet-in .3s ease both';
+        dropzone.appendChild(preview);
+      }
+      preview.innerHTML = `
+        <img src="${e.target.result}" style="width:44px;height:44px;object-fit:cover;border-radius:8px;border:1px solid rgba(255,255,255,.1);flex-shrink:0">
+        <div style="min-width:0">
+          <div style="font-size:.75rem;color:#6ee7ff;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">✓ ${file.name}</div>
+          <div style="font-size:.62rem;color:rgba(255,255,255,.35)">${(file.size/1024/1024).toFixed(1)} MB · Görsel</div>
+        </div>`;
+    };
+    reader.readAsDataURL(file);
+  } else {
+    // Görsel değil — sadece isim göster
+    const icons = {pdf:'📄',docx:'📝',doc:'📝',txt:'📃',xlsx:'📊',xls:'📊',csv:'📊'};
+    const ext = name.split('.').pop();
+    const icon = icons[ext] || '📁';
+    let preview = document.getElementById('dzPreview');
+    if(!preview){
+      preview = document.createElement('div');
+      preview.id = 'dzPreview';
+      preview.style.cssText = 'margin-top:10px;display:flex;align-items:center;gap:10px;padding:8px 12px;background:rgba(255,255,255,.04);border:1px solid rgba(110,231,255,.2);border-radius:10px;animation:bullet-in .3s ease both';
+      dropzone.appendChild(preview);
+    }
+    preview.innerHTML = `
+      <div style="width:44px;height:44px;border-radius:8px;background:rgba(180,107,255,.1);border:1px solid rgba(180,107,255,.2);display:flex;align-items:center;justify-content:center;font-size:1.4rem;flex-shrink:0">${icon}</div>
+      <div style="min-width:0">
+        <div style="font-size:.75rem;color:#6ee7ff;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">✓ ${file.name}</div>
+        <div style="font-size:.62rem;color:rgba(255,255,255,.35)">${(file.size/1024/1024).toFixed(1)} MB · ${ext.toUpperCase()}</div>
+      </div>`;
+  }
+  fileNameEl.textContent = '';
 }
 
 let bhLevel = 0;
 function growBlackHole(){
-  // Karadelik kaldırıldı — dropzone distort animasyonu devam eder
+  // Distort animasyonu kaldırıldı
   bhLevel = Math.min(bhLevel + 1, 3);
-  dropzone.classList.remove('distort1','distort2','distort3');
-  if(bhLevel>0) dropzone.classList.add('distort'+bhLevel);
 }
 
 restartBtn.addEventListener('click', () => location.reload());
