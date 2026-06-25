@@ -1882,8 +1882,8 @@
     #mobileHeader{
       display:flex !important; align-items:center; justify-content:space-between;
       flex-shrink:0; width:100%; height:48px; padding:0 12px;
-      background:rgba(7,10,24,.97); backdrop-filter:blur(12px);
-      border-bottom:1px solid var(--line); position:sticky; top:0; z-index:30;
+      background:rgba(7,10,24,.97);
+      border-bottom:1px solid var(--line); position:sticky; top:0; left:0; right:0; z-index:210;
       box-sizing:border-box;
     }
     #mobileHeader .mh-left{
@@ -1932,7 +1932,7 @@
     /* AI paneli mobilde gizle — floating buton olarak gelecek */
     .ai-panel{ display:none !important; }
 
-    .main{ flex:1; display:flex; flex-direction:column; order:2; overflow:hidden; min-height:0; position:relative; z-index:5; }
+    .main{ flex:1; display:flex; flex-direction:column; overflow:hidden; min-height:0; position:relative; z-index:5; }
 
     /* Eski .topbar tamamen gizli — #mobileHeader onu değiştirdi */
     .topbar{ display:none !important; }
@@ -2017,7 +2017,7 @@
     bottom:0; left:0; right:0; z-index:199;
     width:100%;
     height:85vh;
-    background:rgba(7,10,24,.98); backdrop-filter:blur(16px);
+    background:rgba(7,10,24,.98);
     border:1px solid var(--line);
     border-radius:20px 20px 0 0;
     flex-direction:column; overflow:hidden;
@@ -2850,12 +2850,11 @@
 <!-- Mobil floating AI butonu --><!-- Mobil floating AI butonu -->
 <button class="ai-float-btn" id="aiFloatBtn" style="display:none">💬</button>
 <div class="ai-float-panel" id="aiFloatPanel">
-  <div class="ai-panel-header" style="display:flex;align-items:center;gap:10px">
-    <div class="mark"><div class="mini-disk"></div><div class="mini-core"></div></div>
-    <div>
-      <h3 data-i18n="aiPanelTitle" style="margin:0;font-size:.9rem">Sor & Öğren</h3>
-      <span class="util" style="font-size:.65rem;color:var(--ink-soft)">Thinkle</span>
-    </div>
+  <div style="display:flex;align-items:center;padding:10px 14px;border-bottom:1px solid var(--line);flex-shrink:0;gap:10px;cursor:pointer;touch-action:manipulation"
+    onclick="document.getElementById('aiFloatPanel').classList.remove('open');document.getElementById('aiFloatBtn').style.display='flex'">
+    <div style="font-family:'Orbitron',sans-serif;font-size:.85rem;font-weight:700;color:var(--ink);flex:1" data-i18n="aiPanelTitle">Sor & Öğren</div>
+    <div style="width:32px;height:4px;background:rgba(255,255,255,.2);border-radius:2px;margin:0 auto"></div>
+    <span style="color:rgba(255,255,255,.4);font-size:.75rem">▼</span>
   </div>
   <div class="ai-chat" id="aiChatMobile" style="flex:1;overflow-y:auto;padding:10px 12px;min-height:0"></div>
   <div class="ai-input-row" style="padding:10px 12px;border-top:1px solid var(--line);display:flex;gap:8px">
@@ -2900,7 +2899,7 @@
   <div class="mh-right">
     <button id="mhLoginBtn" style="display:flex;color:#ffd27a;border-color:rgba(255,180,80,.4)" onclick="if(typeof showAuthModal==='function')showAuthModal()">🔑 Giriş</button>
     <button id="mhLogoutBtn" style="display:none;color:#ff8fa3;border-color:rgba(255,110,140,.4)" onclick="if(window.fbSignOut)window.fbSignOut()">↪ Çıkış</button>
-    <button id="mhProfileBtn" style="display:none;background:none;border:none;font-size:1.1rem;cursor:pointer;touch-action:manipulation;width:34px;height:34px;border-radius:50%;display:none;align-items:center;justify-content:center" onclick="if(typeof showProfileModal==='function')showProfileModal()">👤</button>
+    <button id="mhProfileBtn" style="display:none;background:none;border:none;font-size:1.1rem;cursor:pointer;touch-action:manipulation;width:34px;height:34px;border-radius:50%;align-items:center;justify-content:center" onclick="if(typeof showProfileModal==='function')showProfileModal()">👤</button>
     <button id="mobileActionsBtn" onclick="document.getElementById('mobileActionsMenu').classList.toggle('open')">⋯</button>
   </div>
 </div>
@@ -6247,7 +6246,8 @@ window.addEventListener('resize', updateFloatBtn);
 if(aiFloatBtn){
   function toggleAiPanel(){
     const isOpen = aiFloatPanel.classList.toggle('open');
-    aiFloatBtn.textContent = isOpen ? '✕' : '💬';
+    // Panel açıkken butonu gizle — gönder tuşunu engellemez
+    aiFloatBtn.style.display = isOpen ? 'none' : 'flex';
   }
   aiFloatBtn.addEventListener('click', toggleAiPanel);
   aiFloatBtn.addEventListener('touchend', (e)=>{ e.preventDefault(); toggleAiPanel(); }, {passive:false});
