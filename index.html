@@ -2874,13 +2874,13 @@
   <!-- Tab bar -->
   <div style="display:flex;border-bottom:1px solid rgba(255,255,255,.07);flex-shrink:0">
     <button class="fp-tab active" data-tab="list" onclick="switchFriendTab('list',this)" style="flex:1;padding:9px 6px;border:none;background:transparent;color:rgba(180,160,255,.7);font-size:.72rem;cursor:pointer;touch-action:manipulation;border-bottom:2px solid transparent;font-family:'Space Grotesk',sans-serif;font-weight:600">
-      Arkadaşlarım
+      <span class="tr-text">Arkadaşlarım</span><span class="en-text">Friends</span>
     </button>
     <button class="fp-tab" data-tab="requests" onclick="switchFriendTab('requests',this)" style="flex:1;padding:9px 6px;border:none;background:transparent;color:rgba(180,160,255,.7);font-size:.72rem;cursor:pointer;touch-action:manipulation;border-bottom:2px solid transparent;font-family:'Space Grotesk',sans-serif;font-weight:600;position:relative">
-      İstekler <span id="reqTabBadge" style="display:none;background:#ff6ec7;color:#070a18;border-radius:6px;padding:1px 5px;font-size:.55rem;font-weight:700;margin-left:2px">0</span>
+      <span class="tr-text">İstekler</span><span class="en-text">Requests</span> <span id="reqTabBadge" style="display:none;background:#ff6ec7;color:#070a18;border-radius:6px;padding:1px 5px;font-size:.55rem;font-weight:700;margin-left:2px">0</span>
     </button>
     <button class="fp-tab" data-tab="search" onclick="switchFriendTab('search',this)" style="flex:1;padding:9px 6px;border:none;background:transparent;color:rgba(180,160,255,.7);font-size:.72rem;cursor:pointer;touch-action:manipulation;border-bottom:2px solid transparent;font-family:'Space Grotesk',sans-serif;font-weight:600">
-      Ara & Ekle
+      <span class="tr-text">Ara & Ekle</span><span class="en-text">Find & Add</span>
     </button>
   </div>
 
@@ -5259,9 +5259,9 @@ function renderFriendList(){
   if(!friends.length){
     content.innerHTML = `
       <div style="padding:30px 16px;text-align:center;color:rgba(180,160,255,.4);font-size:.8rem;line-height:1.8">
-        Henüz arkadaşın yok.<br>
+        ${currentLang==='tr'?'Henüz arkadaşın yok.':'You have no friends yet.'}<br>
         <span style="color:rgba(110,231,255,.5);cursor:pointer" onclick="switchFriendTab('search',document.querySelector('.fp-tab[data-tab=search]'))">
-          👉 Arkadaş bulmak için ara
+          👉 ${currentLang==='tr'?'Arkadaş bulmak için ara':'Search to find friends'}
         </span>
       </div>`;
     return;
@@ -5272,8 +5272,8 @@ function renderFriendList(){
   const onlineCount = friends.filter(f => friendsOnlineMap.has(f.uid)).length;
   content.innerHTML = `
     <div style="padding:8px 14px;font-size:.62rem;color:rgba(180,160,255,.4);font-family:'Space Mono',monospace;letter-spacing:.06em;border-bottom:1px solid rgba(255,255,255,.05);display:flex;justify-content:space-between">
-      <span>${friends.length} ARKADAŞ</span>
-      <span style="color:#4dffb0">${onlineCount} ONLINE</span>
+      <span>${friends.length} ${currentLang==='tr'?'ARKADAŞ':'FRIENDS'}</span>
+      <span style="color:#4dffb0">${onlineCount} ${currentLang==='tr'?'ONLINE':'ONLINE'}</span>
     </div>
     ${sorted.map(f => {
       const device = friendsOnlineMap.get(f.uid);
@@ -5319,7 +5319,7 @@ function renderFriendRequests(reqs){
   const content = document.getElementById('fpContent');
   if(!content || currentFriendTab !== 'requests') return;
   if(!reqs.length){
-    content.innerHTML = `<div style="padding:30px 16px;text-align:center;color:rgba(180,160,255,.4);font-size:.8rem">Bekleyen arkadaşlık isteği yok 👍</div>`;
+    content.innerHTML = `<div style="padding:30px 16px;text-align:center;color:rgba(180,160,255,.4);font-size:.8rem">${currentLang==='tr'?'Bekleyen arkadaşlık isteği yok 👍':'No pending friend requests 👍'}</div>`;
     return;
   }
   content.innerHTML = reqs.map(req => `
@@ -5332,8 +5332,8 @@ function renderFriendRequests(reqs){
         </div>
       </div>
       <div style="display:flex;gap:8px;width:100%">
-        <button onclick="acceptFriendReq('${req.fromUid}','${escapeHtml(req.fromName||'')}',this)" style="flex:1;padding:7px;border-radius:9px;border:none;background:rgba(77,255,176,.2);color:#4dffb0;cursor:pointer;font-size:.75rem;font-weight:600;touch-action:manipulation;font-family:'Space Grotesk',sans-serif">✓ Kabul Et</button>
-        <button onclick="declineFriendReq('${req.fromUid}',this)" style="flex:1;padding:7px;border-radius:9px;border:1px solid rgba(255,255,255,.1);background:rgba(255,255,255,.04);color:rgba(255,255,255,.4);cursor:pointer;font-size:.75rem;touch-action:manipulation;font-family:'Space Grotesk',sans-serif">✕ Reddet</button>
+        <button onclick="acceptFriendReq('${req.fromUid}','${escapeHtml(req.fromName||'')}',this)" style="flex:1;padding:7px;border-radius:9px;border:none;background:rgba(77,255,176,.2);color:#4dffb0;cursor:pointer;font-size:.75rem;font-weight:600;touch-action:manipulation;font-family:'Space Grotesk',sans-serif">✓ ${currentLang==='tr'?'Kabul Et':'Accept'}</button>
+        <button onclick="declineFriendReq('${req.fromUid}',this)" style="flex:1;padding:7px;border-radius:9px;border:1px solid rgba(255,255,255,.1);background:rgba(255,255,255,.04);color:rgba(255,255,255,.4);cursor:pointer;font-size:.75rem;touch-action:manipulation;font-family:'Space Grotesk',sans-serif">✕ ${currentLang==='tr'?'Reddet':'Decline'}</button>
       </div>
     </div>`).join('');
 }
@@ -5343,11 +5343,11 @@ function renderFriendSearch(){
   if(!content) return;
   content.innerHTML = `
     <div style="padding:14px">
-      <div style="font-size:.68rem;color:rgba(180,160,255,.5);margin-bottom:8px">Kullanıcı adıyla ara</div>
+      <div style="font-size:.68rem;color:rgba(180,160,255,.5);margin-bottom:8px">${currentLang==='tr'?'Kullanıcı adıyla ara':'Search by username'}</div>
       <div style="display:flex;gap:8px;margin-bottom:10px">
-        <input id="friendSearchInput" class="friend-search-input" placeholder="@kullanıcı_adı" maxlength="20" style="flex:1"
+        <input id="friendSearchInput" class="friend-search-input" placeholder="${currentLang==='tr'?'@kullanıcı_adı':'@username'}" maxlength="20" style="flex:1"
           oninput="this.value=this.value.toLowerCase().replace(/[^a-z0-9_@]/g,'')">
-        <button onclick="doFriendSearch()" style="padding:8px 14px;border-radius:10px;border:none;background:linear-gradient(135deg,#6ee7ff,#b46bff);color:#070a18;font-weight:700;cursor:pointer;font-size:.78rem;touch-action:manipulation;font-family:'Space Grotesk',sans-serif;white-space:nowrap">Ara</button>
+        <button onclick="doFriendSearch()" style="padding:8px 14px;border-radius:10px;border:none;background:linear-gradient(135deg,#6ee7ff,#b46bff);color:#070a18;font-weight:700;cursor:pointer;font-size:.78rem;touch-action:manipulation;font-family:'Space Grotesk',sans-serif;white-space:nowrap">${currentLang==='tr'?'Ara':'Search'}</button>
       </div>
       <div id="friendSearchResult"></div>
     </div>`;
@@ -5360,12 +5360,12 @@ async function doFriendSearch(){
   const resultEl = document.getElementById('friendSearchResult');
   if(!inp||!resultEl) return;
   const val = inp.value.trim().replace(/^@/,'');
-  if(val.length<3){ resultEl.innerHTML=`<div style="font-size:.72rem;color:#ff6ec7">En az 3 karakter gir</div>`; return; }
-  resultEl.innerHTML = `<div style="font-size:.72rem;color:rgba(180,160,255,.5)">Aranıyor...</div>`;
+  if(val.length<3){ resultEl.innerHTML=`<div style="font-size:.72rem;color:#ff6ec7">${currentLang==='tr'?'En az 3 karakter gir':'Enter at least 3 characters'}</div>`; return; }
+  resultEl.innerHTML = `<div style="font-size:.72rem;color:rgba(180,160,255,.5)">${currentLang==='tr'?'Aranıyor...':'Searching...'}</div>`;
   const user = window.currentUser;
   const found = await window.fbFindUserByUsername(val);
-  if(!found){ resultEl.innerHTML=`<div style="font-size:.72rem;color:rgba(255,255,255,.4);padding:8px 0">@${val} bulunamadı</div>`; return; }
-  if(found.uid===user.uid){ resultEl.innerHTML=`<div style="font-size:.72rem;color:rgba(255,255,255,.4);padding:8px 0">Bu senin hesabın 😄</div>`; return; }
+  if(!found){ resultEl.innerHTML=`<div style="font-size:.72rem;color:rgba(255,255,255,.4);padding:8px 0">@${val} ${currentLang==='tr'?'bulunamadı':'not found'}</div>`; return; }
+  if(found.uid===user.uid){ resultEl.innerHTML=`<div style="font-size:.72rem;color:rgba(255,255,255,.4);padding:8px 0">${currentLang==='tr'?'Bu senin hesabın 😄':'That\'s your account 😄'}</div>`; return; }
   const alreadyFriend = friendsListCache.some(f => f.uid===found.uid);
   const device = friendsOnlineMap.get(found.uid);
   const isOnline = !!device;
@@ -5378,8 +5378,8 @@ async function doFriendSearch(){
         <div class="friend-status ${isOnline?'online':''}">${isOnline?`● Online ${deviceIcon}`:'○ Offline'}</div>
       </div>
       ${alreadyFriend
-        ? `<span style="font-size:.65rem;color:rgba(77,255,176,.7);font-family:'Space Mono',monospace">✓ Arkadaş</span>`
-        : `<button id="addFriendBtn" onclick="sendFriendReq('${found.uid}','${escapeHtml(found.username||found.uid.slice(0,8))}',this)" style="padding:7px 12px;border-radius:9px;border:none;background:linear-gradient(135deg,#6ee7ff,#b46bff);color:#070a18;font-weight:700;cursor:pointer;font-size:.72rem;touch-action:manipulation;font-family:'Space Grotesk',sans-serif;white-space:nowrap">+ Ekle</button>`}
+        ? `<span style="font-size:.65rem;color:rgba(77,255,176,.7);font-family:'Space Mono',monospace">✓ ${currentLang==='tr'?'Arkadaş':'Friends'}</span>`
+        : `<button id="addFriendBtn" onclick="sendFriendReq('${found.uid}','${escapeHtml(found.username||found.uid.slice(0,8))}',this)" style="padding:7px 12px;border-radius:9px;border:none;background:linear-gradient(135deg,#6ee7ff,#b46bff);color:#070a18;font-weight:700;cursor:pointer;font-size:.72rem;touch-action:manipulation;font-family:'Space Grotesk',sans-serif;white-space:nowrap">+ ${currentLang==='tr'?'Ekle':'Add'}</button>`}
     </div>`;
 }
 
@@ -5389,8 +5389,8 @@ async function sendFriendReq(toUid, toName, btn){
   if(btn){ btn.disabled=true; btn.textContent='⏳'; }
   const myName = window.currentUsername?'@'+window.currentUsername:(user.displayName||user.uid.slice(0,8));
   const result = await window.fbSendFriendRequest(user.uid, myName, toUid);
-  if(result.ok){ if(btn){ btn.textContent='✓ Gönderildi'; btn.style.background='rgba(77,255,176,.2)'; btn.style.color='#4dffb0'; } }
-  else{ if(btn){ btn.disabled=false; btn.textContent='+ Ekle'; } showToast('İstek gönderilemedi.'); }
+  if(result.ok){ if(btn){ btn.textContent=currentLang==='tr'?'✓ Gönderildi':'✓ Sent'; btn.style.background='rgba(77,255,176,.2)'; btn.style.color='#4dffb0'; } }
+  else{ if(btn){ btn.disabled=false; btn.textContent=`+ ${currentLang==='tr'?'Ekle':'Add'}`; } showToast(currentLang==='tr'?'İstek gönderilemedi.':'Could not send request.'); }
 }
 
 async function acceptFriendReq(fromUid, fromName, btn){
@@ -5404,7 +5404,7 @@ async function acceptFriendReq(fromUid, fromName, btn){
     startFriendsOnlineWatcher(); // yeni arkadaş anında listeye girer
     if(currentFriendTab==='requests') await renderFriendRequestsTab();
     if(currentFriendTab==='list') renderFriendList();
-    showToast('✓ Arkadaş eklendi!');
+    showToast(currentLang==='tr'?'✓ Arkadaş eklendi!':'✓ Friend added!');
   }
 }
 
@@ -5420,13 +5420,13 @@ async function declineFriendReq(fromUid, btn){
 async function removeFriend(friendUid, friendName, btn){
   const user = window.currentUser;
   if(!user) return;
-  if(!confirm(`@${friendName} arkadaşlıktan çıkarılsın mı?`)) return;
+  if(!confirm(currentLang==='tr'?`@${friendName} arkadaşlıktan çıkarılsın mı?`:`Remove @${friendName} from friends?`)) return;
   await window.fbRemoveFriend(user.uid, friendUid);
   friendsListCache = friendsListCache.filter(f => f.uid!==friendUid);
   friendsOnlineMap.delete(friendUid);
   startFriendsOnlineWatcher();
   renderFriendList();
-  showToast('Arkadaş silindi.');
+  showToast(currentLang==='tr'?'Arkadaş silindi.':'Friend removed.');
 }
 
 async function inviteFriendToBattle(friendUid, friendName, device){
@@ -7305,23 +7305,35 @@ Kaynak metin başka dilde olsa bile Türkçeye çevir.`
     : 'Write ALL content in English. Translate source material if needed.';
 
   // Slayt sayısı — dosya boyutuna göre
-  let slideRange = '5-8';
-  if(trimmed.length > 9000) slideRange = '4-6';
-  else if(trimmed.length > 5000) slideRange = '5-7';
+  let slideRange = '6-10';
+  if(trimmed.length > 9000) slideRange = '6-8';
+  else if(trimmed.length > 5000) slideRange = '7-9';
 
-  const systemPrompt = `You are an expert educator. Create a study deck from the source text.
+  // Her seferinde farklı sorular için rastgele seed
+  const seed = Math.floor(Math.random() * 9999);
+
+  const systemPrompt = `You are an expert educator creating a DETAILED study deck. Seed: ${seed}
 
 ${langInstruction}
 
 Output ONLY a single JSON object. No markdown. No explanation. Just JSON:
-{"title":"...","slides":[{"heading":"...","bullets":["...","...","..."],"explanation":"..."}],"quiz":[{"question":"...","options":["...","...","...","..."],"answerIndex":0}]}
+{"title":"...","slides":[{"heading":"...","bullets":["...","...","...","...","..."],"explanation":"..."}],"quiz":[{"question":"...","options":["...","...","...","..."],"answerIndex":0}]}
 
-Requirements:
-- ${slideRange} slides. Each: heading + 3-4 bullets (max 12 words each) + 1-2 sentence explanation with context.
-- EXACTLY 10 quiz items. Each tests a different concept. Mix: recall, reasoning, application, cause-effect.
-- Wrong options must be plausible. Never use "all of the above".
-- Output must be complete and valid JSON. Close all brackets.
-- ${langInstruction}`;
+SLIDE REQUIREMENTS (critical — follow exactly):
+- ${slideRange} slides total
+- Each slide heading: clear topic name
+- Each slide bullets: EXACTLY 5-7 detailed bullet points. Each bullet must be a COMPLETE sentence (15-25 words minimum). Explain the concept deeply, include examples, causes, effects, mechanisms. No short vague bullets.
+- Each slide explanation: 3-5 sentences of rich context. Include real-world applications, analogies, or why this matters. Be thorough like a textbook.
+
+QUIZ REQUIREMENTS:
+- EXACTLY 10 unique questions. Seed ${seed} — generate DIFFERENT questions each time, never repeat the same ones.
+- Cover different aspects: definitions, applications, cause-effect, comparisons, examples.
+- Wrong options must be plausible and educational (common misconceptions).
+- Never use "all of the above" or "none of the above".
+- Questions should challenge understanding, not just memorization.
+
+Output must be complete and valid JSON. Close all brackets.
+${langInstruction}`;
 
   if(!PROXY_URL || PROXY_URL.includes('YOUR-PROXY-URL')){
     throw new Error(currentLang === 'tr'
@@ -7347,13 +7359,13 @@ Requirements:
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           model: "google/gemini-2.5-flash",
-          max_tokens: 5000,
+          max_tokens: 8000,
           system: systemPrompt,
           expectJson: true,
           isDeck: true,
           uid: window.currentUser?.uid || '',
           sig: getRequestSignature(),
-          messages: [{ role: "user", content: "Source text:\n\n" + trimmed.slice(0, 5000) + "\n\nReturn complete valid JSON with ALL 10 quiz questions." }]
+          messages: [{ role: "user", content: "Source text:\n\n" + trimmed.slice(0, 6000) + "\n\nReturn DETAILED complete valid JSON with ALL 10 unique quiz questions (seed: " + seed + ")." }]
         })
       });
       if(response.ok) break;
@@ -7415,6 +7427,110 @@ Requirements:
   return parsed;
 }
 
+function showLearnMorePrompt(){
+  const isTr = currentLang === 'tr';
+  topTitle.textContent = isTr ? '📚 Özet & Devam' : '📚 Summary & Continue';
+
+  const titleText = isTr
+    ? '\u201c' + escapeHtml(deck.title) + '\u201d konusunu bitirdin!'
+    : 'You\'ve finished \u201c' + escapeHtml(deck.title) + '\u201d!';
+  const subText = isTr
+    ? deck.slides.length + ' slayt\u0131 tamamlad\u0131n. \u015aimdi ne yapmak istersin?'
+    : 'You completed ' + deck.slides.length + ' slides. What would you like to do next?';
+
+  deckScreen.innerHTML = `
+    <div class="slide-card" style="text-align:center;border-color:rgba(110,231,255,.25)">
+      <div style="font-size:3rem;margin-bottom:12px">🎓</div>
+      <h2 style="font-size:1.3rem;margin-bottom:10px">${titleText}</h2>
+      <p style="color:rgba(180,160,255,.7);font-size:.9rem;line-height:1.6;margin-bottom:24px">${subText}</p>
+
+      <div style="display:flex;flex-direction:column;gap:10px;max-width:360px;margin:0 auto">
+        <button class="btn primary" onclick="showDeepDivePrompt()" style="padding:14px;font-size:.9rem;border-radius:12px">
+          🔬 ${isTr ? 'Daha Derine In \u2014 Detayl\u0131 Analiz \u0130ste' : 'Go Deeper \u2014 Request Detailed Analysis'}
+        </button>
+        <button class="btn" onclick="renderQuiz();markActiveTab(tabsEl.lastChild)" style="padding:14px;font-size:.9rem;border-radius:12px">
+          📝 ${isTr ? 'Quize Ge\u00e7' : 'Take the Quiz'}
+        </button>
+        <button class="btn" onclick="currentSlide=0;renderSlide()" style="padding:14px;font-size:.85rem;border-radius:12px">
+          \u2190 ${isTr ? 'Slaytlar\u0131 Tekrar G\u00f6zden Ge\u00e7ir' : 'Review Slides Again'}
+        </button>
+      </div>
+    </div>`;
+  setTimeout(positionSolarSystem, 50);
+}
+
+async function showDeepDivePrompt(){
+  const isTr = currentLang === 'tr';
+  deckScreen.innerHTML = `
+    <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;gap:20px;padding:60px 20px;text-align:center">
+      <div style="font-size:2rem">🔬</div>
+      <div style="font-family:'Space Mono',monospace;font-size:.95rem;color:var(--accent2)">
+        ${isTr ? 'Derin analiz hazırlanıyor…' : 'Preparing deep analysis…'}
+      </div>
+      <div style="font-size:.78rem;color:rgba(180,160,255,.5)">
+        ${isTr ? 'Her konuyu çok daha ayrıntılı anlatacağım' : 'I\'ll explain every topic in much more detail'}
+      </div>
+    </div>`;
+
+  const langInstruction = isTr
+    ? 'TÜM İÇERİĞİ TÜRKÇE YAZ. Türkçe karakterleri doğru kullan.'
+    : 'Write ALL content in English.';
+
+  const slideSummary = deck.slides.map((s,i) =>
+    `${i+1}. ${s.heading}: ${s.bullets.slice(0,2).join('; ')}`
+  ).join('\n');
+
+  const deepTitle = deck.title + ' \u2014 ' + (isTr ? 'Derin Analiz' : 'Deep Analysis');
+
+  const prompt = `You are an expert educator doing a DEEP DIVE analysis of a study topic.
+
+Topic: ${deck.title}
+Slides covered:
+${slideSummary}
+
+${langInstruction}
+
+Create an enhanced, deeply detailed version with:
+- More slides (add 3-4 new slides covering advanced aspects)
+- Each bullet: a complete, rich sentence (20+ words) with examples
+- Each explanation: 5-7 sentences covering mechanisms, history, real-world applications, and connections to other concepts
+
+Return ONLY valid JSON (same format):
+{"title":"${deepTitle}","slides":[{"heading":"string","bullets":["string"],"explanation":"string"}],"quiz":[{"question":"string","options":["string","string","string","string"],"answerIndex":0}]}
+
+${langInstruction}`;
+
+  try{
+    const resp = await fetch(PROXY_URL, {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({
+        model:'google/gemini-2.5-flash', max_tokens:8000,
+        uid: window.currentUser?.uid||'', sig: getRequestSignature(),
+        system: prompt,
+        messages:[{role:'user', content:'Generate the deep dive analysis now with detailed bullets and rich explanations.'}]
+      })
+    });
+    const data = await resp.json();
+    const textBlock = data.content?.find(b=>b.type==='text');
+    if(!textBlock) throw new Error();
+    let clean = textBlock.text.replace(/```json|```/g,'').trim();
+    const parsed = JSON.parse(clean);
+    if(!parsed.slides?.length) throw new Error();
+
+    // Yeni deck olarak yükle
+    deck = parsed;
+    currentSlide = 0;
+    quizAnswers = {};
+    buildTabs();
+    renderSlide();
+    showToast(isTr ? '✓ Derin analiz hazır!' : '✓ Deep analysis ready!');
+  }catch(e){
+    // Hata olursa quiz'e yönlendir
+    renderQuiz();
+    markActiveTab(tabsEl.lastChild);
+  }
+}
+
 function renderDeck(){
   deckScreen.classList.remove('hidden');
   exportBtn.disabled = false;
@@ -7472,7 +7588,7 @@ function renderSlide(){
   document.getElementById('prevBtn').onclick = () => { currentSlide--; renderSlide(); };
   document.getElementById('nextBtn').onclick = () => {
     if(currentSlide < deck.slides.length-1){ currentSlide++; renderSlide(); }
-    else { renderQuiz(); markActiveTab(tabsEl.lastChild); }
+    else { showLearnMorePrompt(); }
   };
   document.getElementById('flashcardBtn').onclick = () => renderFlashcards();
 }
@@ -7703,71 +7819,70 @@ async function startRemedial(wrongQis){
 }
 
 async function showRemedialSlides(wrongTopics){
-  // Loading göster
-  const deckScreen = document.getElementById('deckScreen');
-  deckScreen.innerHTML = `
+  const isTr = currentLang === 'tr';
+  const deckScreenEl = document.getElementById('deckScreen');
+  deckScreenEl.innerHTML = `
     <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;gap:20px;padding:60px 20px;text-align:center">
-      <div class="orbit"><span></span><span></span><span></span></div>
+      <div style="font-size:2rem;animation:countdown-pop 1s ease-in-out infinite alternate">🔍</div>
       <div style="font-family:'Space Mono',monospace;font-size:1rem;color:var(--accent2)">
-        ${currentLang==='tr' ? '🔍 Yanlış konular analiz ediliyor…' : '🔍 Analyzing your mistakes…'}
+        ${isTr ? 'Yanlış konular detaylı analiz ediliyor…' : 'Analyzing your mistakes in detail…'}
+      </div>
+      <div style="font-size:.78rem;color:rgba(180,160,255,.5)">
+        ${isTr ? 'Sana özel kapsamlı anlatım hazırlanıyor' : 'Preparing a personalized in-depth explanation for you'}
       </div>
     </div>`;
 
-  const langInstruction = currentLang === 'tr'
-    ? `TÜM İÇERİĞİ TÜRKÇE YAZ. ZORUNLU KURALLAR:
-1. Türkçe karakterleri ASLA hatalı yazma:
-   - ş (sh değil, s değil) → "şekil, işlem, başlık"
-   - ğ (gh değil, g değil) → "öğrenci, ağırlık, bilgi"
-   - ü (u değil) → "ünite, süre, düşünce"
-   - ö (o değil) → "önem, örnek, görev"
-   - ı (i değil) → "ısı, kısım, sınıf"
-   - İ (I değil büyük harf) → "İnsan, İşlem"
-   - ç (c değil) → "çalışma, içerik, seçim"
-2. Kesinlikle Türkçe karakterler kullan, Latin karşılıklarına çevirme.
-3. Akademik ve anlaşılır Türkçe kullan.`
+  const langInstruction = isTr
+    ? 'TÜM İÇERİĞİ TÜRKÇE YAZ. Türkçe karakterleri doğru kullan: ş,ğ,ü,ö,ı,İ,ç,Ç,Ğ,Ü,Ö,Ş. Akademik, anlaşılır Türkçe kullan.'
     : 'Write ALL content in English. Use clear, academic language.';
 
   const topicsText = wrongTopics.map((t,i) =>
     `${i+1}. Q: "${t.question}" → Correct: "${t.correct}"`
   ).join('\n');
 
-  const prompt = `You are a remedial tutor. A student failed a quiz. Re-teach ONLY the concepts they got wrong in exactly 5 slides.
+  const prompt = `You are an expert tutor preparing a DETAILED re-teaching session for a student who failed a quiz.
 
-Wrong answers:
+Wrong answers the student got:
 ${topicsText}
 
 ${langInstruction}
 
 Return ONLY valid JSON:
-{"slides":[{"heading":"string","bullets":["string"],"explanation":"string"}]}
+{"slides":[{"heading":"string","bullets":["string","string","string","string","string"],"explanation":"string"}]}
 
-Rules:
-- Exactly 5 slides. Each covers ONE wrong concept deeply.
-- Heading: the specific concept/topic they missed.
-- Bullets: 3-4 clear, direct facts that explain WHY the correct answer is right.
-- Explanation: 2-3 sentences with analogies, examples, or context that makes it unforgettable.
-- Be like a patient tutor who understands WHY the student got confused.
+CRITICAL REQUIREMENTS:
+- Create EXACTLY ${Math.min(wrongTopics.length + 1, 6)} slides — one per wrong concept plus a summary slide.
+- Each slide heading: clear, specific topic name.
+- Each slide bullets: EXACTLY 5-6 DETAILED bullet points. Each bullet must be a complete sentence (15-25 words). 
+  * Explain WHY the correct answer is right
+  * Explain WHY the wrong answers are wrong (address common misconceptions)
+  * Include real examples, analogies, mechanisms
+  * Be thorough — like a patient expert teacher
+- Each slide explanation: 4-6 sentences of deep context. Include:
+  * Real-world applications
+  * Memorable analogies
+  * Why students typically get confused on this topic
+  * Key facts to remember
+- Last slide: summary of all key points the student needs to remember
 - ${langInstruction}`;
 
   try{
     const resp = await fetch(PROXY_URL, {
       method:'POST', headers:{'Content-Type':'application/json'},
       body: JSON.stringify({
-        model:'meta-llama/llama-3.3-70b-instruct', max_tokens:3000,
+        model:'google/gemini-2.5-flash', max_tokens:6000,
+        uid: window.currentUser?.uid||'', sig: getRequestSignature(),
         system: prompt,
-        messages:[{role:'user', content:'Generate the 5 remedial slides now.'}]
+        messages:[{role:'user', content:`Generate the detailed remedial slides now. Each bullet must be a full sentence with at least 15 words.`}]
       })
     });
     const data = await resp.json();
-    const textBlock = data.content.find(b=>b.type==='text');
+    const textBlock = data.content?.find(b=>b.type==='text');
     if(!textBlock) throw new Error('no response');
     let clean = textBlock.text.replace(/```json|```/g,'').trim();
     const parsed = JSON.parse(clean);
-
-    // Remedial deck göster
     showRemedialDeck(parsed.slides, wrongTopics);
   } catch(err){
-    // AI başarısız olursa doğrudan quiz'e gönder
     startRetryQuiz();
   }
 }
@@ -7782,29 +7897,43 @@ function showRemedialDeck(slides, wrongTopics){
 }
 
 function showRemedialSlide(){
-  const deckScreen = document.getElementById('deckScreen');
+  const isTr = currentLang === 'tr';
+  const deckScreenEl = document.getElementById('deckScreen');
   const s = remedialSlides[remedialIndex];
   const total = remedialSlides.length;
   const isLast = remedialIndex === total-1;
+  const pct = Math.round(((remedialIndex+1)/total)*100);
 
-  deckScreen.innerHTML = `
-    <div class="slide-card" style="border-color:rgba(255,110,200,.3);background:rgba(30,10,50,.7)">
+  topTitle.textContent = isTr ? '🔁 Tekrar Öğren' : '🔁 Re-Learn';
+  setTimeout(positionSolarSystem, 50);
+
+  const remedialEyebrow = isTr
+    ? '\uD83D\uDD01 TEKRAR \u00d6\u011eREN \u00b7 ' + (remedialIndex+1) + ' / ' + total
+    : '\uD83D\uDD01 RE-LEARN \u00b7 ' + (remedialIndex+1) + ' / ' + total;
+
+  deckScreenEl.innerHTML = `
+    <div class="slide-card" style="border-color:rgba(255,110,200,.35);background:rgba(20,8,40,.75)">
       <div class="slide-eyebrow" style="color:var(--pink)">
-        ${currentLang==='tr' ? `🔁 TEKRAR ÖĞREN · ${remedialIndex+1} / ${total}` : `🔁 RE-LEARN · ${remedialIndex+1} / ${total}`}
+        ${remedialEyebrow}
       </div>
       <h2>${escapeHtml(s.heading)}</h2>
-      <ul class="bullets">${s.bullets.map(b=>`<li>${escapeHtml(b)}</li>`).join('')}</ul>
-      <div class="why-box">
-        <div class="why-label">${currentLang==='tr' ? '💡 NEDEN ÖNEMLİ?' : '💡 WHY IT MATTERS'}</div>
+      <ul class="bullets">
+        ${s.bullets.map((b,i)=>`<li style="animation-delay:${i*0.07}s">${escapeHtml(b)}</li>`).join('')}
+      </ul>
+      <div class="why-box" style="animation-delay:${s.bullets.length*0.07+0.1}s">
+        <div class="why-label">${isTr ? '💡 DERİN ANALİZ' : '💡 DEEP ANALYSIS'}</div>
         <p>${escapeHtml(s.explanation)}</p>
       </div>
-      <div class="slide-nav" style="margin-top:20px">
-        ${remedialIndex > 0 ? `<button class="btn" id="remPrev">← ${currentLang==='tr'?'Önceki':'Prev'}</button>` : '<span></span>'}
+      <div class="progress-bar" style="margin-top:16px"><div class="progress-bar-fill" style="width:${pct}%;background:linear-gradient(90deg,var(--pink),var(--accent2))"></div></div>
+      <div class="slide-nav" style="margin-top:14px">
+        ${remedialIndex > 0
+          ? `<button class="btn" id="remPrev">← ${isTr?'Önceki':'Prev'}</button>`
+          : '<span></span>'}
         <span class="progress" style="color:var(--pink)">${remedialIndex+1} / ${total}</span>
-        <button class="btn primary" id="remNext">
+        <button class="btn primary" id="remNext" style="background:linear-gradient(135deg,var(--pink),var(--accent2))">
           ${isLast
-            ? (currentLang==='tr' ? '📝 Tekrar Sınava Gir →' : '📝 Retake Quiz →')
-            : (currentLang==='tr' ? 'Sonraki →' : 'Next →')}
+            ? (isTr ? '📝 Şimdi Sınava Gir →' : '📝 Take Quiz Now →')
+            : (isTr ? 'Sonraki →' : 'Next →')}
         </button>
       </div>
     </div>`;
