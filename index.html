@@ -3136,6 +3136,9 @@
         <h1 data-i18n="heroTitle">Bilgiyi yutar,<br>ders olarak kusar.</h1>
         <p data-i18n="heroDesc">Word, PDF ya da metin dosyası yükle. Konu aynı kalır — Thinkle içeriği net slaytlara dönüştürür, açıklamalar ve önemli noktalar ekler, öğrendiklerini test edecek bir quiz hazırlar.</p>
 
+        <!-- Seçilen dosyalar listesi — dropzone üstünde birikir -->
+        <div id="fileQueue" style="display:none;margin-bottom:12px;display:flex;flex-direction:column;gap:6px"></div>
+
         <div class="dropzone" id="dropzone">
           <!-- Arka plan efektleri -->
           <div class="dropzone-stars"></div>
@@ -6960,60 +6963,106 @@ fileInput.addEventListener('change', e => {
   if(e.target.files.length) selectFile(e.target.files[0]);
 });
 
-function selectFile(file){
-  pendingFile = file;
-  const name = file.name.toLowerCase();
-  const isImage = name.endsWith('.jpg')||name.endsWith('.jpeg')||name.endsWith('.png');
+// Dosya kuyruğu — birden fazla dosya seçilebilir
+let fileQueue = []; // [{file, id}]
+let fileQueueIdCounter = 0;
 
-  if(isImage){
-    // Fotoğraf önizleme — küçük resim göster
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      // Dropzone içinde önizleme alanı
-      let preview = document.getElementById('dzPreview');
-      if(!preview){
-        preview = document.createElement('div');
-        preview.id = 'dzPreview';
-        preview.style.cssText = 'margin-top:10px;display:flex;align-items:center;gap:10px;padding:8px 12px;background:rgba(255,255,255,.04);border:1px solid rgba(110,231,255,.2);border-radius:10px;animation:bullet-in .3s ease both';
-        dropzone.appendChild(preview);
-      }
-      preview.innerHTML = `
-        <img src="${e.target.result}" style="width:44px;height:44px;object-fit:cover;border-radius:8px;border:1px solid rgba(255,255,255,.1);flex-shrink:0">
-        <div style="min-width:0">
-          <div style="font-size:.75rem;color:#6ee7ff;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">✓ ${file.name}</div>
-          <div style="font-size:.62rem;color:rgba(255,255,255,.35)">${(file.size/1024/1024).toFixed(1)} MB · Görsel</div>
-        </div>`;
-    };
-    reader.readAsDataURL(file);
-  } else {
-    // Görsel değil — sadece isim göster
-    const icons = {pdf:'📄',docx:'📝',doc:'📝',txt:'📃',xlsx:'📊',xls:'📊',csv:'📊'};
-    const ext = name.split('.').pop();
-    const icon = icons[ext] || '📁';
-    let preview = document.getElementById('dzPreview');
-    if(!preview){
-      preview = document.createElement('div');
-      preview.id = 'dzPreview';
-      preview.style.cssText = 'margin-top:10px;display:flex;align-items:center;gap:10px;padding:8px 12px;background:rgba(255,255,255,.04);border:1px solid rgba(110,231,255,.2);border-radius:10px;animation:bullet-in .3s ease both';
-      dropzone.appendChild(preview);
-    }
-    preview.innerHTML = `
-      <div style="width:44px;height:44px;border-radius:8px;background:rgba(180,107,255,.1);border:1px solid rgba(180,107,255,.2);display:flex;align-items:center;justify-content:center;font-size:1.4rem;flex-shrink:0">${icon}</div>
-      <div style="min-width:0">
-        <div style="font-size:.75rem;color:#6ee7ff;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">✓ ${file.name}</div>
-        <div style="font-size:.62rem;color:rgba(255,255,255,.35)">${(file.size/1024/1024).toFixed(1)} MB · ${ext.toUpperCase()}</div>
-      </div>`;
+function selectFile(file){
+  const id = ++fileQueueIdCounter;
+  fileQueue.push({ file, id });
+  pendingFile = file; // son seçilen dosya goBtn için
+  renderFileQueue();
+}
+
+function renderFileQueue(){
+  const queueEl = document.getElementById('fileQueue');
+  if(!queueEl) return;
+
+  if(!fileQueue.length){
+    queueEl.style.display = 'none';
+    return;
   }
-  fileNameEl.textContent = '';
+  queueEl.style.display = 'flex';
+
+  queueEl.innerHTML = fileQueue.map(({file, id}) => {
+    const name = file.name.toLowerCase();
+    const isImage = name.endsWith('.jpg')||name.endsWith('.jpeg')||name.endsWith('.png');
+    const ext = name.split('.').pop().toUpperCase();
+    const icons = {PDF:'📄',DOCX:'📝',DOC:'📝',TXT:'📃',XLSX:'📊',XLS:'📊',CSV:'📊'};
+    const icon = icons[ext] || '📁';
+    const sizeMB = (file.size/1024/1024).toFixed(1);
+    const isActive = file === pendingFile;
+
+    return `<div id="fq-${id}" style="
+      display:flex;align-items:center;gap:10px;
+      padding:8px 12px;border-radius:10px;
+      background:${isActive?'rgba(110,231,255,.08)':'rgba(255,255,255,.03)'};
+      border:1px solid ${isActive?'rgba(110,231,255,.3)':'rgba(255,255,255,.08)'};
+      cursor:pointer;transition:.15s;
+    " onclick="selectQueueItem(${id})">
+      <div id="fq-thumb-${id}" style="width:40px;height:40px;border-radius:7px;flex-shrink:0;
+        background:rgba(180,107,255,.1);border:1px solid rgba(180,107,255,.2);
+        display:flex;align-items:center;justify-content:center;font-size:1.2rem;overflow:hidden">
+        ${isImage ? `<img src="" data-file-id="${id}" style="width:100%;height:100%;object-fit:cover;border-radius:7px">` : icon}
+      </div>
+      <div style="flex:1;min-width:0">
+        <div style="font-size:.78rem;font-weight:600;color:${isActive?'#6ee7ff':'rgba(220,210,255,.85)'};overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${file.name}</div>
+        <div style="font-size:.62rem;color:rgba(255,255,255,.35);margin-top:1px">${sizeMB} MB · ${ext}</div>
+      </div>
+      ${isActive?'<span style="font-size:.62rem;font-family:Space Mono,monospace;color:#6ee7ff;background:rgba(110,231,255,.1);padding:2px 7px;border-radius:6px;white-space:nowrap">✓ Seçili</span>':''}
+      <button onclick="event.stopPropagation();removeQueueItem(${id})" style="
+        background:rgba(255,255,255,.06);border:none;border-radius:6px;
+        width:24px;height:24px;cursor:pointer;color:rgba(255,255,255,.35);
+        font-size:.7rem;flex-shrink:0;touch-action:manipulation;
+      ">✕</button>
+    </div>`;
+  }).join('');
+
+  // Fotoğraflar için thumbnail yükle
+  fileQueue.forEach(({file, id}) => {
+    const name = file.name.toLowerCase();
+    if(name.endsWith('.jpg')||name.endsWith('.jpeg')||name.endsWith('.png')){
+      const img = queueEl.querySelector(`img[data-file-id="${id}"]`);
+      if(img && !img.src.startsWith('data:')){
+        const reader = new FileReader();
+        reader.onload = e => { if(img) img.src = e.target.result; };
+        reader.readAsDataURL(file);
+      }
+    }
+  });
+}
+
+function selectQueueItem(id){
+  const item = fileQueue.find(f => f.id === id);
+  if(item){
+    pendingFile = item.file;
+    renderFileQueue();
+  }
+}
+
+function removeQueueItem(id){
+  fileQueue = fileQueue.filter(f => f.id !== id);
+  if(pendingFile && fileQueue.length > 0){
+    // Son seçili silinmişse en son dosyayı seç
+    const stillExists = fileQueue.find(f => f.file === pendingFile);
+    if(!stillExists) pendingFile = fileQueue[fileQueue.length-1].file;
+  } else if(fileQueue.length === 0){
+    pendingFile = null;
+  }
+  renderFileQueue();
 }
 
 let bhLevel = 0;
 function growBlackHole(){
-  // Distort animasyonu kaldırıldı
   bhLevel = Math.min(bhLevel + 1, 3);
 }
 
-restartBtn.addEventListener('click', () => location.reload());
+restartBtn.addEventListener('click', () => {
+  fileQueue = [];
+  pendingFile = null;
+  renderFileQueue();
+  location.reload();
+});
 goBtn.addEventListener('click', () => {
   if(!pendingFile){ showError(t('chooseFile')); return; }
   requireAuth(() => handleFile(pendingFile));
