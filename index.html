@@ -2856,8 +2856,6 @@
       <h3 data-i18n="aiPanelTitle" style="margin:0;font-size:.9rem">Sor & Öğren</h3>
       <span class="util" style="font-size:.65rem;color:var(--ink-soft)">Thinkle</span>
     </div>
-    <button onclick="document.getElementById('aiFloatPanel').classList.remove('open')"
-      style="margin-left:auto;background:none;border:none;color:var(--ink-soft);font-size:1.2rem;cursor:pointer;padding:4px">✕</button>
   </div>
   <div class="ai-chat" id="aiChatMobile" style="flex:1;overflow-y:auto;padding:10px 12px;min-height:0"></div>
   <div class="ai-input-row" style="padding:10px 12px;border-top:1px solid var(--line);display:flex;gap:8px">
@@ -2914,8 +2912,8 @@
   <div class="mam-divider"></div>
   <button id="mamSlides" onclick="var t=document.getElementById('tabs');if(t&&t.children.length>0)t.classList.add('open');document.getElementById('mobileActionsMenu').classList.remove('open')">📑 <span data-i18n="menuToggle">Slaytlar</span></button>
   <button id="mamRestart" onclick="document.getElementById('restartBtn')?.click();document.getElementById('mobileActionsMenu').classList.remove('open')">↺ <span data-i18n="restartBtn">Yeni dosya</span></button>
-  <button onclick="showBattleModal();document.getElementById('mobileActionsMenu').classList.remove('open')" style="color:#ff6ec7">⚔️ Yarışma Modu</button>
-  <button onclick="toggleFriendsPanel();document.getElementById('mobileActionsMenu').classList.remove('open')" style="color:#6ee7ff">👥 Arkadaşlar <span id="friendReqBadgeMobile" style="display:none;background:#ff6ec7;color:#070a18;border-radius:6px;padding:1px 5px;font-size:.6rem;font-weight:700">0</span></button>
+  <button onclick="showBattleModal();document.getElementById('mobileActionsMenu').classList.remove('open')" style="color:#ff6ec7">⚔️ <span class="tr-text">Yarışma Modu</span><span class="en-text">Battle Mode</span></button>
+  <button onclick="toggleFriendsPanel();document.getElementById('mobileActionsMenu').classList.remove('open')" style="color:#6ee7ff">👥 <span class="tr-text">Arkadaşlar</span><span class="en-text">Friends</span> <span id="friendReqBadgeMobile" style="display:none;background:#ff6ec7;color:#070a18;border-radius:6px;padding:1px 5px;font-size:.6rem;font-weight:700">0</span></button>
   <button id="mamExport" disabled onclick="document.getElementById('exportBtn')?.click();document.getElementById('mobileActionsMenu').classList.remove('open')">⬇ <span data-i18n="exportBtn">.pptx indir</span></button>
   <div class="mam-divider" id="mamFounderDivider" style="display:none"></div>
   <button id="mamFounderBtn" style="display:none;color:#ffd700" onclick="if(typeof showFounderWelcome==='function')showFounderWelcome();document.getElementById('mobileActionsMenu').classList.remove('open')">👑 Yönetici Paneli</button>
@@ -4099,10 +4097,10 @@ document.addEventListener('authChanged', e => {  const user = e.detail;
         </button>` : ''}
         <div id="galaxyApplyArea" style="margin:0 12px 10px"></div>
         <button class="friends-sidebar-btn" id="friendsSidebarBtn" onclick="toggleFriendsPanel()">
-          👥 Arkadaşlar
+          👥 <span class="tr-text">Arkadaşlar</span><span class="en-text">Friends</span>
           <span id="friendReqBadge" style="display:none" class="req-badge">0</span>
         </button>
-        <button class="battle-sidebar-btn" onclick="showBattleModal()">⚔️ Yarışma Modu</button>
+        <button class="battle-sidebar-btn" onclick="showBattleModal()">⚔️ <span class="tr-text">Yarışma Modu</span><span class="en-text">Battle Mode</span></button>
       </div>`;
 
     // Galaxy durumunu kontrol et ve uygun UI'yi göster
@@ -4443,12 +4441,12 @@ async function doCreateRoom(){
   const user = window.currentUser;
   if(!user || !battleSelectedCategory) return;
   const btn = document.getElementById('createRoomBtn');
-  if(btn){ btn.disabled = true; btn.textContent = '⏳ Sorular hazırlanıyor...'; btn.style.opacity = '.7'; }
+  if(btn){ btn.disabled = true; btn.textContent = currentLang==='tr' ? '⏳ Sorular hazırlanıyor...' : '⏳ Generating questions...'; btn.style.opacity = '.7'; }
 
   // AI ile soru üret
   const catLabel = BATTLE_CATEGORIES.find(c=>c.id===battleSelectedCategory)?.label || battleSelectedCategory;
   const questions = await generateBattleQuestions(catLabel);
-  if(!questions){ if(btn){ btn.disabled=false; btn.textContent='🚀 Odayı Oluştur'; btn.style.opacity='1'; } return; }
+  if(!questions){ if(btn){ btn.disabled=false; btn.textContent=currentLang==='tr'?'🚀 Odayı Oluştur':'🚀 Create Room'; btn.style.opacity='1'; } return; }
 
   battleMyUid = user.uid;
   battleMyName = window.currentUsername ? '@'+window.currentUsername : (user.displayName || user.uid.slice(0,8));
@@ -4589,7 +4587,9 @@ function updateWaitingRoom(roomData){
   const readyCount = uids.filter(u => players[u].ready).length;
 
   const countEl = document.getElementById('waitingCount');
-  if(countEl) countEl.textContent = `${count} / 6 oyuncu · ${readyCount} hazır`;
+  if(countEl) countEl.textContent = currentLang==='tr'
+    ? `${count} / 6 oyuncu · ${readyCount} hazır`
+    : `${count} / 6 players · ${readyCount} ready`;
 
   const listEl = document.getElementById('playerList');
   if(listEl){
@@ -4603,7 +4603,9 @@ function updateWaitingRoom(roomData){
           <div class="player-name">${escapeHtml(p.name)} ${isMe?'<span style="font-size:.6rem;color:rgba(110,231,255,.5)">(sen)</span>':''}</div>
           ${uid === roomData.host ? '<span style="font-size:.6rem;color:#ffd700;font-family:Space Mono,monospace">HOST</span>' : ''}
           <span class="player-ready-badge" style="background:${p.ready?'rgba(77,255,176,.15)':'rgba(255,255,255,.06)'};color:${p.ready?'#4dffb0':'rgba(255,255,255,.3)'}">
-            ${p.ready ? '✓ Hazır' : '⏳ Bekliyor'}
+            ${p.ready
+              ? (currentLang==='tr'?'✓ Hazır':'✓ Ready')
+              : (currentLang==='tr'?'⏳ Bekliyor':'⏳ Waiting')}
           </span>
         </div>`;
     }).join('');
@@ -4671,7 +4673,13 @@ async function doJoinRoom(){
 
   const result = await window.fbJoinRoom(code, user.uid, battleMyName);
   if(!result.ok){
-    const msgs = { notfound:'Oda bulunamadı', started:'Yarışma başlamış', full:'Oda dolu (6/6)', error:'Hata oluştu' };
+    const isTr = currentLang === 'tr';
+    const msgs = {
+      notfound: isTr?'Oda bulunamadı':'Room not found',
+      started:  isTr?'Yarışma başlamış':'Battle already started',
+      full:     isTr?'Oda dolu (6/6)':'Room is full (6/6)',
+      error:    isTr?'Hata oluştu':'Error occurred'
+    };
     if(errEl) errEl.textContent = msgs[result.reason] || 'Hata';
     return;
   }
@@ -4737,9 +4745,9 @@ function startCountdown(roomData){
   overlay.id = 'countdownOverlay';
   overlay.className = 'countdown-overlay';
   overlay.innerHTML = `
-    <div style="font-family:'Space Mono',monospace;font-size:.9rem;color:rgba(180,160,255,.7);letter-spacing:.1em">HAZIR OL</div>
+    <div style="font-family:'Space Mono',monospace;font-size:.9rem;color:rgba(180,160,255,.7);letter-spacing:.1em">${currentLang==='tr'?'HAZIR OL':'GET READY'}</div>
     <div class="countdown-num" id="cdNum">3</div>
-    <div style="font-size:.8rem;color:rgba(255,255,255,.4)">${BATTLE_CATEGORIES.find(c=>c.id===roomData.category)?.label || ''}</div>`;
+    <div style="font-size:.8rem;color:rgba(255,255,255,.4)">${BATTLE_CATEGORIES.find(c=>c.id===roomData.category)?.(currentLang==='tr'?'label':'labelEn') || ''}</div>`;
   document.body.appendChild(overlay);
 
   let n = 3;
@@ -4749,7 +4757,7 @@ function startCountdown(roomData){
     if(el){
       el.style.animation='none'; void el.offsetWidth;
       el.style.animation='countdown-pop .9s cubic-bezier(.16,1,.3,1) both';
-      el.textContent = n > 0 ? n : 'BAŞLA!';
+      el.textContent = n > 0 ? n : (currentLang==='tr'?'BAŞLA!':'GO!');
     }
     if(n <= 0){
       clearInterval(iv);
@@ -4774,8 +4782,8 @@ function startBattleGame(roomData){
   screen.innerHTML = `
     <div class="battle-header">
       <div style="display:flex;align-items:center;gap:8px">
-        <button onclick="confirmLeaveBattle()" style="background:rgba(255,110,199,.12);border:1px solid rgba(255,110,199,.25);border-radius:8px;padding:5px 10px;cursor:pointer;color:#ff6ec7;font-size:.7rem;font-family:'Space Grotesk',sans-serif;touch-action:manipulation;font-weight:600">✕ Ayrıl</button>
-        <div style="font-family:'Orbitron',sans-serif;font-size:.7rem;color:rgba(180,160,255,.6);letter-spacing:.08em">⚔️ YARIŞMA</div>
+        <button onclick="confirmLeaveBattle()" style="background:rgba(255,110,199,.12);border:1px solid rgba(255,110,199,.25);border-radius:8px;padding:5px 10px;cursor:pointer;color:#ff6ec7;font-size:.7rem;font-family:'Space Grotesk',sans-serif;touch-action:manipulation;font-weight:600">✕ ${currentLang==='tr'?'Ayrıl':'Leave'}</button>
+        <div style="font-family:'Orbitron',sans-serif;font-size:.7rem;color:rgba(180,160,255,.6);letter-spacing:.08em">⚔️ ${currentLang==='tr'?'YARIŞMA':'BATTLE'}</div>
       </div>
       <div class="battle-timer" id="battleTimer" style="color:#4dffb0;border-color:#4dffb0">20</div>
       <div style="font-size:.7rem;color:rgba(255,255,255,.4);font-family:'Space Mono',monospace" id="battleQNum">1 / ${battleQuestions.length}</div>
@@ -5001,7 +5009,7 @@ function updateBattleScoreboard(roomData){
         <div style="font-size:1rem;margin-bottom:2px">${isMe?(window.currentAvatar||'🚀'):'👤'}</div>
         <div class="battle-player-score" style="color:${isLeading?'#ffd700':isMe?'#6ee7ff':'#fff'}">${p.score||0}</div>
         <div class="battle-player-nick">${escapeHtml((p.name||'').slice(0,10))}</div>
-        ${p.finishedAt ? '<div style="font-size:.55rem;color:rgba(77,255,176,.6);margin-top:2px">✓ Bitti</div>' : ''}
+        ${p.finishedAt ? `<div style="font-size:.55rem;color:rgba(77,255,176,.6);margin-top:2px">${currentLang==='tr'?'✓ Bitti':'✓ Done'}</div>` : ''}
       </div>`;
   }).join('');
 }
@@ -5069,15 +5077,16 @@ function showBattleResult(roomData){
   const winnerName = escapeHtml(winner?.[1]?.name || '');
 
   // Kazanan mesajı
+  const isTr2 = currentLang === 'tr';
   const heroMsg = iWon
-    ? '🏆 Kazandın!'
-    : myRank === 2 ? '🥈 İkinci oldun!'
-    : myRank === 3 ? '🥉 Üçüncü oldun!'
-    : `😅 ${myRank}. sırada bitirdin`;
+    ? (isTr2?'🏆 Kazandın!':'🏆 You Won!')
+    : myRank === 2 ? (isTr2?'🥈 İkinci oldun!':'🥈 2nd Place!')
+    : myRank === 3 ? (isTr2?'🥉 Üçüncü oldun!':'🥉 3rd Place!')
+    : `😅 ${myRank}${isTr2?'. sırada bitirdin':'th place'}`;
 
   const heroSub = iWon
-    ? 'Tebrikler, rakiplerini geride bıraktın!'
-    : `${winnerName} yarışmayı kazandı!`;
+    ? (isTr2?'Tebrikler, rakiplerini geride bıraktın!':'Congrats, you outplayed everyone!')
+    : (isTr2?`${winnerName} yarışmayı kazandı!`:`${winnerName} won the battle!`);
 
   const heroColor = iWon ? '#ffd700' : myRank === 2 ? '#c0c0c0' : myRank === 3 ? '#cd7f32' : '#ff6ec7';
 
@@ -5093,7 +5102,6 @@ function showBattleResult(roomData){
       display:flex;flex-direction:column;align-items:center;
       padding:32px 16px 48px;gap:0;
     ">
-      <!-- Kazan/kaybet animasyon başlık -->
       <div style="text-align:center;margin-bottom:24px;animation:slide-up .6s cubic-bezier(.16,1,.3,1) both">
         <div style="font-size:4rem;margin-bottom:8px;animation:countdown-pop .7s cubic-bezier(.16,1,.3,1) both">
           ${iWon ? '🏆' : myRank===2?'🥈':myRank===3?'🥉':'😅'}
@@ -5105,17 +5113,16 @@ function showBattleResult(roomData){
           ${heroSub}
         </div>
         <div style="margin-top:10px;display:inline-flex;gap:16px;padding:8px 18px;border-radius:20px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08)">
-          <span style="font-size:.75rem;color:rgba(255,255,255,.5)">senin puanın</span>
-          <span style="font-family:'Space Mono',monospace;font-size:.85rem;font-weight:700;color:${heroColor}">${myEntry.score||0} puan</span>
+          <span style="font-size:.75rem;color:rgba(255,255,255,.5)">${isTr2?'senin puanın':'your score'}</span>
+          <span style="font-family:'Space Mono',monospace;font-size:.85rem;font-weight:700;color:${heroColor}">${myEntry.score||0} ${isTr2?'puan':'pts'}</span>
           <span style="font-size:.75rem;color:rgba(255,255,255,.3)">·</span>
-          <span style="font-size:.75rem;color:rgba(255,255,255,.5)">${correctCount(myEntry)} / ${battleQuestions.length} doğru</span>
+          <span style="font-size:.75rem;color:rgba(255,255,255,.5)">${correctCount(myEntry)} / ${battleQuestions.length} ${isTr2?'doğru':'correct'}</span>
         </div>
       </div>
 
-      <!-- Sıralama tablosu -->
       <div style="width:100%;max-width:420px;background:rgba(14,10,36,.8);border:1px solid rgba(255,255,255,.08);border-radius:20px;overflow:hidden;margin-bottom:20px;animation:slide-up .7s .1s cubic-bezier(.16,1,.3,1) both">
         <div style="padding:12px 16px;border-bottom:1px solid rgba(255,255,255,.06);display:flex;align-items:center;gap:8px">
-          <span style="font-size:.65rem;font-family:'Space Mono',monospace;color:rgba(180,160,255,.5);letter-spacing:.08em">⚔️ SONUÇ SIRALAМASI</span>
+          <span style="font-size:.65rem;font-family:'Space Mono',monospace;color:rgba(180,160,255,.5);letter-spacing:.08em">⚔️ ${isTr2?'SONUÇ SIRALAMASI':'FINAL STANDINGS'}</span>
         </div>
         ${sorted.map(([uid, p], i) => {
           const isMe = uid === battleMyUid;
@@ -5123,38 +5130,34 @@ function showBattleResult(roomData){
           const medal = i===0?'🥇':i===1?'🥈':i===2?'🥉':`${i+1}.`;
           const correct = correctCount(p);
           const wrong = battleQuestions.length - correct;
-          const rowBg = isMe
-            ? 'rgba(110,231,255,.07)'
-            : isWinner ? 'rgba(255,200,0,.05)' : 'rgba(255,255,255,.02)';
-          const rowBorder = isMe
-            ? 'rgba(110,231,255,.25)'
-            : isWinner ? 'rgba(255,200,0,.2)' : 'rgba(255,255,255,.05)';
+          const rowBg = isMe ? 'rgba(110,231,255,.07)' : isWinner ? 'rgba(255,200,0,.05)' : 'rgba(255,255,255,.02)';
+          const rowBorder = isMe ? 'rgba(110,231,255,.25)' : isWinner ? 'rgba(255,200,0,.2)' : 'rgba(255,255,255,.05)';
           return `
-            <div style="display:flex;align-items:center;gap:12px;padding:12px 16px;border-bottom:1px solid rgba(255,255,255,.04);background:${rowBg};border-left:3px solid ${rowBorder};transition:.2s">
+            <div style="display:flex;align-items:center;gap:12px;padding:12px 16px;border-bottom:1px solid rgba(255,255,255,.04);background:${rowBg};border-left:3px solid ${rowBorder}">
               <span style="font-size:1.2rem;width:28px;text-align:center;flex-shrink:0">${medal}</span>
               <div style="flex:1;min-width:0">
                 <div style="font-size:.85rem;font-weight:700;color:${isWinner?'#ffd700':isMe?'#6ee7ff':'rgba(220,210,255,.9)'};overflow:hidden;text-overflow:ellipsis;white-space:nowrap">
-                  ${escapeHtml(p.name)} ${isMe?'<span style="font-size:.6rem;color:rgba(110,231,255,.5);font-weight:400">(sen)</span>':''}
+                  ${escapeHtml(p.name)} ${isMe?`<span style="font-size:.6rem;color:rgba(110,231,255,.5);font-weight:400">(${isTr2?'sen':'you'})</span>`:''}
                 </div>
                 <div style="display:flex;gap:8px;margin-top:3px">
-                  <span style="font-size:.65rem;color:rgba(77,255,176,.7)">✓ ${correct} doğru</span>
-                  <span style="font-size:.65rem;color:rgba(255,110,199,.6)">✗ ${wrong} yanlış</span>
+                  <span style="font-size:.65rem;color:rgba(77,255,176,.7)">✓ ${correct} ${isTr2?'doğru':'correct'}</span>
+                  <span style="font-size:.65rem;color:rgba(255,110,199,.6)">✗ ${wrong} ${isTr2?'yanlış':'wrong'}</span>
                 </div>
               </div>
               <div style="text-align:right;flex-shrink:0">
                 <div style="font-family:'Space Mono',monospace;font-size:.95rem;font-weight:700;color:${isWinner?'#ffd700':'rgba(255,255,255,.8)'}">${p.score||0}</div>
-                <div style="font-size:.58rem;color:rgba(255,255,255,.3)">puan</div>
+                <div style="font-size:.58rem;color:rgba(255,255,255,.3)">${isTr2?'puan':'pts'}</div>
               </div>
             </div>`;
         }).join('')}
       </div>
 
-      <!-- Butonlar -->
       <div style="width:100%;max-width:420px;display:flex;flex-direction:column;gap:10px;animation:slide-up .8s .2s cubic-bezier(.16,1,.3,1) both">
         <button onclick="
           _battleResultShown=false;
           battleFinished=false;
           document.getElementById('battleScreen')?.remove();
+
           showBattleModal();
         " style="
           width:100%;padding:14px;border-radius:14px;border:none;
@@ -5162,7 +5165,7 @@ function showBattleResult(roomData){
           color:#070a18;font-weight:700;font-size:.92rem;cursor:pointer;
           touch-action:manipulation;font-family:'Space Grotesk',sans-serif;
           box-shadow:0 4px 20px rgba(180,107,255,.4);
-        ">⚔️ Tekrar Oyna</button>
+        ">⚔️ ${isTr2?'Tekrar Oyna':'Play Again'}</button>
 
         <button onclick="
           _battleResultShown=false;
@@ -5175,7 +5178,7 @@ function showBattleResult(roomData){
           background:rgba(255,255,255,.05);color:rgba(220,210,255,.8);
           font-weight:600;font-size:.88rem;cursor:pointer;
           touch-action:manipulation;font-family:'Space Grotesk',sans-serif;
-        ">← Ana Sayfaya Dön</button>
+        ">← ${isTr2?'Ana Sayfaya Dön':'Back to Home'}</button>
       </div>
     </div>`;
 }
@@ -6876,9 +6879,13 @@ function applyLanguage(lang){
   document.querySelectorAll('.lang-opt').forEach(b => {
     b.classList.toggle('active', b.dataset.lang === lang);
   });
+  // Sidebar Galaxy UI yenile — dil değişince butonlar güncellenir
+  const user = window.currentUser;
+  if(user && !user.isAnonymous){
+    if(typeof initGalaxyUI === 'function') initGalaxyUI(user);
+  }
   // re-render dynamic views if a deck is loaded
   if(deck){
-    // Eğer dil değiştiyse ve elimizde orijinal kaynak metin varsa, deck'i yeniden üret
     if(lastSourceText && lang !== deckLang){
       regenerateDeckForLanguage(lang);
       return;
