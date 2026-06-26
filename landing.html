@@ -1,593 +1,1072 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="tr">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Thinkle — AI-Powered Learning Platform</title>
-<meta name="description" content="Upload a PDF or Word file, Thinkle instantly generates slides and quizzes using AI. Battle your friends in multiplayer quiz mode. Try it free!">
+<meta name="description" content="Upload any file — PDF, Word, Excel. Thinkle AI builds slides, quiz and deep analysis instantly. Battle friends in multiplayer quiz mode.">
 <meta property="og:type" content="website">
 <meta property="og:url" content="https://thinkle.space/landing.html">
 <meta property="og:title" content="Thinkle — AI-Powered Learning Platform">
-<meta property="og:description" content="Upload any file, get AI-generated slides & quizzes instantly. Battle friends in real-time quiz mode.">
+<meta property="og:description" content="Upload any file, get AI-generated slides & quizzes instantly.">
 <meta property="og:image" content="https://raw.githubusercontent.com/mehmettr2009-afk/thinkle-app/main/og_image.svg">
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:image" content="https://raw.githubusercontent.com/mehmettr2009-afk/thinkle-app/main/og_image.svg">
-<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><defs><linearGradient id='g' x1='0%25' y1='0%25' x2='100%25' y2='100%25'><stop offset='0%25' stop-color='%23b46bff'/><stop offset='50%25' stop-color='%238855cc'/><stop offset='100%25' stop-color='%23ff6ec7'/></linearGradient></defs><rect width='32' height='32' rx='8' fill='url(%23g)'/><circle cx='16' cy='16' r='9' fill='%23080410'/></svg>">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;900&family=Space+Grotesk:wght@400;500;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><defs><linearGradient id='g' x1='0%25' y1='0%25' x2='100%25' y2='100%25'><stop offset='0%25' stop-color='%239b59ff'/><stop offset='100%25' stop-color='%2300f5ff'/></linearGradient></defs><rect width='32' height='32' rx='8' fill='url(%23g)'/><text x='16' y='22' text-anchor='middle' font-size='16' fill='%23fff'>T</text></svg>">
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@700;900&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
+/* ====== RESET & TOKENS ====== */
 *{box-sizing:border-box;margin:0;padding:0;}
 :root{
-  --bg:#04020e;--ink:#eaf0ff;--ink-soft:#8a93c7;
-  --accent:#6ee7ff;--accent2:#b46bff;--pink:#ff6ec7;--ok:#4dffb0;
-  --line:#1a2040;
+  --void:#050310;
+  --deep:#080520;
+  --panel:#0d0a28;
+  --cyan:#00f5ff;
+  --violet:#9b59ff;
+  --pink:#ff2d78;
+  --green:#00ff88;
+  --gold:#ffcc00;
+  --ink:#e8e4ff;
+  --muted:#6b7280;
+  --border:rgba(155,89,255,.18);
 }
 html{scroll-behavior:smooth;}
-body{font-family:'Space Grotesk',sans-serif;background:var(--bg);color:var(--ink);overflow-x:hidden;}
-
-/* TR/EN visibility */
-[lang="tr"] .en-text{display:none;}
-[lang="en"] .tr-text{display:none;}
-
-/* ===== INTRO ===== */
-#intro{
-  position:fixed;inset:0;z-index:9999;background:#04020e;
-  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:28px;
-  transition:opacity .8s ease, visibility .8s ease;
+body{
+  font-family:'Inter',sans-serif;
+  background:var(--void);
+  color:var(--ink);
+  overflow-x:hidden;
+  cursor:default;
 }
-#intro.done{opacity:0;visibility:hidden;pointer-events:none;}
+[lang="tr"] .en{display:none!important;}
+[lang="en"] .tr{display:none!important;}
+
+/* ====== CUSTOM CURSOR ====== */
+.cursor{
+  position:fixed;width:12px;height:12px;border-radius:50%;
+  background:var(--cyan);pointer-events:none;z-index:99999;
+  mix-blend-mode:screen;
+  transition:transform .1s ease,width .2s,height .2s,background .2s;
+}
+.cursor-ring{
+  position:fixed;width:36px;height:36px;border-radius:50%;
+  border:1px solid rgba(0,245,255,.35);pointer-events:none;z-index:99998;
+  transition:transform .12s ease;
+}
+
+/* ====== INTRO ====== */
+#intro{
+  position:fixed;inset:0;z-index:9999;
+  background:var(--void);
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:20px;
+  overflow:hidden;
+}
+#intro.out{animation:intro-out .7s ease forwards;}
+@keyframes intro-out{to{opacity:0;visibility:hidden;}}
+.intro-scan{
+  position:absolute;top:0;left:0;right:0;height:3px;
+  background:linear-gradient(90deg,transparent,var(--cyan),transparent);
+  animation:scan 1.8s ease-in-out;
+}
+@keyframes scan{0%{top:-3px;}100%{top:100%;}}
 .intro-grid{
   position:absolute;inset:0;
-  background-image:linear-gradient(rgba(110,231,255,.04) 1px,transparent 1px),linear-gradient(90deg,rgba(110,231,255,.04) 1px,transparent 1px);
-  background-size:60px 60px;
-  mask-image:radial-gradient(ellipse at center,black 30%,transparent 80%);
-  -webkit-mask-image:radial-gradient(ellipse at center,black 30%,transparent 80%);
+  background-size:80px 80px;
+  background-image:
+    linear-gradient(rgba(0,245,255,.04) 1px,transparent 1px),
+    linear-gradient(90deg,rgba(0,245,255,.04) 1px,transparent 1px);
+  animation:grid-fade 2s ease forwards;
 }
-.intro-letters{display:flex;gap:2px;position:relative;z-index:2;}
-.intro-letter{
-  font-family:'Orbitron',sans-serif;font-size:clamp(3rem,10vw,7rem);font-weight:900;
-  opacity:0;transform:translateY(40px) scale(.8);
-  transition:opacity .5s ease, transform .5s cubic-bezier(.16,1,.3,1);
-  background:linear-gradient(135deg,#fff 0%,var(--accent) 40%,var(--accent2) 70%,var(--pink) 100%);
-  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
-}
-.intro-letter.show{opacity:1;transform:translateY(0) scale(1);}
-.intro-tagline{
-  font-family:'Space Mono',monospace;font-size:clamp(.7rem,2vw,.95rem);
-  color:rgba(180,160,255,.6);letter-spacing:.18em;text-transform:uppercase;
-  opacity:0;transition:opacity .6s ease .5s;position:relative;z-index:2;text-align:center;
-}
-.intro-tagline.show{opacity:1;}
-.intro-bar{width:200px;height:2px;background:rgba(255,255,255,.08);border-radius:2px;overflow:hidden;position:relative;z-index:2;}
-.intro-bar-fill{height:100%;width:0%;background:linear-gradient(90deg,var(--accent),var(--accent2),var(--pink));}
-.intro-particles{position:absolute;inset:0;pointer-events:none;}
-.intro-p{position:absolute;border-radius:50%;animation:ip-float var(--d,6s) ease-in-out infinite alternate;}
-@keyframes ip-float{0%{transform:translate(0,0);opacity:var(--op,.4);}100%{transform:translate(var(--dx,20px),var(--dy,-30px));opacity:calc(var(--op,.4)*.2);}}
+@keyframes grid-fade{0%{opacity:0;}40%{opacity:1;}100%{opacity:.3;}}
 
-/* ===== NAV ===== */
+.glitch-title{
+  font-family:'Orbitron',sans-serif;
+  font-size:clamp(3.5rem,12vw,9rem);
+  font-weight:900;
+  color:#fff;
+  position:relative;z-index:2;
+  text-shadow:0 0 40px rgba(0,245,255,.5);
+  animation:glitch-main 3s ease forwards;
+  letter-spacing:.05em;
+}
+@keyframes glitch-main{
+  0%{opacity:0;transform:scaleX(1.2);filter:blur(8px);}
+  15%{opacity:1;filter:blur(0);}
+  20%,22%{transform:translate(-4px,2px);text-shadow:3px 0 var(--pink),-3px 0 var(--cyan);}
+  21%{transform:translate(4px,-2px);}
+  23%{transform:translate(0);}
+  60%,62%{transform:translate(-2px,0);text-shadow:2px 0 var(--violet),-2px 0 var(--pink);}
+  61%{transform:translate(2px,0);}
+  63%{transform:translate(0);}
+  100%{opacity:1;transform:translate(0);text-shadow:0 0 30px rgba(0,245,255,.4);}
+}
+.glitch-title::before,.glitch-title::after{
+  content:'THINKLE';position:absolute;top:0;left:0;right:0;
+}
+.glitch-title::before{
+  color:var(--pink);clip-path:polygon(0 0,100% 0,100% 35%,0 35%);
+  animation:glitch-before 3s ease forwards;
+}
+.glitch-title::after{
+  color:var(--cyan);clip-path:polygon(0 65%,100% 65%,100% 100%,0 100%);
+  animation:glitch-after 3s ease forwards;
+}
+@keyframes glitch-before{
+  0%,19%{opacity:0;transform:translate(0);}
+  20%{opacity:1;transform:translate(-5px,0);}
+  22%{opacity:0;}
+  60%{opacity:1;transform:translate(4px);}
+  62%{opacity:0;}
+  100%{opacity:0;}
+}
+@keyframes glitch-after{
+  0%,19%{opacity:0;}
+  21%{opacity:1;transform:translate(5px,0);}
+  23%{opacity:0;}
+  61%{opacity:1;transform:translate(-4px);}
+  63%{opacity:0;}
+  100%{opacity:0;}
+}
+.intro-sub{
+  font-family:'Inter',sans-serif;font-size:clamp(.8rem,2vw,1.1rem);
+  color:rgba(200,190,255,.5);letter-spacing:.3em;text-transform:uppercase;
+  position:relative;z-index:2;
+  animation:fade-up .8s 1.5s ease both;
+}
+@keyframes fade-up{from{opacity:0;transform:translateY(16px);}to{opacity:1;transform:none;}}
+.intro-progress{
+  width:min(300px,70vw);height:2px;background:rgba(155,89,255,.2);
+  border-radius:2px;overflow:hidden;position:relative;z-index:2;
+  animation:fade-up .5s 1.7s ease both;
+}
+.intro-fill{height:100%;width:0;background:linear-gradient(90deg,var(--violet),var(--cyan),var(--pink));}
+
+/* ====== NAV ====== */
 nav{
-  position:fixed;top:0;left:0;right:0;z-index:100;
+  position:fixed;top:0;left:0;right:0;z-index:500;
   display:flex;align-items:center;justify-content:space-between;
-  padding:14px 40px;
-  background:rgba(4,2,14,.85);backdrop-filter:blur(16px);
-  border-bottom:1px solid rgba(110,231,255,.07);
+  padding:16px 48px;
+  background:rgba(5,3,16,.7);
+  backdrop-filter:blur(20px);
+  border-bottom:1px solid rgba(155,89,255,.12);
+  transition:background .3s;
 }
 .nav-logo{
-  font-family:'Orbitron',sans-serif;font-size:1.1rem;font-weight:700;
-  background:linear-gradient(135deg,var(--accent),var(--accent2));
-  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
-  text-decoration:none;
+  font-family:'Orbitron',sans-serif;font-size:1.25rem;font-weight:900;
+  color:var(--cyan);text-decoration:none;
+  text-shadow:0 0 20px rgba(0,245,255,.5);
+  letter-spacing:.08em;
 }
-.nav-links{display:flex;gap:24px;align-items:center;}
-.nav-links a{color:var(--ink-soft);text-decoration:none;font-size:.83rem;transition:.2s;}
-.nav-links a:hover{color:var(--ink);}
-.nav-right{display:flex;align-items:center;gap:10px;}
-/* Dil butonu */
-.lang-toggle{
-  display:flex;border:1px solid rgba(255,255,255,.12);border-radius:8px;overflow:hidden;
+.nav-links{display:flex;gap:32px;}
+.nav-links a{
+  color:rgba(200,190,255,.55);text-decoration:none;font-size:.85rem;
+  font-weight:500;transition:color .2s;
 }
-.lang-btn{
-  padding:5px 10px;border:none;background:transparent;
-  color:var(--ink-soft);font-size:.72rem;font-family:'Space Mono',monospace;
-  cursor:pointer;transition:.15s;letter-spacing:.04em;
-}
-.lang-btn.active{background:rgba(110,231,255,.15);color:var(--accent);}
+.nav-links a:hover{color:var(--cyan);}
+.nav-right{display:flex;align-items:center;gap:12px;}
+.lang-toggle{display:flex;border:1px solid rgba(155,89,255,.3);border-radius:8px;overflow:hidden;}
+.lang-btn{padding:5px 12px;border:none;background:transparent;color:rgba(200,190,255,.5);font-size:.72rem;font-family:'Inter',sans-serif;font-weight:600;cursor:pointer;transition:.15s;letter-spacing:.05em;}
+.lang-btn.on{background:rgba(155,89,255,.25);color:var(--violet);}
 .nav-cta{
-  padding:8px 20px;border-radius:9px;border:none;
-  background:linear-gradient(135deg,var(--accent),var(--accent2));
-  color:#04020e;font-weight:700;font-size:.85rem;
-  cursor:pointer;text-decoration:none;transition:.2s;font-family:'Space Grotesk',sans-serif;
+  padding:9px 22px;border-radius:9px;border:none;
+  background:linear-gradient(135deg,var(--violet),var(--cyan));
+  color:#050310;font-weight:700;font-size:.85rem;
+  text-decoration:none;font-family:'Inter',sans-serif;
+  transition:.2s;white-space:nowrap;
 }
-.nav-cta:hover{box-shadow:0 0 20px rgba(110,231,255,.4);}
-@media(max-width:768px){
-  nav{padding:10px 14px;}
-  .nav-links{display:none;}
-}
+.nav-cta:hover{box-shadow:0 0 28px rgba(0,245,255,.45);transform:translateY(-1px);}
+@media(max-width:900px){nav{padding:12px 18px;}.nav-links{display:none;}}
 
-/* ===== HERO ===== */
+/* ====== HERO ====== */
 .hero{
-  min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;
-  text-align:center;padding:100px 20px 60px;position:relative;overflow:hidden;
+  min-height:100vh;display:grid;
+  grid-template-columns:1fr 1fr;
+  align-items:center;
+  gap:0;padding:100px 80px 60px;
+  position:relative;overflow:hidden;
 }
-canvas#heroCanvas{position:absolute;inset:0;width:100%;height:100%;}
-.hero-content{position:relative;z-index:2;}
+canvas#nebula{position:absolute;inset:0;width:100%;height:100%;}
+.hero-left{position:relative;z-index:2;}
 .hero-badge{
-  display:inline-flex;align-items:center;gap:8px;padding:6px 16px;border-radius:20px;
-  background:rgba(77,255,176,.07);border:1px solid rgba(77,255,176,.22);
-  font-size:.7rem;font-family:'Space Mono',monospace;color:var(--ok);letter-spacing:.08em;margin-bottom:28px;
+  display:inline-flex;align-items:center;gap:8px;
+  padding:6px 14px;border-radius:20px;
+  background:rgba(0,255,136,.07);border:1px solid rgba(0,255,136,.25);
+  font-size:.7rem;font-weight:600;color:var(--green);
+  letter-spacing:.08em;margin-bottom:28px;
 }
-.badge-dot{width:6px;height:6px;border-radius:50%;background:var(--ok);box-shadow:0 0 6px var(--ok);animation:blink 2s ease-in-out infinite;}
-@keyframes blink{0%,100%{opacity:1;}50%{opacity:.3;}}
-
-/* Güneş */
-.hero-sun{
-  width:120px;height:120px;border-radius:50%;margin:0 auto 32px;
-  background:radial-gradient(circle at 38% 35%,#fff8e0,#ffaa00 40%,#ff5500 70%,#cc1100);
-  box-shadow:0 0 40px 14px rgba(255,140,0,.5),0 0 100px 36px rgba(255,80,0,.2);
-  position:relative;animation:sun-float 4s ease-in-out infinite;cursor:pointer;
+.badge-pulse{
+  width:7px;height:7px;border-radius:50%;background:var(--green);
+  box-shadow:0 0 8px var(--green);
+  animation:pulse 2s ease-in-out infinite;
 }
-@keyframes sun-float{0%,100%{transform:translateY(0);}50%{transform:translateY(-10px);}}
-.hero-sun::before{
-  content:'';position:absolute;inset:-18px;border-radius:50%;
-  border:1.5px solid rgba(180,107,255,.4);animation:ring-spin 7s linear infinite;
-}
-.hero-sun::after{
-  content:'';position:absolute;inset:-36px;border-radius:50%;
-  border:1px solid rgba(110,231,255,.22);animation:ring-spin 12s linear infinite reverse;
-}
-@keyframes ring-spin{from{transform:rotate(0deg);}to{transform:rotate(360deg);}}
-
-/* Güneş yüzü */
-.sun-face{position:absolute;inset:0;border-radius:50%;pointer-events:none;z-index:3;}
-.sun-brow{
-  position:absolute;width:26%;height:10%;background:#cc4400;border-radius:5px;top:18%;
-  transition:transform .3s ease, border-radius .3s ease;
-}
-.sun-brow.left{left:20%;transform:rotate(-5deg);}
-.sun-brow.right{left:54%;transform:rotate(5deg);}
-.sun-eye{
-  position:absolute;width:26%;height:26%;background:#fff8e0;border-radius:50%;
-  top:30%;overflow:hidden;box-shadow:inset 0 1px 3px rgba(180,80,0,.3);
-  transition:height .2s ease, top .2s ease, border-radius .2s ease;
-}
-.sun-eye.left{left:20%;}
-.sun-eye.right{left:54%;}
-.sun-pupil{
-  position:absolute;width:55%;height:55%;background:#8b1a00;border-radius:50%;
-  top:50%;left:50%;transform:translate(-50%,-50%);transition:transform .08s ease;
-  box-shadow:inset 0 0 3px #3a0800;
-}
-.sun-pupil::after{content:'';position:absolute;width:35%;height:35%;background:#fff8e0;border-radius:50%;top:10%;left:14%;opacity:.7;}
-.sun-mouth{
-  position:absolute;bottom:20%;left:50%;transform:translateX(-50%);
-  width:40%;height:20%;border-radius:0 0 50px 50px;
-  border:2.5px solid #8b1a00;border-top:none;background:rgba(180,60,0,.15);
-  transition:all .3s ease;
-}
-@keyframes sun-blink{0%,88%,100%{height:26%;}93%{height:3%;}}
-.sun-eye.blink{animation:sun-blink 3.8s ease-in-out infinite;}
-/* Happy state */
-.hero-sun.happy .sun-brow.left{transform:rotate(5deg);}
-.hero-sun.happy .sun-brow.right{transform:rotate(-5deg);}
-.hero-sun.happy .sun-mouth{border-radius:0 0 80px 80px;height:26%;}
-
+@keyframes pulse{0%,100%{opacity:1;transform:scale(1);}50%{opacity:.4;transform:scale(.8);}}
 .hero h1{
-  font-family:'Orbitron',sans-serif;font-size:clamp(1.9rem,5.5vw,3.8rem);
-  font-weight:900;line-height:1.1;margin-bottom:18px;
+  font-family:'Orbitron',sans-serif;
+  font-size:clamp(2rem,4.5vw,3.8rem);
+  font-weight:900;line-height:1.08;
+  margin-bottom:20px;
 }
-.hero h1 .grad{
-  background:linear-gradient(135deg,var(--accent),var(--accent2),var(--pink));
+.hero h1 .line1{color:#fff;}
+.hero h1 .line2{
+  background:linear-gradient(135deg,var(--cyan),var(--violet),var(--pink));
   -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
+  filter:drop-shadow(0 0 20px rgba(0,245,255,.3));
 }
-.hero p{font-size:clamp(.92rem,2vw,1.12rem);color:var(--ink-soft);line-height:1.75;max-width:560px;margin:0 auto 32px;}
-.hero-btns{display:flex;gap:12px;justify-content:center;flex-wrap:wrap;margin-bottom:52px;}
-.btn-launch{
-  padding:14px 34px;border-radius:12px;border:none;
-  background:linear-gradient(135deg,var(--accent),var(--accent2));
-  color:#04020e;font-weight:700;font-size:.95rem;cursor:pointer;
-  text-decoration:none;font-family:'Space Grotesk',sans-serif;
-  box-shadow:0 4px 26px rgba(110,231,255,.3);transition:.2s;
+.hero-desc{
+  font-size:1.05rem;color:rgba(200,190,255,.6);line-height:1.75;
+  max-width:480px;margin-bottom:36px;
 }
-.btn-launch:hover{box-shadow:0 4px 40px rgba(110,231,255,.5);transform:translateY(-2px);}
-.btn-ghost{
-  padding:14px 28px;border-radius:12px;border:1px solid rgba(255,255,255,.12);
-  background:rgba(255,255,255,.04);color:var(--ink);font-weight:600;font-size:.95rem;
-  cursor:pointer;text-decoration:none;transition:.2s;font-family:'Space Grotesk',sans-serif;
+.hero-btns{display:flex;gap:14px;flex-wrap:wrap;margin-bottom:48px;}
+.btn-primary{
+  padding:14px 32px;border-radius:10px;border:none;
+  background:linear-gradient(135deg,var(--violet),var(--cyan));
+  color:#050310;font-weight:700;font-size:.95rem;
+  text-decoration:none;font-family:'Inter',sans-serif;
+  box-shadow:0 4px 30px rgba(155,89,255,.4);
+  transition:.2s;display:inline-flex;align-items:center;gap:8px;
 }
-.btn-ghost:hover{border-color:var(--accent);color:var(--accent);}
-.hero-stats{
-  display:flex;gap:40px;justify-content:center;flex-wrap:wrap;
-  padding:24px 36px;border:1px solid rgba(255,255,255,.06);border-radius:14px;
-  background:rgba(255,255,255,.02);max-width:680px;margin:0 auto;
+.btn-primary:hover{box-shadow:0 4px 45px rgba(0,245,255,.5);transform:translateY(-2px);}
+.btn-secondary{
+  padding:14px 28px;border-radius:10px;
+  border:1px solid rgba(155,89,255,.35);
+  background:rgba(155,89,255,.08);
+  color:var(--ink);font-weight:600;font-size:.95rem;
+  text-decoration:none;transition:.2s;font-family:'Inter',sans-serif;
 }
-.stat-num{font-family:'Orbitron',sans-serif;font-size:1.7rem;font-weight:900;background:linear-gradient(135deg,var(--accent),var(--accent2));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;}
-.stat-label{font-size:.62rem;color:var(--ink-soft);margin-top:3px;font-family:'Space Mono',monospace;letter-spacing:.05em;}
+.btn-secondary:hover{border-color:var(--cyan);color:var(--cyan);}
+.hero-stats{display:flex;gap:28px;flex-wrap:wrap;}
+.hstat{text-align:center;}
+.hstat-n{font-family:'Orbitron',sans-serif;font-size:1.9rem;font-weight:900;color:var(--cyan);}
+.hstat-l{font-size:.62rem;color:rgba(200,190,255,.4);margin-top:2px;letter-spacing:.08em;font-weight:600;}
 
-/* ===== SECTIONS ===== */
-.section{padding:90px 20px;max-width:1080px;margin:0 auto;}
-.section-tag{
-  font-family:'Space Mono',monospace;font-size:.68rem;letter-spacing:.14em;
-  color:var(--accent2);text-transform:uppercase;margin-bottom:10px;
-  display:flex;align-items:center;gap:8px;
+/* Floating cards — sağ panel */
+.hero-right{
+  position:relative;z-index:2;
+  height:500px;
+  display:flex;align-items:center;justify-content:center;
 }
-.section-tag::before{content:'';width:20px;height:1px;background:var(--accent2);}
-.section h2{font-family:'Orbitron',sans-serif;font-size:clamp(1.4rem,3.2vw,2.2rem);font-weight:700;margin-bottom:12px;}
-.section .lead{color:var(--ink-soft);font-size:.98rem;line-height:1.75;max-width:540px;margin-bottom:50px;}
-
-/* Steps */
-.steps{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:2px;}
-.step{
-  background:rgba(8,12,30,.85);border:1px solid var(--line);
-  padding:30px 24px;transition:.3s;position:relative;overflow:hidden;
+.float-scene{position:relative;width:340px;height:420px;}
+.fcard{
+  position:absolute;
+  width:190px;
+  background:rgba(13,10,40,.85);
+  border:1px solid var(--border);
+  border-radius:16px;
+  padding:16px;
+  backdrop-filter:blur(12px);
+  cursor:pointer;
+  transition:transform .3s ease,box-shadow .3s;
 }
-.step::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,transparent,var(--accent),transparent);opacity:0;transition:.3s;}
-.step:hover::before{opacity:1;}
-.step:hover{border-color:rgba(110,231,255,.18);}
-.step-num{font-family:'Orbitron',sans-serif;font-size:.58rem;color:var(--accent);letter-spacing:.14em;margin-bottom:12px;opacity:.55;}
-.step-icon{font-size:1.7rem;margin-bottom:10px;}
-.step h3{font-size:.9rem;font-weight:700;margin-bottom:7px;}
-.step p{font-size:.8rem;color:var(--ink-soft);line-height:1.65;}
+.fcard:hover{transform:translateY(-8px) scale(1.03)!important;box-shadow:0 20px 50px rgba(155,89,255,.3)!important;}
+.fcard-icon{font-size:1.8rem;margin-bottom:8px;}
+.fcard-type{font-size:.62rem;font-weight:700;letter-spacing:.12em;margin-bottom:6px;color:rgba(200,190,255,.4);}
+.fcard-name{font-size:.82rem;font-weight:600;margin-bottom:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.fcard-bar{height:3px;border-radius:3px;margin-bottom:4px;}
+.fcard-bar-label{font-size:.58rem;color:rgba(200,190,255,.3);}
+.fcard.pdf{top:0;left:0;transform:rotate(-8deg);animation:float1 5s ease-in-out infinite;}
+.fcard.word{top:60px;right:0;transform:rotate(6deg);animation:float2 6s 1s ease-in-out infinite;}
+.fcard.img{bottom:30px;left:30px;transform:rotate(3deg);animation:float3 4.5s .5s ease-in-out infinite;}
+@keyframes float1{0%,100%{transform:rotate(-8deg) translateY(0);}50%{transform:rotate(-8deg) translateY(-14px);}}
+@keyframes float2{0%,100%{transform:rotate(6deg) translateY(0);}50%{transform:rotate(6deg) translateY(-18px);}}
+@keyframes float3{0%,100%{transform:rotate(3deg) translateY(0);}50%{transform:rotate(3deg) translateY(-10px);}}
 
-/* Features */
-.features{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:14px;}
-.feature{background:rgba(8,12,30,.6);border:1px solid var(--line);border-radius:13px;padding:20px;display:flex;gap:12px;transition:.2s;}
-.feature:hover{border-color:rgba(180,107,255,.22);}
-.feature-icon{width:42px;height:42px;border-radius:10px;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:1.15rem;}
-.feature h3{font-size:.88rem;font-weight:700;margin-bottom:4px;}
-.feature p{font-size:.78rem;color:var(--ink-soft);line-height:1.6;}
+/* Arrow connecting cards to result */
+.ai-arrow{
+  position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);
+  width:80px;height:80px;
+  background:linear-gradient(135deg,var(--violet),var(--cyan));
+  border-radius:50%;
+  display:flex;align-items:center;justify-content:center;
+  font-size:2rem;
+  box-shadow:0 0 40px rgba(0,245,255,.4),0 0 80px rgba(155,89,255,.2);
+  animation:ai-pulse 2.5s ease-in-out infinite;
+  z-index:5;
+}
+@keyframes ai-pulse{0%,100%{box-shadow:0 0 40px rgba(0,245,255,.4),0 0 80px rgba(155,89,255,.2);}50%{box-shadow:0 0 60px rgba(0,245,255,.7),0 0 120px rgba(155,89,255,.4);}}
 
-/* Battle */
-.battle-wrap{border:1px solid rgba(255,110,199,.14);border-radius:18px;background:linear-gradient(135deg,rgba(255,110,199,.04),rgba(180,107,255,.05));padding:52px 36px;text-align:center;}
-.battle-flow{display:flex;align-items:center;justify-content:center;gap:10px;flex-wrap:wrap;margin:24px 0 30px;}
-.battle-node{padding:9px 16px;border-radius:18px;font-size:.8rem;font-weight:600;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);}
-.battle-arrow{color:rgba(255,255,255,.3);}
-.categories{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin-bottom:28px;}
-.cat{padding:7px 14px;border-radius:18px;font-size:.78rem;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);color:var(--ink-soft);}
+@media(max-width:900px){
+  .hero{grid-template-columns:1fr;padding:90px 20px 40px;text-align:center;}
+  .hero-desc{margin:0 auto 28px;}
+  .hero-btns{justify-content:center;}
+  .hero-stats{justify-content:center;}
+  .hero-right{height:300px;margin-top:20px;}
+  .float-scene{width:280px;height:320px;transform:scale(.85);}
+}
 
-/* Galaxy */
-.galaxy-wrap{border:1px solid rgba(140,92,255,.18);border-radius:18px;background:linear-gradient(135deg,rgba(109,40,217,.05),rgba(37,99,235,.05));padding:52px 36px;text-align:center;margin-top:16px;}
-.galaxy-badge-text{display:inline-block;font-family:'Orbitron',sans-serif;font-size:.78rem;font-weight:900;padding:5px 16px;border-radius:7px;background:linear-gradient(135deg,#6d28d9,#2563eb);color:#e0d7ff;margin-bottom:18px;letter-spacing:.1em;}
-.perks{display:flex;justify-content:center;gap:14px;flex-wrap:wrap;margin:20px 0;}
-.perk{padding:9px 18px;border-radius:18px;font-size:.82rem;background:rgba(140,92,255,.08);border:1px solid rgba(140,92,255,.18);}
+/* ====== HOW IT WORKS — INTERACTIVE TIMELINE ====== */
+.section{max-width:1100px;margin:0 auto;padding:120px 40px;}
+@media(max-width:768px){.section{padding:70px 18px;}}
+.eyebrow{
+  display:inline-flex;align-items:center;gap:10px;
+  font-size:.68rem;font-weight:700;letter-spacing:.18em;text-transform:uppercase;
+  color:var(--violet);margin-bottom:14px;
+}
+.eyebrow::before{content:'';width:28px;height:1px;background:var(--violet);}
+.section-title{
+  font-family:'Orbitron',sans-serif;
+  font-size:clamp(1.6rem,3.5vw,2.6rem);font-weight:900;
+  margin-bottom:14px;color:#fff;
+}
+.section-lead{color:rgba(200,190,255,.55);font-size:1rem;line-height:1.75;max-width:520px;margin-bottom:70px;}
 
-/* CTA */
-.cta-section{text-align:center;padding:110px 20px;background:radial-gradient(ellipse 60% 50% at 50% 50%,rgba(180,107,255,.06),transparent);}
-.cta-section h2{font-family:'Orbitron',sans-serif;font-size:clamp(1.5rem,3.5vw,2.6rem);font-weight:900;margin-bottom:12px;background:linear-gradient(135deg,#fff,var(--accent),var(--accent2));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;}
-.cta-section p{color:var(--ink-soft);font-size:1rem;margin-bottom:32px;}
-.cta-note{margin-top:14px;font-size:.75rem;color:rgba(180,160,255,.35);}
+/* Timeline */
+.timeline{display:grid;gap:0;position:relative;}
+.timeline::before{
+  content:'';position:absolute;left:39px;top:0;bottom:0;width:1px;
+  background:linear-gradient(to bottom,var(--violet),var(--cyan),var(--pink));
+  opacity:.3;
+}
+.tstep{
+  display:grid;grid-template-columns:80px 1fr;gap:24px;
+  padding:0 0 60px;align-items:start;
+  opacity:0;transform:translateX(-20px);
+  transition:opacity .6s ease,transform .6s ease;
+}
+.tstep.visible{opacity:1;transform:none;}
+.tstep-dot{
+  width:80px;display:flex;align-items:center;justify-content:center;
+  padding-top:4px;
+}
+.tstep-circle{
+  width:48px;height:48px;border-radius:50%;
+  display:flex;align-items:center;justify-content:center;
+  font-size:1.3rem;
+  border:2px solid;
+  position:relative;z-index:2;
+  background:var(--void);
+  transition:.3s;
+}
+.tstep:hover .tstep-circle{transform:scale(1.15);}
+.tstep:nth-child(1) .tstep-circle{border-color:var(--cyan);box-shadow:0 0 20px rgba(0,245,255,.3);}
+.tstep:nth-child(2) .tstep-circle{border-color:var(--violet);box-shadow:0 0 20px rgba(155,89,255,.3);}
+.tstep:nth-child(3) .tstep-circle{border-color:var(--pink);box-shadow:0 0 20px rgba(255,45,120,.3);}
+.tstep:nth-child(4) .tstep-circle{border-color:var(--green);box-shadow:0 0 20px rgba(0,255,136,.3);}
+.tstep:nth-child(5) .tstep-circle{border-color:var(--gold);box-shadow:0 0 20px rgba(255,204,0,.3);}
+.tstep-body{}
+.tstep-num{font-size:.62rem;font-weight:700;letter-spacing:.14em;margin-bottom:6px;opacity:.4;}
+.tstep-title{font-family:'Orbitron',sans-serif;font-size:1.05rem;font-weight:700;margin-bottom:10px;color:#fff;}
+.tstep-desc{font-size:.9rem;color:rgba(200,190,255,.6);line-height:1.75;max-width:580px;}
+.tstep-tip{
+  display:inline-flex;align-items:center;gap:6px;
+  margin-top:12px;padding:7px 14px;border-radius:8px;
+  background:rgba(155,89,255,.08);border:1px solid rgba(155,89,255,.18);
+  font-size:.78rem;color:rgba(200,190,255,.7);
+}
+/* Demo mockup inside step */
+.step-demo{
+  margin-top:14px;padding:14px;border-radius:12px;
+  background:rgba(13,10,40,.8);border:1px solid rgba(155,89,255,.15);
+  max-width:520px;
+}
+.demo-file-list{display:flex;flex-direction:column;gap:6px;}
+.demo-file{
+  display:flex;align-items:center;gap:10px;padding:8px 12px;
+  border-radius:8px;background:rgba(255,255,255,.04);
+  border:1px solid rgba(255,255,255,.06);font-size:.8rem;
+}
+.demo-file-ext{
+  padding:3px 7px;border-radius:5px;font-size:.6rem;font-weight:700;
+  letter-spacing:.05em;
+}
+.demo-slides{display:flex;gap:8px;flex-wrap:wrap;}
+.demo-slide{
+  width:80px;height:54px;border-radius:8px;
+  background:rgba(155,89,255,.12);border:1px solid rgba(155,89,255,.25);
+  display:flex;align-items:center;justify-content:center;
+  font-size:.55rem;color:rgba(200,190,255,.5);text-align:center;padding:4px;
+}
+.demo-quiz{display:flex;flex-direction:column;gap:6px;}
+.demo-q{font-size:.78rem;font-weight:600;margin-bottom:6px;color:#fff;}
+.demo-opt{
+  padding:6px 10px;border-radius:7px;font-size:.72rem;
+  border:1px solid rgba(255,255,255,.08);background:rgba(255,255,255,.03);
+}
+.demo-opt.correct{border-color:var(--green);background:rgba(0,255,136,.08);color:var(--green);}
+.demo-opt.wrong{border-color:var(--pink);background:rgba(255,45,120,.06);color:var(--pink);}
+/* Typewriter */
+.typewriter{font-family:'Inter',sans-serif;font-size:.85rem;color:var(--cyan);}
+.typewriter::after{content:'|';animation:blink-caret .75s step-end infinite;}
+@keyframes blink-caret{0%,100%{opacity:1;}50%{opacity:0;}}
 
-/* Footer */
-footer{background:rgba(4,2,14,.95);border-top:1px solid rgba(255,255,255,.05);padding:32px 20px;text-align:center;}
-.footer-logo{font-family:'Orbitron',sans-serif;font-size:.95rem;font-weight:700;background:linear-gradient(135deg,var(--accent),var(--accent2));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;display:block;margin-bottom:8px;}
-.footer-links{display:flex;justify-content:center;gap:18px;flex-wrap:wrap;margin:10px 0;}
-.footer-links a{color:var(--ink-soft);text-decoration:none;font-size:.78rem;transition:.2s;}
-.footer-links a:hover{color:var(--accent);}
-.footer-copy{font-size:.65rem;color:rgba(180,160,255,.28);margin-top:10px;font-family:'Space Mono',monospace;}
+/* ====== FEATURES BENTO ====== */
+.bento{
+  display:grid;
+  grid-template-columns:repeat(3,1fr);
+  grid-template-rows:auto auto;
+  gap:14px;
+}
+@media(max-width:900px){.bento{grid-template-columns:1fr 1fr;}}
+@media(max-width:600px){.bento{grid-template-columns:1fr;}}
+.bcard{
+  background:rgba(13,10,40,.7);
+  border:1px solid rgba(155,89,255,.15);
+  border-radius:18px;padding:28px 24px;
+  transition:.3s;position:relative;overflow:hidden;
+  opacity:0;transform:translateY(24px);
+  transition:opacity .5s ease,transform .5s ease,border-color .3s,box-shadow .3s;
+}
+.bcard.visible{opacity:1;transform:none;}
+.bcard::before{
+  content:'';position:absolute;inset:0;
+  background:linear-gradient(135deg,rgba(155,89,255,.04),transparent);
+  opacity:0;transition:.3s;
+}
+.bcard:hover{border-color:rgba(0,245,255,.3);box-shadow:0 8px 40px rgba(0,245,255,.07);}
+.bcard:hover::before{opacity:1;}
+.bcard.wide{grid-column:span 2;}
+.bcard-icon{font-size:2rem;margin-bottom:14px;}
+.bcard h3{font-family:'Orbitron',sans-serif;font-size:.88rem;font-weight:700;margin-bottom:8px;color:#fff;}
+.bcard p{font-size:.82rem;color:rgba(200,190,255,.55);line-height:1.65;}
+.bcard-tag{
+  display:inline-block;margin-top:12px;padding:4px 10px;border-radius:6px;
+  font-size:.62rem;font-weight:700;letter-spacing:.06em;
+}
 
-/* Scroll anim */
-.reveal{opacity:0;transform:translateY(22px);transition:opacity .6s ease,transform .6s cubic-bezier(.16,1,.3,1);}
-.reveal.visible{opacity:1;transform:translateY(0);}
+/* ====== BATTLE SECTION ====== */
+.battle-section{
+  background:linear-gradient(135deg,rgba(255,45,120,.05),rgba(155,89,255,.08));
+  border:1px solid rgba(255,45,120,.18);
+  border-radius:24px;padding:70px 50px;
+  position:relative;overflow:hidden;
+}
+.battle-section::before{
+  content:'⚔️';position:absolute;right:40px;top:40px;
+  font-size:6rem;opacity:.06;
+}
+.battle-flow{display:flex;align-items:center;justify-content:flex-start;gap:12px;flex-wrap:wrap;margin:32px 0;}
+.bnode{
+  padding:10px 18px;border-radius:20px;font-size:.82rem;font-weight:600;
+  background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);
+  white-space:nowrap;
+}
+.barrow{color:rgba(255,255,255,.3);font-size:1.2rem;}
+.cats{display:flex;flex-wrap:wrap;gap:10px;margin-bottom:32px;}
+.cat{
+  padding:8px 16px;border-radius:20px;font-size:.8rem;font-weight:500;
+  background:rgba(255,45,120,.07);border:1px solid rgba(255,45,120,.18);
+  color:rgba(200,190,255,.7);
+}
 
-@media(max-width:768px){
-  .section{padding:60px 14px;}
-  .battle-wrap,.galaxy-wrap{padding:36px 16px;}
-  .cta-section{padding:70px 14px;}
-  .hero-stats{gap:20px;padding:18px;}
-  .hero-sun{width:90px;height:90px;}
+/* Scoreboard mockup */
+.score-mock{
+  background:rgba(5,3,16,.8);border:1px solid rgba(255,45,120,.2);
+  border-radius:14px;padding:16px;max-width:320px;margin-top:24px;
+}
+.score-row{
+  display:flex;align-items:center;gap:10px;padding:8px;
+  border-radius:8px;margin-bottom:4px;font-size:.82rem;
+}
+.score-row:first-child{background:rgba(255,204,0,.08);}
+.score-medal{font-size:1.1rem;width:28px;}
+.score-name{flex:1;font-weight:600;}
+.score-pts{font-family:'Orbitron',sans-serif;font-size:.75rem;color:var(--cyan);}
+
+/* ====== GALAXY ====== */
+.galaxy-section{
+  background:linear-gradient(135deg,rgba(109,40,217,.07),rgba(37,99,235,.06));
+  border:1px solid rgba(109,40,217,.22);
+  border-radius:24px;padding:70px 50px;
+  text-align:center;position:relative;overflow:hidden;
+}
+.galaxy-section::after{
+  content:'';position:absolute;inset:0;
+  background:radial-gradient(ellipse at 50% -20%,rgba(155,89,255,.15),transparent 60%);
+  pointer-events:none;
+}
+.galaxy-badge{
+  display:inline-block;font-family:'Orbitron',sans-serif;
+  font-size:.78rem;font-weight:900;padding:6px 20px;border-radius:8px;
+  background:linear-gradient(135deg,#6d28d9,#2563eb);
+  color:#e0d7ff;margin-bottom:24px;letter-spacing:.12em;
+}
+.galaxy-perks{
+  display:flex;justify-content:center;gap:14px;flex-wrap:wrap;margin:28px 0;
+}
+.gperk{
+  padding:11px 22px;border-radius:20px;font-size:.85rem;font-weight:500;
+  background:rgba(109,40,217,.1);border:1px solid rgba(109,40,217,.25);
+}
+
+/* ====== CTA ====== */
+.cta-section{
+  text-align:center;padding:130px 20px;
+  position:relative;overflow:hidden;
+}
+.cta-section::before{
+  content:'';position:absolute;inset:0;
+  background:radial-gradient(ellipse 70% 60% at 50% 50%,rgba(0,245,255,.05),transparent);
+}
+.cta-section h2{
+  font-family:'Orbitron',sans-serif;
+  font-size:clamp(1.8rem,4.5vw,3.2rem);font-weight:900;
+  margin-bottom:16px;
+  background:linear-gradient(135deg,#fff 0%,var(--cyan) 40%,var(--violet) 70%,var(--pink) 100%);
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
+  position:relative;
+}
+.cta-section p{color:rgba(200,190,255,.55);font-size:1.05rem;margin-bottom:40px;position:relative;}
+.cta-note{margin-top:18px;font-size:.75rem;color:rgba(200,190,255,.3);position:relative;}
+
+/* ====== FOOTER ====== */
+footer{
+  background:rgba(5,3,16,.96);border-top:1px solid rgba(155,89,255,.1);
+  padding:40px 20px;text-align:center;
+}
+.footer-logo{
+  font-family:'Orbitron',sans-serif;font-size:1rem;font-weight:900;
+  color:var(--cyan);text-shadow:0 0 15px rgba(0,245,255,.4);
+  display:block;margin-bottom:10px;letter-spacing:.08em;
+}
+.footer-links{display:flex;justify-content:center;gap:20px;flex-wrap:wrap;margin:12px 0;}
+.footer-links a{color:rgba(200,190,255,.4);text-decoration:none;font-size:.78rem;transition:.2s;}
+.footer-links a:hover{color:var(--cyan);}
+.footer-copy{font-size:.65rem;color:rgba(200,190,255,.2);margin-top:12px;letter-spacing:.04em;}
+
+/* ====== DIVIDER ====== */
+.divider{
+  height:1px;
+  background:linear-gradient(90deg,transparent,rgba(155,89,255,.3),rgba(0,245,255,.3),transparent);
+  margin:0 40px;
 }
 </style>
 </head>
 <body>
 
+<!-- CUSTOM CURSOR -->
+<div class="cursor" id="cursor"></div>
+<div class="cursor-ring" id="cursorRing"></div>
+
 <!-- INTRO -->
 <div id="intro">
+  <div class="intro-scan"></div>
   <div class="intro-grid"></div>
-  <div class="intro-particles" id="introParticles"></div>
-  <div class="intro-letters" id="introLetters"></div>
-  <div class="intro-tagline" id="introTagline">
-    <span class="en-text">AI-Powered Learning Platform</span>
-    <span class="tr-text">Yapay Zeka Destekli Öğrenme Platformu</span>
+  <div class="glitch-title">THINKLE</div>
+  <div class="intro-sub">
+    <span class="tr">Yapay Zeka Destekli Öğrenme</span>
+    <span class="en">AI-Powered Learning</span>
   </div>
-  <div class="intro-bar"><div class="intro-bar-fill" id="introBar"></div></div>
+  <div class="intro-progress"><div class="intro-fill" id="introFill"></div></div>
 </div>
 
 <!-- NAV -->
 <nav>
-  <a href="https://thinkle.space/landing.html" class="nav-logo">Thinkle</a>
+  <a href="https://thinkle.space/landing.html" class="nav-logo">THINKLE</a>
   <div class="nav-links">
-    <a href="#how"><span class="en-text">How It Works</span><span class="tr-text">Nasıl Çalışır</span></a>
-    <a href="#features"><span class="en-text">Features</span><span class="tr-text">Özellikler</span></a>
-    <a href="#battle"><span class="en-text">Battle Mode</span><span class="tr-text">Yarışma Modu</span></a>
+    <a href="#how"><span class="tr">Nasıl Çalışır</span><span class="en">How It Works</span></a>
+    <a href="#features"><span class="tr">Özellikler</span><span class="en">Features</span></a>
+    <a href="#battle"><span class="tr">Yarışma</span><span class="en">Battle</span></a>
     <a href="#galaxy">Galaxy</a>
   </div>
   <div class="nav-right">
     <div class="lang-toggle">
-      <button class="lang-btn active" id="btnTR" onclick="setLang('tr')">TR</button>
+      <button class="lang-btn on" id="btnTR" onclick="setLang('tr')">TR</button>
       <button class="lang-btn" id="btnEN" onclick="setLang('en')">EN</button>
     </div>
     <a href="https://thinkle.space" class="nav-cta">
-      <span class="en-text">Launch App →</span>
-      <span class="tr-text">Uygulamayı Aç →</span>
+      <span class="tr">Uygulamayı Aç →</span>
+      <span class="en">Launch App →</span>
     </a>
   </div>
 </nav>
 
 <!-- HERO -->
-<section class="hero">
-  <canvas id="heroCanvas"></canvas>
-  <div class="hero-content">
+<section class="hero" id="top">
+  <canvas id="nebula"></canvas>
+  <div class="hero-left">
     <div class="hero-badge">
-      <div class="badge-dot"></div>
-      <span class="en-text">PUBLIC BETA — Free to Use</span>
-      <span class="tr-text">AÇIK BETA — Ücretsiz Dene</span>
+      <div class="badge-pulse"></div>
+      <span class="tr">AÇIK BETA — Ücretsiz</span>
+      <span class="en">PUBLIC BETA — Free</span>
     </div>
-
-    <!-- Güneş -->
-    <div class="hero-sun" id="heroSun">
-      <div class="sun-face">
-        <div class="sun-brow left" id="browL"></div>
-        <div class="sun-brow right" id="browR"></div>
-        <div class="sun-eye left blink" id="eyeL"><div class="sun-pupil" id="pupilL"></div></div>
-        <div class="sun-eye right" id="eyeR"><div class="sun-pupil" id="pupilR"></div></div>
-        <div class="sun-mouth" id="sunMouth"></div>
-      </div>
-    </div>
-
     <h1>
-      <span class="en-text">Swallows Knowledge,<br><span class="grad">Spits Out a Lesson.</span></span>
-      <span class="tr-text">Bilgiyi Yutar,<br><span class="grad">Ders Olarak Kusar.</span></span>
+      <span class="tr">
+        <span class="line1">Bilgiyi Yutar,</span><br>
+        <span class="line2">Ders Olarak Kusar.</span>
+      </span>
+      <span class="en">
+        <span class="line1">Swallows Knowledge,</span><br>
+        <span class="line2">Spits Out a Lesson.</span>
+      </span>
     </h1>
-    <p>
-      <span class="en-text">Upload any file — PDF, Word, Excel or a photo. Thinkle's AI instantly creates detailed slides, explanations and a custom quiz to test what you've learned.</span>
-      <span class="tr-text">Herhangi bir dosya yükle — PDF, Word, Excel veya fotoğraf. Thinkle'ın yapay zekası anında detaylı slaytlar, açıklamalar ve quiz oluşturur.</span>
+    <p class="hero-desc">
+      <span class="tr">PDF, Word, Excel veya fotoğraf yükle. Thinkle yapay zekası saniyeler içinde detaylı slaytlar, açıklamalar ve quiz oluşturur. Arkadaşlarınla yarışmaya gir.</span>
+      <span class="en">Upload any file — PDF, Word, Excel or a photo. Thinkle AI builds detailed slides, explanations and a custom quiz in seconds. Battle your friends in real-time.</span>
     </p>
     <div class="hero-btns">
-      <a href="https://thinkle.space" class="btn-launch">
-        🚀 <span class="en-text">Try Thinkle Free</span><span class="tr-text">Ücretsiz Başla</span>
+      <a href="https://thinkle.space" class="btn-primary">
+        🚀 <span class="tr">Ücretsiz Başla</span><span class="en">Try It Free</span>
       </a>
-      <a href="#how" class="btn-ghost">
-        <span class="en-text">How It Works ↓</span><span class="tr-text">Nasıl Çalışır? ↓</span>
+      <a href="#how" class="btn-secondary">
+        <span class="tr">Nasıl Çalışır? ↓</span><span class="en">How It Works ↓</span>
       </a>
     </div>
     <div class="hero-stats">
-      <div class="stat"><div class="stat-num">10+</div><div class="stat-label"><span class="en-text">FILE FORMATS</span><span class="tr-text">DOSYA FORMATI</span></div></div>
-      <div class="stat"><div class="stat-num">AI</div><div class="stat-label"><span class="en-text">POWERED QUIZ</span><span class="tr-text">DESTEKLI QUIZ</span></div></div>
-      <div class="stat"><div class="stat-num">6</div><div class="stat-label"><span class="en-text">PLAYER BATTLE</span><span class="tr-text">KİŞİYE KADAR</span></div></div>
-      <div class="stat"><div class="stat-num">∞</div><div class="stat-label"><span class="en-text">TOPICS</span><span class="tr-text">KONU DESTEĞİ</span></div></div>
+      <div class="hstat"><div class="hstat-n">10+</div><div class="hstat-l"><span class="tr">FORMAT</span><span class="en">FORMATS</span></div></div>
+      <div class="hstat"><div class="hstat-n" style="color:var(--violet)">AI</div><div class="hstat-l"><span class="tr">DESTEKLİ</span><span class="en">POWERED</span></div></div>
+      <div class="hstat"><div class="hstat-n" style="color:var(--pink)">6</div><div class="hstat-l"><span class="tr">YARIŞMACI</span><span class="en">PLAYERS</span></div></div>
+      <div class="hstat"><div class="hstat-n" style="color:var(--green)">∞</div><div class="hstat-l"><span class="tr">KONU</span><span class="en">TOPICS</span></div></div>
+    </div>
+  </div>
+  <div class="hero-right">
+    <div class="float-scene">
+      <!-- Floating file cards -->
+      <div class="fcard pdf">
+        <div class="fcard-icon">📄</div>
+        <div class="fcard-type">PDF DOCUMENT</div>
+        <div class="fcard-name">Biyoloji_Ders_Notu.pdf</div>
+        <div class="fcard-bar" style="background:linear-gradient(90deg,var(--pink),var(--violet))"></div>
+        <div class="fcard-bar-label">AI tarafından işleniyor...</div>
+      </div>
+      <div class="fcard word">
+        <div class="fcard-icon">📝</div>
+        <div class="fcard-type">WORD DOCUMENT</div>
+        <div class="fcard-name">Tarih_Özet.docx</div>
+        <div class="fcard-bar" style="background:linear-gradient(90deg,var(--cyan),var(--violet))"></div>
+        <div class="fcard-bar-label">Slaytlara dönüştürülüyor...</div>
+      </div>
+      <div class="fcard img">
+        <div class="fcard-icon">🖼️</div>
+        <div class="fcard-type">IMAGE / PHOTO</div>
+        <div class="fcard-name">Ders_Tahtası.jpg</div>
+        <div class="fcard-bar" style="background:linear-gradient(90deg,var(--green),var(--cyan))"></div>
+        <div class="fcard-bar-label">OCR ile okunuyor...</div>
+      </div>
+      <!-- AI core -->
+      <div class="ai-arrow">🧠</div>
     </div>
   </div>
 </section>
 
-<!-- HOW IT WORKS -->
-<div id="how"><div class="section">
-  <div class="section-tag"><span class="en-text">How It Works</span><span class="tr-text">Nasıl Çalışır</span></div>
-  <h2><span class="en-text">From File to Lesson in Seconds</span><span class="tr-text">Saniyeler İçinde Dosyadan Derse</span></h2>
-  <p class="lead"><span class="en-text">No setup. No registration required. Just upload and Thinkle handles the rest.</span><span class="tr-text">Kurulum yok. Üyelik zorunlu değil. Dosyanı yükle, Thinkle gerisini halleder.</span></p>
-  <div class="steps">
-    <div class="step reveal">
-      <div class="step-num">STEP 01</div><div class="step-icon">📁</div>
-      <h3><span class="en-text">Upload Your File</span><span class="tr-text">Dosyanı Yükle</span></h3>
-      <p><span class="en-text">PDF, Word, Excel, CSV, TXT or a photo. Reads every format including handwritten notes.</span><span class="tr-text">PDF, Word, Excel, CSV, TXT veya fotoğraf. El yazısı notları bile okunur.</span></p>
-    </div>
-    <div class="step reveal">
-      <div class="step-num">STEP 02</div><div class="step-icon">🧠</div>
-      <h3><span class="en-text">AI Analyzes It</span><span class="tr-text">Yapay Zeka Analiz Eder</span></h3>
-      <p><span class="en-text">Thinkle breaks content into structured slides with 5-7 detailed bullets and rich explanations per topic.</span><span class="tr-text">Thinkle içeriği konulara böler, her birine 5-7 detaylı bullet ve açıklama ekler.</span></p>
-    </div>
-    <div class="step reveal">
-      <div class="step-num">STEP 03</div><div class="step-icon">✅</div>
-      <h3><span class="en-text">Test Your Knowledge</span><span class="tr-text">Bilgini Sına</span></h3>
-      <p><span class="en-text">A 10-question auto-generated quiz. Missed topics get detailed re-teaching slides automatically.</span><span class="tr-text">10 soruluk otomatik quiz. Yanlış yapılan konular için detaylı tekrar slaytları oluşturulur.</span></p>
-    </div>
-    <div class="step reveal">
-      <div class="step-num">STEP 04</div><div class="step-icon">⬇️</div>
-      <h3><span class="en-text">Download & Share</span><span class="tr-text">İndir & Paylaş</span></h3>
-      <p><span class="en-text">Export slides as .pptx and use them anywhere. Switch to Flashcard mode for quick revision.</span><span class="tr-text">Slaytları .pptx olarak indir. Flashcard moduna geç, hızlı tekrar yap.</span></p>
-    </div>
-  </div>
-</div></div>
+<div class="divider"></div>
 
-<!-- FEATURES -->
-<div id="features"><div class="section">
-  <div class="section-tag"><span class="en-text">Features</span><span class="tr-text">Özellikler</span></div>
-  <h2><span class="en-text">Everything You Need to Learn Smarter</span><span class="tr-text">Akıllıca Öğrenmek İçin Her Şey</span></h2>
-  <p class="lead"><span class="en-text">Thinkle is more than a summarizer — a complete learning ecosystem.</span><span class="tr-text">Thinkle sadece bir özet aracı değil — tam bir öğrenme ekosistemi.</span></p>
-  <div class="features">
-    <div class="feature reveal"><div class="feature-icon" style="background:rgba(110,231,255,.1)">📄</div><div><h3><span class="en-text">Smart File Analysis</span><span class="tr-text">Akıllı Dosya Analizi</span></h3><p><span class="en-text">PDF, Word, Excel, CSV, TXT and photo. AI-powered OCR for handwritten notes.</span><span class="tr-text">PDF, Word, Excel, CSV, TXT ve fotoğraf. El yazısı notları için AI destekli OCR.</span></p></div></div>
-    <div class="feature reveal"><div class="feature-icon" style="background:rgba(180,107,255,.1)">🎯</div><div><h3><span class="en-text">Detailed Slides</span><span class="tr-text">Detaylı Slaytlar</span></h3><p><span class="en-text">5-7 complete sentences per bullet, 3-5 sentence explanations. Real learning, not short summaries.</span><span class="tr-text">Bullet başına 5-7 tam cümle, 3-5 cümle açıklama. Gerçek öğrenme, kısa özet değil.</span></p></div></div>
-    <div class="feature reveal"><div class="feature-icon" style="background:rgba(255,110,199,.1)">🃏</div><div><h3><span class="en-text">Flashcard Mode</span><span class="tr-text">Flashcard Modu</span></h3><p><span class="en-text">Flip cards for quick revision. Separate flashcard sets auto-created per topic.</span><span class="tr-text">Kart çevirerek hızlı tekrar yap. Her konu için otomatik flashcard seti oluşturulur.</span></p></div></div>
-    <div class="feature reveal"><div class="feature-icon" style="background:rgba(77,255,176,.1)">💬</div><div><h3><span class="en-text">Ask & Learn AI</span><span class="tr-text">Sor & Öğren Yapay Zekası</span></h3><p><span class="en-text">Ask questions without uploading. Driving test, SAT, math — AI quiz on any topic.</span><span class="tr-text">Dosya yüklemeden soru sor. Ehliyet, YKS, matematik — her konuda AI quiz.</span></p></div></div>
-    <div class="feature reveal"><div class="feature-icon" style="background:rgba(255,200,0,.1)">🔥</div><div><h3><span class="en-text">Streak System</span><span class="tr-text">Streak Sistemi</span></h3><p><span class="en-text">Log in daily to build your streak. 7 days 🔥, 30 days 🏆. Build consistent habits.</span><span class="tr-text">Her gün giriş yap, streak kazan. 7 gün 🔥, 30 gün 🏆. Düzenli öğrenme alışkanlığı edin.</span></p></div></div>
-    <div class="feature reveal"><div class="feature-icon" style="background:rgba(110,231,255,.1)">🔬</div><div><h3><span class="en-text">Deep Dive Mode</span><span class="tr-text">Derin Analiz Modu</span></h3><p><span class="en-text">After slides, request deeper analysis. New slides with advanced context and examples.</span><span class="tr-text">Slaytlar bittikten sonra daha derin analiz iste. Gelişmiş bağlam ve örneklerle yeni slaytlar.</span></p></div></div>
-    <div class="feature reveal"><div class="feature-icon" style="background:rgba(180,107,255,.1)">👤</div><div><h3><span class="en-text">Profile & Avatar</span><span class="tr-text">Profil & Avatar</span></h3><p><span class="en-text">Unique username and emoji avatar. Your streak, deck count and join date tracked.</span><span class="tr-text">Benzersiz kullanıcı adı ve emoji avatar. Streak, deck sayısı ve katılım tarihi takip edilir.</span></p></div></div>
-    <div class="feature reveal"><div class="feature-icon" style="background:rgba(255,110,199,.1)">👥</div><div><h3><span class="en-text">Friends System</span><span class="tr-text">Arkadaş Sistemi</span></h3><p><span class="en-text">Add friends by username, see who's online (📱/🖥️) and invite them to battle.</span><span class="tr-text">Kullanıcı adıyla arkadaş ekle, kimin online olduğunu gör (📱/🖥️), yarışmaya davet et.</span></p></div></div>
+<!-- HOW IT WORKS -->
+<div id="how">
+<div class="section">
+  <div class="eyebrow"><span class="tr">Nasıl Çalışır?</span><span class="en">How It Works</span></div>
+  <h2 class="section-title">
+    <span class="tr">5 Adımda Sıfırdan Uzman Ol</span>
+    <span class="en">From Zero to Expert in 5 Steps</span>
+  </h2>
+  <p class="section-lead">
+    <span class="tr">Kurulum yok, üyelik zorunlu değil. Sadece dosyanı yükle — Thinkle seni başından sonuna kadar yönlendirir.</span>
+    <span class="en">No setup, no mandatory registration. Just upload your file — Thinkle guides you from start to finish.</span>
+  </p>
+
+  <div class="timeline">
+
+    <!-- Step 1 -->
+    <div class="tstep">
+      <div class="tstep-dot"><div class="tstep-circle">📁</div></div>
+      <div class="tstep-body">
+        <div class="tstep-num">01</div>
+        <h3 class="tstep-title"><span class="tr">Dosyanı Yükle</span><span class="en">Upload Your File</span></h3>
+        <p class="tstep-desc">
+          <span class="tr">Thinkle'a <strong>PDF, Word (.docx), Excel, CSV, TXT</strong> veya <strong>fotoğraf (JPG/PNG)</strong> yükleyebilirsin. Ders notları, kitap özeti, tahtadan çektiğin fotoğraf — hepsi kabul edilir. Dosyayı sürükle-bırak ya da tıklayarak seç.</span>
+          <span class="en">Upload <strong>PDF, Word (.docx), Excel, CSV, TXT</strong> or a <strong>photo (JPG/PNG)</strong>. Lecture notes, book summaries, a photo of the whiteboard — all accepted. Drag & drop or click to select.</span>
+        </p>
+        <div class="step-demo">
+          <div class="demo-file-list">
+            <div class="demo-file"><span class="demo-file-ext" style="background:rgba(255,45,120,.15);color:var(--pink)">PDF</span><span>Fizik_Mekanik.pdf</span><span style="margin-left:auto;font-size:.7rem;color:rgba(200,190,255,.35)">4.2 MB</span></div>
+            <div class="demo-file"><span class="demo-file-ext" style="background:rgba(0,245,255,.1);color:var(--cyan)">DOCX</span><span>Tarih_Özet.docx</span><span style="margin-left:auto;font-size:.7rem;color:rgba(200,190,255,.35)">1.8 MB</span></div>
+            <div class="demo-file"><span class="demo-file-ext" style="background:rgba(0,255,136,.1);color:var(--green)">JPG</span><span>Tahta_Notu.jpg</span><span style="margin-left:auto;font-size:.7rem;color:rgba(200,190,255,.35)">2.1 MB</span></div>
+          </div>
+        </div>
+        <div class="tstep-tip">💡 <span class="tr">10MB'a kadar dosya yükleyebilirsin</span><span class="en">Upload files up to 10MB in size</span></div>
+      </div>
+    </div>
+
+    <!-- Step 2 -->
+    <div class="tstep">
+      <div class="tstep-dot"><div class="tstep-circle">⚡</div></div>
+      <div class="tstep-body">
+        <div class="tstep-num">02</div>
+        <h3 class="tstep-title"><span class="tr">"Çalışma Kağıdı Oluştur" Butonuna Bas</span><span class="en">Click "Create Study Sheet"</span></h3>
+        <p class="tstep-desc">
+          <span class="tr">Dosyayı seçtikten sonra mavi butona tıkla. Thinkle, içeriği <strong>Gemini 2.5 Flash</strong> yapay zekasıyla analiz eder. 10–30 saniye içinde tüm içerik işlenir. İşlem sırasında ekranda animasyonlu yükleme gösterilir.</span>
+          <span class="en">After selecting your file, click the blue button. Thinkle analyzes the content using <strong>Gemini 2.5 Flash</strong> AI. All content is processed in 10–30 seconds. An animated loading screen is shown during the process.</span>
+        </p>
+        <div class="tstep-tip">⚡ <span class="tr">Dosya sunucuya kaydedilmez, işlem sonrası silinir</span><span class="en">Files are not stored on the server — deleted after processing</span></div>
+      </div>
+    </div>
+
+    <!-- Step 3 -->
+    <div class="tstep">
+      <div class="tstep-dot"><div class="tstep-circle">📊</div></div>
+      <div class="tstep-body">
+        <div class="tstep-num">03</div>
+        <h3 class="tstep-title"><span class="tr">Detaylı Slaytları İncele</span><span class="en">Explore Detailed Slides</span></h3>
+        <p class="tstep-desc">
+          <span class="tr">AI, konuyu 6–10 slayta böler. Her slayt <strong>5–7 tam cümlelik bullet point</strong> ve <strong>3–5 cümle derin açıklama</strong> içerir. Slayt başına → ile ilerle. Bittikten sonra sistem "Daha derine inmek ister misin?" diye sorar — <strong>Detaylı Analiz</strong> seçersen AI aynı konuyu çok daha geniş kapsamlı, yeni slaytlar ekleyerek yeniden anlatır.</span>
+          <span class="en">AI splits the topic into 6–10 slides. Each slide contains <strong>5–7 full-sentence bullet points</strong> and <strong>3–5 sentence deep explanation</strong>. Navigate with → between slides. After finishing, the system asks "Want to go deeper?" — selecting <strong>Deep Dive</strong> makes AI re-explain the topic with new slides and much broader coverage.</span>
+        </p>
+        <div class="step-demo">
+          <div class="demo-slides">
+            <div class="demo-slide">📌<br>Newton'un<br>1. Yasası</div>
+            <div class="demo-slide">⚡<br>Kuvvet &<br>İvme</div>
+            <div class="demo-slide">🔄<br>Etki-Tepki<br>Yasası</div>
+            <div class="demo-slide" style="border-color:rgba(0,245,255,.3);background:rgba(0,245,255,.06)">+3<br>daha</div>
+          </div>
+        </div>
+        <div class="tstep-tip">📥 <span class="tr">Slaytları .pptx olarak indir — istediğin yerde kullan</span><span class="en">Download slides as .pptx — use anywhere</span></div>
+      </div>
+    </div>
+
+    <!-- Step 4 -->
+    <div class="tstep">
+      <div class="tstep-dot"><div class="tstep-circle">🧩</div></div>
+      <div class="tstep-body">
+        <div class="tstep-num">04</div>
+        <h3 class="tstep-title"><span class="tr">Quize Gir ve Kendinini Test Et</span><span class="en">Take the Quiz and Test Yourself</span></h3>
+        <p class="tstep-desc">
+          <span class="tr">Slaytlardan sonra <strong>10 soruluk otomatik quiz</strong> üretilir. Her soru farklı — <em>tanım, uygulama, sebep-sonuç, karşılaştırma</em> türlerinden oluşur. Yanlış yaptığın sorularda kırmızı işaret çıkar. Quiz bitince <strong>Tekrar Öğren</strong>'e basarsan AI sadece yanlış yaptığın konuları yeniden anlatır, detaylı re-teaching slaytları oluşturur.</span>
+          <span class="en">After slides, an <strong>automatic 10-question quiz</strong> is generated. Each question is unique — <em>definition, application, cause-effect, comparison</em> types. Wrong answers are marked in red. After the quiz, pressing <strong>Re-Learn</strong> makes AI re-explain only the topics you got wrong with detailed re-teaching slides.</span>
+        </p>
+        <div class="step-demo">
+          <div class="demo-quiz">
+            <div class="demo-q"><span class="tr">Newton'un 2. yasasına göre F = ?</span><span class="en">According to Newton's 2nd law, F = ?</span></div>
+            <div class="demo-opt wrong">A) F = m / a</div>
+            <div class="demo-opt correct">B) F = m × a ✓</div>
+            <div class="demo-opt">C) F = a / m</div>
+            <div class="demo-opt">D) F = m + a</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Step 5 -->
+    <div class="tstep">
+      <div class="tstep-dot"><div class="tstep-circle">💬</div></div>
+      <div class="tstep-body">
+        <div class="tstep-num">05</div>
+        <h3 class="tstep-title"><span class="tr">Sor & Öğren ile Sohbet Et</span><span class="en">Chat with Ask & Learn AI</span></h3>
+        <p class="tstep-desc">
+          <span class="tr">Sağ altta 💬 butonuyla her an açabileceğin AI asistanı var. Dosya yüklemene gerek yok — <strong>istediğin konuda soru sor</strong>. "Osmanlı'nın çöküşünü anlat", "Ehliyet soruları sor", "YKS matematik testi yap" gibi komutlar verebilirsin. AI otomatik olarak <strong>öğret + quiz</strong> moduna geçer.</span>
+          <span class="en">There's an AI assistant you can open anytime with the 💬 button at the bottom right. No file upload needed — <strong>ask about any topic</strong>. Commands like "Explain the Ottoman decline", "Ask me driving test questions", "Give me an SAT math test" automatically switch the AI to <strong>teach + quiz</strong> mode.</span>
+        </p>
+        <div class="tstep-tip">🎯 <span class="tr">Dosyasız quiz: "5 fizik sorusu sor" yazmak yeterli</span><span class="en">Quiz without file: just type "give me 5 physics questions"</span></div>
+      </div>
+    </div>
+
   </div>
-</div></div>
+</div>
+</div>
+
+<div class="divider"></div>
+
+<!-- FEATURES BENTO -->
+<div id="features">
+<div class="section">
+  <div class="eyebrow"><span class="tr">Özellikler</span><span class="en">Features</span></div>
+  <h2 class="section-title"><span class="tr">Her Öğrencinin İhtiyacı Olan Her Şey</span><span class="en">Everything Every Student Needs</span></h2>
+  <p class="section-lead"><span class="tr">Thinkle sadece özet aracı değil — tam bir öğrenme ekosistemi.</span><span class="en">Thinkle is not just a summarizer — a complete learning ecosystem.</span></p>
+  <div class="bento">
+    <div class="bcard wide">
+      <div class="bcard-icon">🧠</div>
+      <h3><span class="tr">Gemini 2.5 Flash ile Güçlü AI</span><span class="en">Powered by Gemini 2.5 Flash</span></h3>
+      <p><span class="tr">Google'ın en hızlı ve en yetenekli AI'larından biri. Her slayt bullet'ı 15-25 kelimelik tam cümle, her açıklama 3-5 cümle derin bağlam içerir. Kısa özet değil, gerçek öğrenme.</span><span class="en">One of Google's fastest and most capable AIs. Every slide bullet is a complete 15-25 word sentence, every explanation contains 3-5 sentences of deep context. Real learning, not short summaries.</span></p>
+      <div class="bcard-tag" style="background:rgba(0,245,255,.1);color:var(--cyan)">google/gemini-2.5-flash</div>
+    </div>
+    <div class="bcard">
+      <div class="bcard-icon">🃏</div>
+      <h3>Flashcard <span class="tr">Modu</span><span class="en">Mode</span></h3>
+      <p><span class="tr">Kart çevirerek hızlı tekrar. Her konu için otomatik flashcard seti.</span><span class="en">Flip cards for quick revision. Auto-generated flashcard sets per topic.</span></p>
+    </div>
+    <div class="bcard">
+      <div class="bcard-icon">🔥</div>
+      <h3>Streak <span class="tr">Sistemi</span><span class="en">System</span></h3>
+      <p><span class="tr">Her gün giriş yap, streak kazan. 7 gün 🔥, 30 gün 🏆. Düzenli alışkanlık edin.</span><span class="en">Log in daily, earn streaks. 7 days 🔥, 30 days 🏆. Build consistent habits.</span></p>
+    </div>
+    <div class="bcard">
+      <div class="bcard-icon">👥</div>
+      <h3><span class="tr">Arkadaş Sistemi</span><span class="en">Friends System</span></h3>
+      <p><span class="tr">Kullanıcı adıyla arkadaş ekle, online durumunu gör (📱/🖥️), yarışmaya davet et.</span><span class="en">Add friends by username, see online status (📱/🖥️), invite to battle.</span></p>
+    </div>
+    <div class="bcard">
+      <div class="bcard-icon">📥</div>
+      <h3><span class="tr">PPTX İndir</span><span class="en">PPTX Export</span></h3>
+      <p><span class="tr">Oluşturulan slaytları .pptx olarak indir. PowerPoint'te aç, düzenle, sunum yap.</span><span class="en">Download generated slides as .pptx. Open in PowerPoint, edit, present.</span></p>
+    </div>
+    <div class="bcard">
+      <div class="bcard-icon">🔬</div>
+      <h3><span class="tr">Derin Analiz</span><span class="en">Deep Dive</span></h3>
+      <p><span class="tr">Slayt bittikten sonra "Daha derine in" ile AI konuyu 2x daha geniş yeniden anlatır.</span><span class="en">After slides, "Go deeper" makes AI re-explain the topic 2x broader.</span></p>
+    </div>
+    <div class="bcard">
+      <div class="bcard-icon">🔁</div>
+      <h3><span class="tr">Akıllı Tekrar</span><span class="en">Smart Re-Learn</span></h3>
+      <p><span class="tr">Quiz'de yanlış yaptığın konular için AI detaylı re-teaching slaytları oluşturur.</span><span class="en">AI creates detailed re-teaching slides for topics you got wrong in the quiz.</span></p>
+    </div>
+    <div class="bcard">
+      <div class="bcard-icon">🌍</div>
+      <h3>TR / EN</h3>
+      <p><span class="tr">Türkçe ve İngilizce tam destek. Dil değiştirince tüm içerik anında dönüşür.</span><span class="en">Full Turkish and English support. Switch language and all content instantly transforms.</span></p>
+    </div>
+  </div>
+</div>
+</div>
+
+<div class="divider"></div>
 
 <!-- BATTLE -->
-<div id="battle"><div class="section">
-  <div class="battle-wrap reveal">
-    <div class="section-tag" style="justify-content:center"><span class="en-text">Battle Mode</span><span class="tr-text">Yarışma Modu</span></div>
-    <h2><span class="en-text">Real-Time Multiplayer Quiz Battle</span><span class="tr-text">Gerçek Zamanlı Çok Oyunculu Quiz Yarışması</span></h2>
-    <p style="color:var(--ink-soft);max-width:540px;margin:0 auto 8px;line-height:1.75;">
-      <span class="en-text">Compete with up to 6 players in live quiz battles. 10 questions, 20 seconds each, speed bonus points. Who knows more?</span>
-      <span class="tr-text">6 kişiye kadar gerçek zamanlı quiz yarışması. 10 soru, soru başına 20 saniye, hız bonusu puan. Kim daha fazla biliyor?</span>
+<div id="battle">
+<div class="section">
+  <div class="battle-section">
+    <div class="eyebrow"><span class="tr">Yarışma Modu</span><span class="en">Battle Mode</span></div>
+    <h2 class="section-title" style="color:#fff"><span class="tr">Gerçek Zamanlı Bilgi Savaşı</span><span class="en">Real-Time Knowledge Battle</span></h2>
+    <p style="color:rgba(200,190,255,.6);max-width:560px;line-height:1.75;margin-bottom:0">
+      <span class="tr">6 kişiye kadar Gartic.io tarzı quiz yarışması. Her soru 20 saniye, hız bonusu puan var. Kim daha çok biliyor?</span>
+      <span class="en">Gartic.io-style quiz battle for up to 6 players. 20 seconds per question with speed bonus points. Who knows more?</span>
     </p>
     <div class="battle-flow">
-      <div class="battle-node">➕ <span class="en-text">Create Room</span><span class="tr-text">Oda Kur</span></div>
-      <div class="battle-arrow">→</div>
-      <div class="battle-node">📂 <span class="en-text">Pick Category</span><span class="tr-text">Kategori Seç</span></div>
-      <div class="battle-arrow">→</div>
-      <div class="battle-node">🔑 <span class="en-text">Share Code</span><span class="tr-text">Kodu Paylaş</span></div>
-      <div class="battle-arrow">→</div>
-      <div class="battle-node">⚔️ <span class="en-text">Battle!</span><span class="tr-text">Yarış!</span></div>
+      <div class="bnode">➕ <span class="tr">Oda Kur</span><span class="en">Create Room</span></div>
+      <div class="barrow">→</div>
+      <div class="bnode">📂 <span class="tr">Kategori Seç</span><span class="en">Pick Category</span></div>
+      <div class="barrow">→</div>
+      <div class="bnode">🔑 <span class="tr">Kodu Paylaş</span><span class="en">Share Code</span></div>
+      <div class="barrow">→</div>
+      <div class="bnode">✓ <span class="tr">Hazırım</span><span class="en">Ready</span></div>
+      <div class="barrow">→</div>
+      <div class="bnode" style="border-color:rgba(255,45,120,.4);color:var(--pink)">⚔️ <span class="tr">YARIŞMA BAŞLA</span><span class="en">BATTLE START</span></div>
     </div>
-    <div class="categories">
-      <div class="cat">🌍 <span class="en-text">General Knowledge</span><span class="tr-text">Genel Kültür</span></div>
-      <div class="cat">🚗 <span class="en-text">Driving Test</span><span class="tr-text">Ehliyet Sınavı</span></div>
-      <div class="cat">🔬 <span class="en-text">Science</span><span class="tr-text">Fen & Bilim</span></div>
-      <div class="cat">🎬 <span class="en-text">Movies & TV</span><span class="tr-text">Film & Dizi</span></div>
-      <div class="cat">🏛️ <span class="en-text">History</span><span class="tr-text">Tarih</span></div>
-      <div class="cat">🎵 <span class="en-text">Music</span><span class="tr-text">Müzik</span></div>
-      <div class="cat">💻 <span class="en-text">Technology</span><span class="tr-text">Teknoloji</span></div>
-      <div class="cat">➕ <span class="en-text">Mathematics</span><span class="tr-text">Matematik</span></div>
+    <div class="cats">
+      <div class="cat">🌍 <span class="tr">Genel Kültür</span><span class="en">General Knowledge</span></div>
+      <div class="cat">🚗 <span class="tr">Ehliyet Sınavı</span><span class="en">Driving Test</span></div>
+      <div class="cat">🔬 <span class="tr">Fen & Bilim</span><span class="en">Science</span></div>
+      <div class="cat">🎬 <span class="tr">Film & Dizi</span><span class="en">Movies & TV</span></div>
+      <div class="cat">🏛️ <span class="tr">Tarih</span><span class="en">History</span></div>
+      <div class="cat">🎵 <span class="tr">Müzik</span><span class="en">Music</span></div>
+      <div class="cat">💻 <span class="tr">Teknoloji</span><span class="en">Technology</span></div>
+      <div class="cat">➕ <span class="tr">Matematik</span><span class="en">Mathematics</span></div>
+      <div class="cat">🗺️ <span class="tr">Coğrafya</span><span class="en">Geography</span></div>
+      <div class="cat">⚽ <span class="tr">Spor</span><span class="en">Sports</span></div>
     </div>
-    <a href="https://thinkle.space" class="btn-launch">⚔️ <span class="en-text">Try Battle Mode</span><span class="tr-text">Yarışmayı Dene</span></a>
+    <!-- Scoreboard mockup -->
+    <div style="display:flex;gap:32px;flex-wrap:wrap;align-items:flex-start">
+      <div>
+        <div style="font-size:.68rem;font-weight:700;letter-spacing:.1em;color:rgba(200,190,255,.4);margin-bottom:10px"><span class="tr">ÖRNEK SKOR TABLOSU</span><span class="en">EXAMPLE SCOREBOARD</span></div>
+        <div class="score-mock">
+          <div class="score-row"><div class="score-medal">🥇</div><div class="score-name">@mehmet</div><div class="score-pts">1450 pts</div></div>
+          <div class="score-row"><div class="score-medal">🥈</div><div class="score-name">@ayse_k</div><div class="score-pts">1320 pts</div></div>
+          <div class="score-row"><div class="score-medal">🥉</div><div class="score-name">@user92</div><div class="score-pts">1180 pts</div></div>
+          <div class="score-row"><div class="score-medal">4.</div><div class="score-name">@ali_tr</div><div class="score-pts">990 pts</div></div>
+        </div>
+      </div>
+      <div style="flex:1;min-width:240px">
+        <div style="font-size:.68rem;font-weight:700;letter-spacing:.1em;color:rgba(200,190,255,.4);margin-bottom:10px"><span class="tr">PUANLAMA SİSTEMİ</span><span class="en">SCORING SYSTEM</span></div>
+        <div style="display:flex;flex-direction:column;gap:8px">
+          <div style="display:flex;align-items:center;gap:10px;font-size:.82rem"><span style="color:var(--green)">✓</span><span class="tr">Doğru cevap</span><span class="en">Correct answer</span><span style="margin-left:auto;font-family:'Orbitron',sans-serif;font-size:.75rem;color:var(--cyan)">+100 pts</span></div>
+          <div style="display:flex;align-items:center;gap:10px;font-size:.82rem"><span style="color:var(--gold)">⚡</span><span class="tr">Hız bonusu (ilk 5 sn)</span><span class="en">Speed bonus (first 5s)</span><span style="margin-left:auto;font-family:'Orbitron',sans-serif;font-size:.75rem;color:var(--gold)">+50 pts</span></div>
+          <div style="display:flex;align-items:center;gap:10px;font-size:.82rem"><span style="color:var(--pink)">✗</span><span class="tr">Yanlış cevap</span><span class="en">Wrong answer</span><span style="margin-left:auto;font-family:'Orbitron',sans-serif;font-size:.75rem;color:rgba(200,190,255,.4)">0 pts</span></div>
+        </div>
+      </div>
+    </div>
+    <div style="margin-top:36px">
+      <a href="https://thinkle.space" class="btn-primary" style="background:linear-gradient(135deg,var(--pink),var(--violet));box-shadow:0 4px 30px rgba(255,45,120,.35)">
+        ⚔️ <span class="tr">Yarışmayı Dene</span><span class="en">Try Battle Mode</span>
+      </a>
+    </div>
   </div>
-</div></div>
+</div>
+</div>
+
+<div class="divider"></div>
 
 <!-- GALAXY -->
-<div id="galaxy"><div class="section">
-  <div class="galaxy-wrap reveal">
-    <div class="galaxy-badge-text">✦ GALAXY <span class="en-text">MEMBERSHIP</span><span class="tr-text">ÜYELİĞİ</span> ✦</div>
-    <h2 style="font-family:'Orbitron',sans-serif;font-size:1.6rem;margin-bottom:10px;"><span class="en-text">Unlimited Access. Exclusive Perks.</span><span class="tr-text">Sınırsız Erişim. Özel Ayrıcalıklar.</span></h2>
-    <p style="color:var(--ink-soft);max-width:480px;margin:0 auto 8px;line-height:1.75;">
-      <span class="en-text">Galaxy is Thinkle's exclusive beta membership. Selected users get unlimited access and a special badge.</span>
-      <span class="tr-text">Galaxy, Thinkle'ın özel beta üyeliğidir. Seçilmiş kullanıcılara sınırsız erişim ve özel rozet verilir.</span>
+<div id="galaxy">
+<div class="section">
+  <div class="galaxy-section">
+    <div class="galaxy-badge">✦ GALAXY <span class="tr">ÜYELİĞİ</span><span class="en">MEMBERSHIP</span> ✦</div>
+    <h2 class="section-title" style="color:#fff"><span class="tr">Sınırsız Erişim. Özel Ayrıcalıklar.</span><span class="en">Unlimited Access. Exclusive Perks.</span></h2>
+    <p style="color:rgba(200,190,255,.55);max-width:500px;margin:0 auto 8px;line-height:1.75">
+      <span class="tr">Galaxy, Thinkle'ın özel beta üyeliğidir. Seçilmiş kullanıcılara sınırsız erişim ve profilde özel rozet verilir. Başvur, değerlendirelim.</span>
+      <span class="en">Galaxy is Thinkle's exclusive beta membership. Selected users get unlimited access and a special profile badge. Apply and we'll review your request.</span>
     </p>
-    <div class="perks">
-      <div class="perk">♾️ <span class="en-text">Unlimited Uploads</span><span class="tr-text">Sınırsız Yükleme</span></div>
-      <div class="perk">💬 <span class="en-text">Unlimited AI Chat</span><span class="tr-text">Sınırsız AI Chat</span></div>
-      <div class="perk">⭐ <span class="en-text">GALAXY Badge</span><span class="tr-text">GALAXY Rozeti</span></div>
-      <div class="perk">🚀 <span class="en-text">Priority Support</span><span class="tr-text">Öncelikli Destek</span></div>
+    <div class="galaxy-perks">
+      <div class="gperk">♾️ <span class="tr">Sınırsız Dosya</span><span class="en">Unlimited Files</span></div>
+      <div class="gperk">💬 <span class="tr">Sınırsız AI Chat</span><span class="en">Unlimited AI Chat</span></div>
+      <div class="gperk">⭐ <span class="tr">Özel Rozet</span><span class="en">Special Badge</span></div>
+      <div class="gperk">🚀 <span class="tr">Öncelikli Destek</span><span class="en">Priority Support</span></div>
     </div>
-    <a href="https://thinkle.space" class="btn-launch" style="background:linear-gradient(135deg,#6d28d9,#2563eb);box-shadow:0 4px 26px rgba(109,40,217,.4);">🌌 <span class="en-text">Apply for Galaxy</span><span class="tr-text">Galaxy'e Başvur</span></a>
+    <a href="https://thinkle.space" class="btn-primary" style="background:linear-gradient(135deg,#6d28d9,#2563eb);box-shadow:0 4px 30px rgba(109,40,217,.45)">
+      🌌 <span class="tr">Galaxy'e Başvur</span><span class="en">Apply for Galaxy</span>
+    </a>
   </div>
-</div></div>
+</div>
+</div>
 
 <!-- CTA -->
 <div class="cta-section">
-  <h2><span class="en-text">Ready to Learn Smarter?</span><span class="tr-text">Daha Akıllıca Öğrenmeye Hazır mısın?</span></h2>
-  <p><span class="en-text">Free. No credit card. No setup. Just upload and start.</span><span class="tr-text">Ücretsiz. Kredi kartı yok. Kurulum yok. Yükle ve başla.</span></p>
-  <a href="https://thinkle.space" class="btn-launch" style="font-size:1rem;padding:15px 40px;">
-    🚀 <span class="en-text">Launch Thinkle — It's Free</span><span class="tr-text">Thinkle'ı Dene — Ücretsiz</span>
+  <h2><span class="tr">Öğrenmeye Başlamaya Hazır mısın?</span><span class="en">Ready to Start Learning Smarter?</span></h2>
+  <p><span class="tr">Ücretsiz. Kredi kartı yok. Kurulum yok. Hemen başla.</span><span class="en">Free. No credit card. No setup. Start right now.</span></p>
+  <a href="https://thinkle.space" class="btn-primary" style="font-size:1rem;padding:16px 44px">
+    🚀 <span class="tr">Thinkle'ı Dene — Ücretsiz</span><span class="en">Try Thinkle — It's Free</span>
   </a>
-  <p class="cta-note"><span class="en-text">No credit card · No installation · Start instantly</span><span class="tr-text">Kredi kartı yok · Kurulum yok · Anında başla</span></p>
+  <p class="cta-note"><span class="tr">Kredi kartı yok · Kurulum yok · Anında başla</span><span class="en">No credit card · No setup · Start instantly</span></p>
 </div>
 
 <!-- FOOTER -->
 <footer>
-  <span class="footer-logo">Thinkle</span>
-  <p style="color:var(--ink-soft);font-size:.8rem;margin-bottom:12px;">
-    <span class="en-text">File in, lesson out ⚡</span>
-    <span class="tr-text">Dosyadan derse, dersten bilgiye ⚡</span>
+  <span class="footer-logo">THINKLE</span>
+  <p style="color:rgba(200,190,255,.4);font-size:.8rem;margin-bottom:14px">
+    <span class="tr">dosyadan derse, dersten bilgiye ⚡</span>
+    <span class="en">file in, lesson out ⚡</span>
   </p>
   <div class="footer-links">
-    <a href="https://thinkle.space"><span class="en-text">Launch App</span><span class="tr-text">Uygulamayı Aç</span></a>
-    <a href="https://thinkle.space#acc-privacy"><span class="en-text">Privacy</span><span class="tr-text">Gizlilik</span></a>
-    <a href="https://thinkle.space#acc-contact"><span class="en-text">Contact</span><span class="tr-text">İletişim</span></a>
+    <a href="https://thinkle.space"><span class="tr">Uygulamayı Aç</span><span class="en">Launch App</span></a>
+    <a href="https://thinkle.space#acc-privacy"><span class="tr">Gizlilik</span><span class="en">Privacy</span></a>
+    <a href="https://thinkle.space#acc-contact"><span class="tr">İletişim</span><span class="en">Contact</span></a>
     <a href="mailto:thinklespace@gmail.com">thinklespace@gmail.com</a>
   </div>
-  <div class="footer-copy">© 2026 Thinkle · <span class="en-text">All rights reserved · AI-powered learning & battle platform</span><span class="tr-text">Tüm hakları saklıdır · Yapay zeka destekli öğrenme ve yarışma platformu</span> 🌌⚔️</div>
+  <div class="footer-copy">© 2026 THINKLE · <span class="tr">Tüm hakları saklıdır</span><span class="en">All rights reserved</span> · AI-powered learning & battle platform 🌌⚔️</div>
 </footer>
 
 <script>
-// ===== DİL SİSTEMİ =====
-let currentLang = localStorage.getItem('thinkle-landing-lang') || 'tr';
-function setLang(lang){
-  currentLang = lang;
-  localStorage.setItem('thinkle-landing-lang', lang);
-  document.documentElement.lang = lang;
-  document.getElementById('btnTR').classList.toggle('active', lang==='tr');
-  document.getElementById('btnEN').classList.toggle('active', lang==='en');
+// ===== DİL =====
+let lang = localStorage.getItem('tl-lang') || 'tr';
+function setLang(l){
+  lang = l;
+  localStorage.setItem('tl-lang', l);
+  document.documentElement.lang = l;
+  document.getElementById('btnTR').classList.toggle('on', l==='tr');
+  document.getElementById('btnEN').classList.toggle('on', l==='en');
 }
-// Sayfa yüklenince uygula
-document.documentElement.lang = currentLang;
-window.addEventListener('DOMContentLoaded', ()=> setLang(currentLang));
+document.documentElement.lang = lang;
+document.getElementById('btnTR').classList.toggle('on', lang==='tr');
+document.getElementById('btnEN').classList.toggle('on', lang==='en');
+
+// ===== CURSOR =====
+const cur = document.getElementById('cursor');
+const ring = document.getElementById('cursorRing');
+if(window.innerWidth > 900){
+  let mx=0,my=0,rx=0,ry=0;
+  document.addEventListener('mousemove', e=>{ mx=e.clientX; my=e.clientY; });
+  function animCursor(){
+    cur.style.transform=`translate(${mx-6}px,${my-6}px)`;
+    rx+=(mx-18-rx)*.12; ry+=(my-18-ry)*.12;
+    ring.style.transform=`translate(${rx}px,${ry}px)`;
+    requestAnimationFrame(animCursor);
+  }
+  animCursor();
+  document.querySelectorAll('a,button,.fcard,.bcard,.tstep-circle').forEach(el=>{
+    el.addEventListener('mouseenter',()=>{ cur.style.width='20px';cur.style.height='20px';cur.style.background='var(--violet)'; });
+    el.addEventListener('mouseleave',()=>{ cur.style.width='12px';cur.style.height='12px';cur.style.background='var(--cyan)'; });
+  });
+}
 
 // ===== INTRO =====
 (function(){
-  const word = 'THINKLE';
-  const lettersEl = document.getElementById('introLetters');
-  const taglineEl = document.getElementById('introTagline');
-  const barEl = document.getElementById('introBar');
-  const particles = document.getElementById('introParticles');
+  const fill = document.getElementById('introFill');
   const intro = document.getElementById('intro');
-  const colors = ['#6ee7ff','#b46bff','#ff6ec7','#4dffb0','#ffd700'];
-
-  for(let i=0;i<18;i++){
-    const p = document.createElement('div');
-    p.className='intro-p';
-    const size = 2+Math.random()*6;
-    p.style.cssText=`width:${size}px;height:${size}px;left:${Math.random()*100}%;top:${Math.random()*100}%;background:${colors[Math.floor(Math.random()*colors.length)]};filter:blur(${size*.3}px);--d:${4+Math.random()*6}s;--dx:${Math.random()*60-30}px;--dy:${Math.random()*60-30}px;--op:${.2+Math.random()*.4};animation-delay:${-Math.random()*6}s;`;
-    particles.appendChild(p);
-  }
-
-  word.split('').forEach((ch,i)=>{
-    const span = document.createElement('span');
-    span.className='intro-letter';span.textContent=ch;
-    lettersEl.appendChild(span);
-  });
-
-  const DURATION = 2600;
+  const DUR = 2500;
   const start = performance.now();
-  function updateBar(now){ const pct=Math.min(100,(now-start)/DURATION*100); barEl.style.width=pct+'%'; if(pct<100)requestAnimationFrame(updateBar); }
-  requestAnimationFrame(updateBar);
-
-  lettersEl.querySelectorAll('.intro-letter').forEach((l,i)=> setTimeout(()=>l.classList.add('show'), 180+i*75));
-  setTimeout(()=>taglineEl.classList.add('show'), 800);
-  setTimeout(()=>intro.classList.add('done'), DURATION+300);
+  function tick(now){
+    const p = Math.min(100,(now-start)/DUR*100);
+    fill.style.width = p+'%';
+    if(p < 100) requestAnimationFrame(tick);
+  }
+  requestAnimationFrame(tick);
+  setTimeout(()=>{ intro.classList.add('out'); setTimeout(()=>{ intro.style.display='none'; }, 700); }, DUR);
 })();
 
-// ===== HERO CANVAS =====
+// ===== NEBULA CANVAS =====
 (function(){
-  const canvas = document.getElementById('heroCanvas');
+  const canvas = document.getElementById('nebula');
   if(!canvas) return;
   const ctx = canvas.getContext('2d');
-  let stars=[];
-  function resize(){ canvas.width=canvas.offsetWidth; canvas.height=canvas.offsetHeight; }
+  let W,H,stars=[],orbs=[];
+  function resize(){ W=canvas.width=canvas.offsetWidth; H=canvas.height=canvas.offsetHeight; }
   resize(); window.addEventListener('resize',resize);
-  for(let i=0;i<100;i++) stars.push({x:Math.random()*canvas.width,y:Math.random()*canvas.height,r:Math.random()*1.4+.2,a:Math.random(),da:(Math.random()*.01+.002)*(Math.random()<.5?1:-1),vx:(Math.random()-.5)*.12,vy:(Math.random()-.5)*.12});
+  for(let i=0;i<150;i++) stars.push({x:Math.random(),y:Math.random(),r:Math.random()*1.6+.2,a:Math.random(),da:(Math.random()*.008+.002)*(Math.random()<.5?1:-1),vx:(Math.random()-.5)*.05,vy:(Math.random()-.5)*.05});
+  const orbColors=[['rgba(0,245,255,','rgba(0,245,255,0)'],['rgba(155,89,255,','rgba(155,89,255,0)'],['rgba(255,45,120,','rgba(255,45,120,0)']];
+  for(let i=0;i<3;i++){
+    const c=orbColors[i];
+    orbs.push({x:.2+Math.random()*.6,y:.2+Math.random()*.6,r:.15+Math.random()*.12,c,vx:(Math.random()-.5)*.0002,vy:(Math.random()-.5)*.0002});
+  }
   function draw(){
-    canvas.width=canvas.offsetWidth; canvas.height=canvas.offsetHeight;
-    ctx.clearRect(0,0,canvas.width,canvas.height);
-    const g=ctx.createRadialGradient(canvas.width/2,canvas.height/2,0,canvas.width/2,canvas.height/2,canvas.width*.65);
-    g.addColorStop(0,'rgba(109,40,217,.05)');g.addColorStop(.5,'rgba(37,99,235,.02)');g.addColorStop(1,'rgba(0,0,0,0)');
-    ctx.fillStyle=g;ctx.fillRect(0,0,canvas.width,canvas.height);
-    stars.forEach(s=>{s.a+=s.da;if(s.a>1||s.a<0)s.da*=-1;s.x+=s.vx;s.y+=s.vy;if(s.x<0)s.x=canvas.width;if(s.x>canvas.width)s.x=0;if(s.y<0)s.y=canvas.height;if(s.y>canvas.height)s.y=0;ctx.beginPath();ctx.arc(s.x,s.y,s.r,0,Math.PI*2);ctx.fillStyle=`rgba(180,200,255,${s.a*.65})`;ctx.fill();});
+    W=canvas.width=canvas.offsetWidth; H=canvas.height=canvas.offsetHeight;
+    ctx.clearRect(0,0,W,H);
+    orbs.forEach(o=>{
+      o.x+=o.vx;o.y+=o.vy;
+      if(o.x<0||o.x>1)o.vx*=-1;
+      if(o.y<0||o.y>1)o.vy*=-1;
+      const g=ctx.createRadialGradient(o.x*W,o.y*H,0,o.x*W,o.y*H,o.r*W);
+      g.addColorStop(0,o.c[0]+'.06)');
+      g.addColorStop(1,o.c[1]);
+      ctx.fillStyle=g;ctx.fillRect(0,0,W,H);
+    });
+    stars.forEach(s=>{
+      s.a+=s.da;if(s.a>1||s.a<0)s.da*=-1;
+      s.x+=s.vx/W;s.y+=s.vy/H;
+      if(s.x<0)s.x=1;if(s.x>1)s.x=0;
+      if(s.y<0)s.y=1;if(s.y>1)s.y=0;
+      ctx.beginPath();ctx.arc(s.x*W,s.y*H,s.r,0,Math.PI*2);
+      ctx.fillStyle=`rgba(200,210,255,${s.a*.5})`;ctx.fill();
+    });
     requestAnimationFrame(draw);
   }
   draw();
 })();
 
-// ===== GÜNEŞ GÖZETLEME =====
+// ===== GÜNEŞ — hero-right'a ekle =====
 (function(){
-  const sun = document.getElementById('heroSun');
-  const pupilL = document.getElementById('pupilL');
-  const pupilR = document.getElementById('pupilR');
-  if(!sun||!pupilL||!pupilR) return;
+  const scene = document.querySelector('.float-scene');
+  if(!scene) return;
+  const sun = document.createElement('div');
+  sun.style.cssText='position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);z-index:10;width:76px;height:76px;border-radius:50%;background:radial-gradient(circle at 38% 35%,#fff8e0,#ffaa00 40%,#ff5500 70%,#cc1100);box-shadow:0 0 30px 10px rgba(255,140,0,.45);cursor:pointer;transition:transform .3s ease;';
+  sun.innerHTML=`<div style="position:absolute;inset:0;border-radius:50%;pointer-events:none;">
+    <div id="sl-browL" style="position:absolute;width:24%;height:10%;background:#cc4400;border-radius:4px;top:18%;left:18%;transform:rotate(-5deg);transition:.3s;"></div>
+    <div id="sl-browR" style="position:absolute;width:24%;height:10%;background:#cc4400;border-radius:4px;top:18%;left:54%;transform:rotate(5deg);transition:.3s;"></div>
+    <div id="sl-eyeL" style="position:absolute;width:24%;height:24%;background:#fff8e0;border-radius:50%;top:30%;left:18%;overflow:hidden;transition:.2s;animation:sl-blink 4s ease-in-out infinite;">
+      <div id="sl-pupL" style="position:absolute;width:55%;height:55%;background:#8b1a00;border-radius:50%;top:50%;left:50%;transform:translate(-50%,-50%);transition:.08s;"></div>
+    </div>
+    <div id="sl-eyeR" style="position:absolute;width:24%;height:24%;background:#fff8e0;border-radius:50%;top:30%;left:54%;overflow:hidden;transition:.2s;">
+      <div id="sl-pupR" style="position:absolute;width:55%;height:55%;background:#8b1a00;border-radius:50%;top:50%;left:50%;transform:translate(-50%,-50%);transition:.08s;"></div>
+    </div>
+    <div id="sl-mouth" style="position:absolute;bottom:20%;left:50%;transform:translateX(-50%);width:38%;height:18%;border-radius:0 0 50px 50px;border:2px solid #8b1a00;border-top:none;background:rgba(180,60,0,.15);transition:.3s;"></div>
+  </div>`;
+  const styleEl = document.createElement('style');
+  styleEl.textContent='@keyframes sl-blink{0%,88%,100%{height:24%;}93%{height:3%;}}';
+  document.head.appendChild(styleEl);
+  scene.appendChild(sun);
 
-  document.addEventListener('mousemove', e=>{
-    const rect = sun.getBoundingClientRect();
-    const cx = rect.left + rect.width/2;
-    const cy = rect.top + rect.height/2;
-    const dx = e.clientX - cx;
-    const dy = e.clientY - cy;
-    const dist = Math.sqrt(dx*dx+dy*dy);
-    const maxMove = 5;
-    const nx = dist>0 ? (dx/dist)*maxMove : 0;
-    const ny = dist>0 ? (dy/dist)*maxMove : 0;
-    pupilL.style.transform = `translate(calc(-50% + ${nx}px), calc(-50% + ${ny}px))`;
-    pupilR.style.transform = `translate(calc(-50% + ${nx}px), calc(-50% + ${ny}px))`;
+  const pupL=sun.querySelector('#sl-pupL');
+  const pupR=sun.querySelector('#sl-pupR');
+  const mouth=sun.querySelector('#sl-mouth');
+  const browL=sun.querySelector('#sl-browL');
+  const browR=sun.querySelector('#sl-browR');
+
+  document.addEventListener('mousemove',e=>{
+    const r=sun.getBoundingClientRect();
+    const cx=r.left+r.width/2, cy=r.top+r.height/2;
+    const dx=e.clientX-cx, dy=e.clientY-cy;
+    const dist=Math.sqrt(dx*dx+dy*dy);
+    const m=5,nx=dist>0?(dx/dist)*m:0,ny=dist>0?(dy/dist)*m:0;
+    pupL.style.transform=`translate(calc(-50% + ${nx}px),calc(-50% + ${ny}px))`;
+    pupR.style.transform=`translate(calc(-50% + ${nx}px),calc(-50% + ${ny}px))`;
   });
-
-  // Hover = mutlu
-  sun.addEventListener('mouseenter', ()=> sun.classList.add('happy'));
-  sun.addEventListener('mouseleave', ()=> sun.classList.remove('happy'));
-
-  // Tıklama = zıplama
-  sun.addEventListener('click', ()=>{
-    sun.style.transform = 'translateY(-18px) scale(1.15)';
-    setTimeout(()=> sun.style.transform = '', 350);
+  sun.addEventListener('mouseenter',()=>{
+    sun.style.transform='translate(-50%,-50%) scale(1.15)';
+    browL.style.transform='rotate(5deg)';
+    browR.style.transform='rotate(-5deg)';
+    mouth.style.height='26%';mouth.style.borderRadius='0 0 80px 80px';
+  });
+  sun.addEventListener('mouseleave',()=>{
+    sun.style.transform='translate(-50%,-50%)';
+    browL.style.transform='rotate(-5deg)';
+    browR.style.transform='rotate(5deg)';
+    mouth.style.height='18%';mouth.style.borderRadius='0 0 50px 50px';
+  });
+  sun.addEventListener('click',()=>{
+    sun.style.transform='translate(-50%,-60%) scale(1.2)';
+    setTimeout(()=>sun.style.transform='translate(-50%,-50%)',300);
   });
 })();
 
 // ===== SCROLL REVEAL =====
-const observer = new IntersectionObserver(entries=>{
-  entries.forEach(e=>{ if(e.isIntersecting) e.target.classList.add('visible'); });
-},{threshold:.1});
-document.querySelectorAll('.reveal').forEach(el=> observer.observe(el));
+const revealObs = new IntersectionObserver(entries=>{
+  entries.forEach(e=>{ if(e.isIntersecting){ e.target.classList.add('visible'); revealObs.unobserve(e.target); } });
+},{threshold:.12,rootMargin:'0px 0px -40px 0px'});
+document.querySelectorAll('.tstep,.bcard').forEach(el=>revealObs.observe(el));
 </script>
 </body>
 </html>
