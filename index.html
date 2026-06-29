@@ -2508,26 +2508,30 @@
   }
   .flashcard-wrap{
     perspective:1200px; width:100%; max-width:600px; margin:0 auto;
-    height:320px; cursor:pointer;
+    min-height:280px; cursor:pointer;
   }
   .flashcard{
-    width:100%; height:100%; position:relative;
+    width:100%; min-height:280px; height:auto; position:relative;
     transform-style:preserve-3d;
     transition:transform .6s cubic-bezier(.4,0,.2,1);
   }
   .flashcard.flipped{ transform:rotateY(180deg); }
-  .flashcard-front, .flashcard-back{
-    position:absolute; inset:0; border-radius:20px;
+  /* Front: relative — kartın yüksekliğini içeriğe göre belirler */
+  .flashcard-front{
+    position:relative; width:100%; border-radius:20px;
     backface-visibility:hidden; -webkit-backface-visibility:hidden;
     display:flex; flex-direction:column; align-items:center; justify-content:center;
-    padding:32px 28px; text-align:center;
-  }
-  .flashcard-front{
+    padding:28px 28px; text-align:center; min-height:280px;
     background:linear-gradient(145deg,rgba(16,12,40,.97),rgba(10,8,28,.99));
     border:1px solid rgba(180,107,255,.3);
     box-shadow:0 0 40px rgba(180,107,255,.1);
   }
+  /* Back: absolute — front ile tam aynı alanı kaplar */
   .flashcard-back{
+    position:absolute; inset:0; border-radius:20px;
+    backface-visibility:hidden; -webkit-backface-visibility:hidden;
+    display:flex; flex-direction:column; align-items:center; justify-content:center;
+    padding:24px 28px; text-align:center; overflow-y:auto;
     background:linear-gradient(145deg,rgba(8,20,40,.97),rgba(6,16,32,.99));
     border:1px solid rgba(110,231,255,.3);
     box-shadow:0 0 40px rgba(110,231,255,.1);
@@ -2535,19 +2539,23 @@
   }
   .flashcard-hint{
     font-size:.65rem;font-family:'Space Mono',monospace;letter-spacing:.1em;
-    color:rgba(180,160,255,.4);margin-bottom:16px;
+    color:rgba(180,160,255,.4);margin-bottom:14px;flex-shrink:0;
   }
   .flashcard-front h2{
-    font-size:clamp(1rem,3vw,1.5rem);color:#eaf0ff;margin:0;line-height:1.3;
+    font-size:clamp(.82rem,2.2vw,1.25rem);
+    color:#eaf0ff;margin:0;line-height:1.4;
+    word-break:break-word; overflow-wrap:break-word;
+    max-height:none; /* taşmayı engelle */
   }
   .flashcard-back ul{
     list-style:none;padding:0;margin:0;text-align:left;width:100%;
   }
   .flashcard-back ul li{
-    font-size:.82rem;color:rgba(200,190,220,.85);padding:4px 0;
+    font-size:.82rem;color:rgba(200,190,220,.85);padding:5px 0;
     border-bottom:1px solid rgba(255,255,255,.06);
-    padding-left:14px;position:relative;
+    padding-left:16px;position:relative;line-height:1.5;
   }
+  .flashcard-back ul li:last-child{ border-bottom:none; }
   .flashcard-back ul li::before{ content:'›';position:absolute;left:0;color:var(--accent); }
   .flashcard-counter{
     text-align:center;font-family:'Space Mono',monospace;font-size:.7rem;
