@@ -10,6 +10,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;900&family=Space+Grotesk:wght@400;500;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<link href="https://fonts.cdnfonts.com/css/horizon" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js"></script>
 <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
@@ -1422,20 +1423,17 @@
   }
   .upload-screen p{color:var(--ink-soft); margin:14px 0 30px; line-height:1.6;}
   /* ======== DROPZONE — Uzay Fırlatma Rampası ======== */
+  /* ===== DROPZONE — sade & şık ===== */
   .dropzone{
-    border-radius:20px; padding:18px 24px 16px;
-    cursor:pointer; transition:.3s ease; position:relative; overflow:hidden;
-    background:
-      radial-gradient(ellipse 80% 60% at 50% 110%, rgba(180,107,255,.22) 0%, transparent 65%),
-      radial-gradient(ellipse 50% 40% at 50% 0%, rgba(110,231,255,.12) 0%, transparent 60%),
-      linear-gradient(175deg, rgba(14,10,36,.97) 0%, rgba(8,6,24,.99) 100%);
-    box-shadow:
-      0 0 0 1px rgba(180,107,255,.3),
-      0 0 0 3px rgba(110,231,255,.06),
-      0 20px 60px rgba(0,0,0,.5),
-      0 0 80px rgba(180,107,255,.08) inset;
-    text-align:center;
+    border-radius:18px; padding:34px 28px 28px;
+    cursor:pointer; transition:all .25s cubic-bezier(.16,1,.3,1);
+    position:relative; overflow:hidden; text-align:center;
+    background: rgba(10,8,26,.45);
+    border: 1.5px dashed rgba(180,107,255,.38);
+    backdrop-filter: blur(8px);
   }
+  /* Gizli dekorasyon öğeleri */
+  .dropzone-stars, .dropzone-glow { display:none !important; }
   /* Arka planda yıldız noktaları */
   .dropzone-stars{
     position:absolute; inset:0; z-index:0; pointer-events:none;
@@ -1452,6 +1450,8 @@
       radial-gradient(1px 1px at 22% 55%, rgba(255,200,100,.4) 0%, transparent 100%),
       radial-gradient(1.5px 1.5px at 68% 42%, rgba(255,255,255,.5) 0%, transparent 100%);
   }
+  /* Roket etrafı dönen halkalar — gizli */
+  .dropzone-rings, .dropzone-ring{ display:none !important; }
   /* Roket etrafı dönen halkalar */
   .dropzone-rings{
     position:absolute; left:50%; top:50%; transform:translate(-50%,-68%);
@@ -1476,76 +1476,68 @@
   .dropzone-ring:nth-child(2)::after{ background:#6ee7ff; box-shadow:0 0 6px #6ee7ff; }
   .dropzone-ring:nth-child(3)::after{ background:#ff6ec7; box-shadow:0 0 6px #ff6ec7; }
   @keyframes dz-ring-spin{ to{ transform:rotate(360deg); } }
-  /* Alt zemin parıltısı */
-  .dropzone-glow{
-    position:absolute; bottom:-14px; left:50%; transform:translateX(-50%);
-    width:45%; height:36px; border-radius:50%;
-    background:radial-gradient(ellipse, rgba(180,107,255,.35) 0%, transparent 70%);
-    filter:blur(10px); z-index:0; pointer-events:none;
-    animation:dz-glow-pulse 2s ease-in-out infinite alternate;
-  }
-  @keyframes dz-glow-pulse{
-    0%{ opacity:.5; width:50%; }
-    100%{ opacity:1; width:65%; }
-  }
+  /* Alt zemin parıltısı — gizli */
+  @keyframes dz-glow-pulse{ 0%{} 100%{} }
   .dropzone > *{ position:relative; z-index:1; }
-  /* Hover */
+  /* Hover & drag */
   .dropzone:hover, .dropzone.drag{
-    transform:translateY(-4px);
+    border-color: rgba(110,231,255,.65);
+    border-style: solid;
+    background: rgba(14,11,34,.6);
+    transform: translateY(-3px);
     box-shadow:
-      0 0 0 1.5px rgba(110,231,255,.55),
-      0 0 0 3px rgba(180,107,255,.15),
-      0 28px 70px rgba(0,0,0,.5),
-      0 0 100px rgba(110,231,255,.14) inset,
-      0 0 60px rgba(180,107,255,.18) inset;
-    background:
-      radial-gradient(ellipse 80% 60% at 50% 110%, rgba(180,107,255,.32) 0%, transparent 65%),
-      radial-gradient(ellipse 50% 40% at 50% 0%, rgba(110,231,255,.18) 0%, transparent 60%),
-      linear-gradient(175deg, rgba(16,11,40,.97) 0%, rgba(10,7,28,.99) 100%);
+      0 0 0 1px rgba(110,231,255,.1),
+      0 12px 40px rgba(0,0,0,.3),
+      0 0 24px rgba(110,231,255,.05) inset;
   }
-  .dropzone:hover .rocket-icon{
-    animation:dz-rocket-lift .5s ease-out forwards;
-  }
-  @keyframes dz-rocket-lift{
-    0%{  transform:translateY(0) scale(1);    filter:drop-shadow(0 0 10px rgba(180,107,255,.4)); }
-    50%{ transform:translateY(-10px) scale(1.08); filter:drop-shadow(0 0 28px rgba(110,231,255,.8)) drop-shadow(0 0 50px rgba(180,107,255,.6)); }
-    100%{ transform:translateY(-6px) scale(1.05); filter:drop-shadow(0 0 22px rgba(110,231,255,.65)) drop-shadow(0 0 38px rgba(180,107,255,.5)); }
-  }
+  /* Yükleme ikonu — sade */
+  .dropzone:hover .rocket-icon{ animation:none; }
+  @keyframes dz-rocket-lift{}
   .rocket-icon{
-    width:46px; height:64px; margin:0 auto 4px;
-    filter:drop-shadow(0 0 8px rgba(180,107,255,.4)) drop-shadow(0 0 4px rgba(110,231,255,.25));
+    width:52px; height:52px; margin:0 auto 16px;
+    display:flex; align-items:center; justify-content:center;
+    border-radius:14px;
+    background: rgba(180,107,255,.08);
+    border: 1px solid rgba(180,107,255,.22);
+    transition: all .25s ease;
     position:relative; z-index:2;
+    filter:none;
   }
-  .rocket-icon svg{ width:100%; height:100%; display:block; }
-  .rocket-flame{
-    transform-origin:50% 108px;
-    animation:rocket-flame-flicker .3s ease-in-out infinite alternate;
+  .rocket-icon svg{ display:none; }
+  .rocket-icon::after{
+    content:'↑';
+    font-size:1.5rem; font-weight:300;
+    color:rgba(180,107,255,.85);
+    line-height:1;
   }
-  @keyframes rocket-flame-flicker{
-    0%{  transform:scaleY(1) scaleX(1); opacity:1; }
-    100%{ transform:scaleY(1.22) scaleX(.88); opacity:.8; }
+  .dropzone:hover .rocket-icon, .dropzone.drag .rocket-icon{
+    background: rgba(110,231,255,.1);
+    border-color: rgba(110,231,255,.38);
+    box-shadow: 0 0 20px rgba(110,231,255,.12);
+    transform: translateY(-3px);
   }
+  .dropzone:hover .rocket-icon::after, .dropzone.drag .rocket-icon::after{
+    color:rgba(110,231,255,.9);
+  }
+  .rocket-flame{ display:none; }
+  @keyframes rocket-flame-flicker{}
   .dropzone-label{
-    font-size:.95rem; font-weight:600; color:#eaf0ff;
-    margin-bottom:2px; letter-spacing:.01em;
+    font-size:.9rem; font-weight:600; color:rgba(220,210,255,.9);
+    margin-bottom:4px; letter-spacing:.01em;
   }
   .dropzone-label strong{ color:#fff; }
   .dropzone-sublabel{
-    font-size:.72rem; color:rgba(180,160,255,.65); margin-bottom:2px;
-    font-style:italic;
+    font-size:.72rem; color:rgba(160,145,200,.5); margin-bottom:4px;
   }
   .dropzone .small{
-    font-size:.65rem; color:rgba(160,150,200,.7); margin-top:8px;
-    font-family:'Space Mono',monospace; letter-spacing:.08em;
-    display:inline-block; padding:3px 12px;
-    border:1px solid rgba(180,107,255,.18); border-radius:20px;
-    background:rgba(180,107,255,.06);
+    font-size:.62rem; color:rgba(140,130,180,.5); margin-top:10px;
+    font-family:'Space Mono',monospace; letter-spacing:.07em;
+    display:inline-block; padding:4px 14px;
+    border:1px solid rgba(255,255,255,.07); border-radius:20px;
   }
   .dropzone .filename{ margin-top:10px; font-size:.85rem; color:var(--accent); font-family:'Space Mono',monospace; }
-  .dropzone.distort1{ }
-  .dropzone.distort2{ }
-  .dropzone.distort3{ }
-  @keyframes dz-shake{ }
+  .dropzone.distort1{} .dropzone.distort2{} .dropzone.distort3{}
+  @keyframes dz-shake{}
   input[type=file]{display:none;}
 
   .api-key-row{margin-top:24px; text-align:left;}
@@ -1970,7 +1962,7 @@
 
     .upload-screen{ padding-top:50px; margin:0 auto; }
     .upload-screen h1{ font-size:1.25rem; top:10px; left:12px; }
-    .dropzone{ padding:22px 14px; touch-action:manipulation; cursor:pointer;
+    .dropzone{ padding:24px 14px 20px; touch-action:manipulation; cursor:pointer;
       -webkit-tap-highlight-color:transparent; position:relative; z-index:10; }
 
     .slide-card{ padding:14px 12px; min-height:auto; }
@@ -2897,8 +2889,8 @@
     <div class="mh-title">Thinkle</div>
   </div>
   <div class="mh-right">
-    <button id="mhLoginBtn" style="display:flex;color:#ffd27a;border-color:rgba(255,180,80,.4)" onclick="if(typeof showAuthModal==='function')showAuthModal()">🔑 Giriş</button>
-    <button id="mhLogoutBtn" style="display:none;color:#ff8fa3;border-color:rgba(255,110,140,.4)" onclick="if(window.fbSignOut)window.fbSignOut()">↪ Çıkış</button>
+    <button id="mhLoginBtn" style="display:flex;font-family:'Horizon',sans-serif;letter-spacing:.08em;color:#6ee7ff;border-color:rgba(110,231,255,.35);background:rgba(110,231,255,.06);text-shadow:0 0 12px rgba(110,231,255,.8);box-shadow:0 0 16px rgba(110,231,255,.15)" onclick="if(typeof showAuthModal==='function')showAuthModal()">Giriş</button>
+    <button id="mhLogoutBtn" style="display:none;font-family:'Horizon',sans-serif;letter-spacing:.08em;color:#ff6ec7;border-color:rgba(255,110,199,.35);background:rgba(255,110,199,.06);text-shadow:0 0 12px rgba(255,110,199,.8);box-shadow:0 0 16px rgba(255,110,199,.15)" onclick="if(window.fbSignOut)window.fbSignOut()">Çıkış</button>
     <button id="mhProfileBtn" style="display:none;background:none;border:none;font-size:1.1rem;cursor:pointer;touch-action:manipulation;width:34px;height:34px;border-radius:50%;align-items:center;justify-content:center" onclick="if(typeof showProfileModal==='function')showProfileModal()">👤</button>
     <button id="mobileActionsBtn" onclick="document.getElementById('mobileActionsMenu').classList.toggle('open')">⋯</button>
   </div>
