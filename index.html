@@ -419,6 +419,32 @@
   // Sayfa ziyaretini kaydet
   window.fbLogUsage('visits');
 
+  // ============ DECK PAYLAŞIM SİSTEMİ ============
+  window.fbSaveDeck = async (deckData) => {
+    try {
+      const id = Math.random().toString(36).slice(2,11);
+      await setDoc(doc(db, 'publicDecks', id), {
+        title: deckData.title,
+        slides: deckData.slides,
+        quizQuestions: deckData.quizQuestions || [],
+        createdAt: new Date().toISOString(),
+        createdBy: window.currentUser?.uid || 'anon',
+        createdByName: window.currentUsername || null,
+        views: 0,
+      });
+      return { ok: true, id };
+    } catch(e){ return { ok: false }; }
+  };
+
+  window.fbGetDeck = async (id) => {
+    try {
+      const s = await getDoc(doc(db, 'publicDecks', id));
+      if(!s.exists()) return null;
+      await updateDoc(doc(db, 'publicDecks', id), { views: increment(1) }).catch(()=>{});
+      return s.data();
+    } catch(e){ return null; }
+  };
+
   // ============ AKTİF KULLANICI SAYACI ============
   // Kullanıcı sayfadayken presence yaz, çıkınca sil
   (function setupPresence(){
@@ -1309,6 +1335,145 @@
   }
   .ai-send-btn:hover{ box-shadow:0 0 16px rgba(110,231,255,.4); }
   .ai-send-btn:disabled{ opacity:.4; cursor:not-allowed; box-shadow:none; }
+  /* Hızlı prompt şablonları */
+  .ai-chip{
+    padding:4px 10px; border-radius:20px; font-size:.68rem;
+    border:1px solid rgba(180,107,255,.25); background:rgba(180,107,255,.07);
+    color:rgba(180,160,255,.75); cursor:pointer; font-family:'Space Grotesk',sans-serif;
+    transition:all .15s ease; white-space:nowrap; touch-action:manipulation;
+  }
+  .ai-chip:hover{
+    background:rgba(180,107,255,.18); border-color:rgba(180,107,255,.5);
+    color:rgba(210,190,255,.95);
+  }
+  /* ===== ODAK MODU (Focus Mode) ===== */
+  #focusOverlay{
+    position:fixed; inset:0; z-index:9800;
+    background:rgba(2,1,12,.96); backdrop-filter:blur(16px);
+    display:flex; flex-direction:column;
+    align-items:center; justify-content:center;
+    padding:40px 20px;
+    animation:focus-appear .25s cubic-bezier(.16,1,.3,1) both;
+  }
+  @keyframes focus-appear{
+    from{opacity:0;transform:scale(.97);}
+    to{opacity:1;transform:scale(1);}
+  }
+  #focusOverlay .focus-card{
+    max-width:680px; width:100%;
+    background:linear-gradient(145deg,rgba(16,12,40,.98),rgba(10,8,28,1));
+    border:1px solid rgba(180,107,255,.25); border-radius:24px;
+    padding:48px 52px; position:relative;
+    box-shadow:0 0 80px rgba(180,107,255,.08);
+  }
+  #focusOverlay .focus-eyebrow{
+    font-size:.62rem; font-family:'Space Mono',monospace; letter-spacing:.12em;
+    color:rgba(180,160,255,.4); margin-bottom:18px; text-align:center;
+  }
+  #focusOverlay .focus-heading{
+    font-family:'Orbitron',sans-serif; font-size:clamp(1.2rem,3vw,1.8rem);
+    font-weight:700; color:#eaf0ff; line-height:1.25;
+    text-align:center; margin-bottom:24px;
+  }
+  #focusOverlay .focus-bullets{
+    list-style:none; padding:0; margin:0 0 20px;
+  }
+  #focusOverlay .focus-bullets li{
+    padding:10px 0 10px 22px; position:relative;
+    border-bottom:1px solid rgba(255,255,255,.06);
+    font-size:.95rem; line-height:1.6; color:rgba(220,210,250,.85);
+  }
+  #focusOverlay .focus-bullets li::before{
+    content:'›'; position:absolute; left:0;
+    color:var(--accent2); font-size:1.1rem;
+  }
+  #focusOverlay .focus-explain{
+    background:rgba(110,231,255,.04); border:1px solid rgba(110,231,255,.12);
+    border-radius:12px; padding:14px 18px;
+    font-size:.82rem; line-height:1.65; color:rgba(180,200,230,.75);
+    margin-top:4px;
+  }
+  #focusOverlay .focus-nav{
+    display:flex; align-items:center; gap:16px;
+    margin-top:32px; justify-content:center;
+  }
+  #focusOverlay .focus-nav button{
+    padding:10px 24px; border-radius:10px;
+    border:1px solid rgba(255,255,255,.12);
+    background:rgba(255,255,255,.04); color:var(--ink);
+    font-size:.82rem; cursor:pointer; transition:.15s;
+    font-family:'Space Grotesk',sans-serif;
+  }
+  #focusOverlay .focus-nav button:hover:not(:disabled){
+    border-color:var(--accent2); color:var(--accent2);
+  }
+  #focusOverlay .focus-nav button:disabled{ opacity:.3; cursor:not-allowed; }
+  #focusOverlay .focus-counter{
+    font-family:'Space Mono',monospace; font-size:.75rem;
+    color:rgba(180,160,255,.5); min-width:70px; text-align:center;
+  }
+  #focusClose{
+    position:absolute; top:16px; right:18px;
+    background:none; border:none; color:rgba(255,255,255,.3);
+    font-size:1.1rem; cursor:pointer; padding:6px;
+    border-radius:8px; transition:.15s; line-height:1;
+  }
+  #focusClose:hover{ color:rgba(255,255,255,.7); background:rgba(255,255,255,.07); }
+  #focusProgress{
+    position:absolute; bottom:0; left:0;
+    height:2px; background:linear-gradient(90deg,var(--accent2),var(--accent));
+    border-radius:0 0 24px 24px; transition:width .35s ease;
+  }
+  /* ===== PAYLAŞ MODALİ ===== */
+  #shareModal{
+    position:fixed; inset:0; z-index:9900;
+    background:rgba(2,1,12,.88); backdrop-filter:blur(14px);
+    display:flex; align-items:center; justify-content:center; padding:20px;
+    animation:auth-appear .25s ease both;
+  }
+  #shareModal .sm-box{
+    background:rgba(12,9,32,.98); border:1px solid rgba(180,107,255,.3);
+    border-radius:20px; padding:28px 26px; max-width:420px; width:100%;
+    box-shadow:0 0 60px rgba(180,107,255,.12);
+  }
+  #shareModal h3{
+    font-family:'Orbitron',sans-serif; font-size:.95rem; font-weight:700;
+    background:linear-gradient(135deg,var(--accent2),var(--accent));
+    -webkit-background-clip:text; background-clip:text; color:transparent;
+    margin:0 0 6px; text-align:center;
+  }
+  #shareModal .sm-sub{
+    font-size:.72rem; color:rgba(180,160,255,.5);
+    text-align:center; margin-bottom:20px;
+  }
+  #shareModal .sm-link-row{
+    display:flex; gap:8px; margin-bottom:16px;
+  }
+  #shareModal .sm-link-input{
+    flex:1; padding:10px 12px; border-radius:10px;
+    border:1px solid rgba(180,107,255,.25);
+    background:rgba(255,255,255,.04); color:var(--ink);
+    font-family:'Space Mono',monospace; font-size:.72rem;
+    outline:none; -webkit-user-select:text; user-select:text;
+  }
+  #shareModal .sm-copy{
+    padding:10px 16px; border-radius:10px;
+    border:none; background:linear-gradient(135deg,var(--accent2),var(--accent));
+    color:#070a18; font-weight:700; font-size:.78rem; cursor:pointer;
+    white-space:nowrap; transition:.15s; font-family:'Space Mono',monospace;
+  }
+  #shareModal .sm-copy:hover{ box-shadow:0 0 18px rgba(110,231,255,.3); }
+  #shareModal .sm-info{
+    font-size:.68rem; color:rgba(180,160,255,.45);
+    text-align:center; line-height:1.6; margin-bottom:16px;
+  }
+  #shareModal .sm-close{
+    width:100%; padding:10px; border-radius:10px;
+    border:1px solid rgba(255,255,255,.1); background:rgba(255,255,255,.04);
+    color:rgba(200,190,230,.6); font-size:.78rem; cursor:pointer;
+    font-family:'Space Grotesk',sans-serif; transition:.15s;
+  }
+  #shareModal .sm-close:hover{ background:rgba(255,255,255,.08); }
   .brand{
     padding:0 20px 8px; border-bottom:1px solid var(--line); margin-bottom:0;
     display:flex; align-items:center; gap:12px;
@@ -3101,6 +3266,16 @@
     <div class="ai-chat" id="aiChat">
       <div class="ai-panel-empty" id="aiEmptyMsg" data-i18n="aiEmptyMsg">Bir konu, fikir veya soru yaz — Thinkle sana anlatmaya başlasın. PDF yüklemen gerekmiyor.</div>
     </div>
+    <div id="aiQuickPrompts" style="display:flex;flex-wrap:wrap;gap:5px;padding:6px 8px 0;flex-shrink:0">
+      <button class="ai-chip tr-text" data-prompt="Bu konuyu kısaca özetle">Özet ver</button>
+      <button class="ai-chip tr-text" data-prompt="Bu konuyla ilgili bana 3 soru sor, ben cevap vereyim">Soru sor</button>
+      <button class="ai-chip tr-text" data-prompt="Gerçek hayattan bir örnekle anlat">Örnekle anlat</button>
+      <button class="ai-chip tr-text" data-prompt="Bu konuyu başka derslerle ya da günlük hayatla bağlantılandır">Bağlantı kur</button>
+      <button class="ai-chip en-text" data-prompt="Give me a brief summary of this topic">Summarize</button>
+      <button class="ai-chip en-text" data-prompt="Ask me 3 questions about this topic so I can practice">Quiz me</button>
+      <button class="ai-chip en-text" data-prompt="Explain with a real-world example">Example</button>
+      <button class="ai-chip en-text" data-prompt="Connect this topic to everyday life or other subjects">Connect</button>
+    </div>
     <div class="ai-input-row">
       <textarea id="aiInput" data-i18n-placeholder="aiInputPlaceholder" placeholder="Bir şey sor…"></textarea>
       <button class="ai-send-btn" id="aiSendBtn">→</button>
@@ -3137,6 +3312,7 @@
         <button class="lang-opt" data-lang="en">EN</button>
       </div>
       <button class="btn" id="restartBtn" data-i18n="restartBtn">↺ Yeni dosya</button>
+      <button class="btn" id="shareBtn" style="display:none;border-color:rgba(180,107,255,.4);color:rgba(180,107,255,.85)" title="Paylaş">🔗 <span class="tr-text">Paylaş</span><span class="en-text">Share</span></button>
       <button class="btn primary" id="exportBtn" disabled data-i18n="exportBtn">⬇ .pptx indir</button>
     </div>
   </div>
@@ -7625,6 +7801,8 @@ function renderDeck(){
   deckScreen.classList.remove('hidden');
   exportBtn.disabled = false;
   exportBtn.onclick = exportPptx;
+  const shareBtn = document.getElementById('shareBtn');
+  if(shareBtn) shareBtn.style.display = 'flex';
   currentSlide = 0;
   quizAnswers = {};
   buildTabs();
@@ -7658,7 +7836,14 @@ function markActiveTab(activeEl){
 function renderSlide(){
   [...tabsEl.children].forEach((c,i) => c.classList.toggle('active', i===currentSlide));
   const s = deck.slides[currentSlide];
-  topTitle.textContent = deck.title;
+  const isTr = currentLang === 'tr';
+  const slideCountLabel = isTr
+    ? `${deck.title} — ${deck.slides.length} slayt`
+    : `${deck.title} — ${deck.slides.length} slides`;
+  topTitle.textContent = slideCountLabel;
+  // Share butonunu göster
+  const shareBtn = document.getElementById('shareBtn');
+  if(shareBtn) shareBtn.style.display = 'flex';
   setTimeout(positionSolarSystem, 50);
   const pct = Math.round(((currentSlide+1)/deck.slides.length)*100);
   deckScreen.innerHTML = `
@@ -7672,6 +7857,7 @@ function renderSlide(){
     <div class="slide-nav">
       <button class="btn" id="prevBtn" ${currentSlide===0?'disabled':''}>${t('prevBtn')}</button>
       <button class="btn" id="flashcardBtn" title="Flashcard modu" style="font-size:.8rem;padding:8px 12px">🃏</button>
+      <button class="btn" id="focusBtn" title="${isTr?'Odak modu':'Focus mode'}" style="font-size:.8rem;padding:8px 12px" aria-label="Odak modu">⛶</button>
       <button class="btn" id="nextBtn">${currentSlide===deck.slides.length-1?t('nextToQuiz'):t('nextBtn')}</button>
     </div>
   `;
@@ -7681,6 +7867,7 @@ function renderSlide(){
     else { showLearnMorePrompt(); }
   };
   document.getElementById('flashcardBtn').onclick = () => renderFlashcards();
+  document.getElementById('focusBtn').onclick = () => openFocusMode(currentSlide);
 }
 
 // ===== FLASHCARD MODU =====
@@ -8825,6 +9012,204 @@ function stopLoadingAnimation(){
   loadingRaf=null;
 }
 
+
+// ============================================================
+// ODAK MODU (Focus Mode)
+// ============================================================
+let focusSlideIndex = 0;
+
+function openFocusMode(startIndex = 0){
+  if(!deck || !deck.slides?.length) return;
+  focusSlideIndex = startIndex;
+  const overlay = document.createElement('div');
+  overlay.id = 'focusOverlay';
+  overlay.setAttribute('role','dialog');
+  overlay.setAttribute('aria-modal','true');
+  document.body.appendChild(overlay);
+  renderFocusSlide();
+  document.addEventListener('keydown', focusKeyHandler);
+}
+
+function renderFocusSlide(){
+  const overlay = document.getElementById('focusOverlay');
+  if(!overlay) return;
+  const s = deck.slides[focusSlideIndex];
+  const total = deck.slides.length;
+  const pct = Math.round(((focusSlideIndex+1)/total)*100);
+  const isTr = currentLang === 'tr';
+  overlay.innerHTML = `
+    <div class="focus-card">
+      <button id="focusClose" onclick="closeFocusMode()" aria-label="${isTr?'Kapat':'Close'}">✕</button>
+      <div id="focusProgress" style="width:${pct}%"></div>
+      <div class="focus-eyebrow">${focusSlideIndex+1} / ${total} &nbsp;·&nbsp; ${escapeHtml(deck.title)}</div>
+      <h2 class="focus-heading">${escapeHtml(s.heading)}</h2>
+      <ul class="focus-bullets">
+        ${s.bullets.map(b=>`<li>${escapeHtml(b)}</li>`).join('')}
+      </ul>
+      ${s.explanation ? `<div class="focus-explain">${escapeHtml(s.explanation)}</div>` : ''}
+      <div class="focus-nav">
+        <button onclick="focusPrev()" ${focusSlideIndex===0?'disabled':''}>← ${isTr?'Önceki':'Prev'}</button>
+        <span class="focus-counter">${focusSlideIndex+1} / ${total}</span>
+        <button onclick="focusNext()" ${focusSlideIndex===total-1?'disabled':''}>${isTr?'Sonraki':'Next'} →</button>
+      </div>
+    </div>`;
+  // ESC veya overlay dışı tıkla kapat
+  overlay.onclick = (e) => { if(e.target === overlay) closeFocusMode(); };
+}
+
+function focusPrev(){ if(focusSlideIndex > 0){ focusSlideIndex--; renderFocusSlide(); } }
+function focusNext(){ if(focusSlideIndex < deck.slides.length-1){ focusSlideIndex++; renderFocusSlide(); } }
+
+function focusKeyHandler(e){
+  if(!document.getElementById('focusOverlay')) return;
+  if(e.key === 'ArrowRight' || e.key === 'ArrowDown') { e.preventDefault(); focusNext(); }
+  else if(e.key === 'ArrowLeft' || e.key === 'ArrowUp') { e.preventDefault(); focusPrev(); }
+  else if(e.key === 'Escape') closeFocusMode();
+}
+
+function closeFocusMode(){
+  document.getElementById('focusOverlay')?.remove();
+  document.removeEventListener('keydown', focusKeyHandler);
+}
+
+// ============================================================
+// PAYLAŞIM SİSTEMİ
+// ============================================================
+const shareBtnEl = document.getElementById('shareBtn');
+if(shareBtnEl){
+  shareBtnEl.onclick = () => showShareModal();
+}
+
+async function showShareModal(){
+  if(!deck || !deck.slides?.length) return;
+  const isTr = currentLang === 'tr';
+
+  // Daha önce paylaşıldıysa aynı ID'yi kullan
+  if(deck._shareId){
+    renderShareModal(deck._shareId, isTr);
+    return;
+  }
+
+  // Kaydet
+  shareBtnEl.disabled = true;
+  shareBtnEl.textContent = '⏳';
+  const result = window.fbSaveDeck ? await window.fbSaveDeck(deck) : { ok: false };
+  shareBtnEl.disabled = false;
+  shareBtnEl.innerHTML = `🔗 <span class="${isTr?'tr':'en'}-text">${isTr?'Paylaş':'Share'}</span>`;
+
+  if(result.ok){
+    deck._shareId = result.id;
+    renderShareModal(result.id, isTr);
+  } else {
+    alert(isTr ? 'Paylaşım oluşturulamadı, tekrar dene.' : 'Could not create share link, try again.');
+  }
+}
+
+function renderShareModal(id, isTr){
+  const existing = document.getElementById('shareModal');
+  if(existing) existing.remove();
+
+  const url = `${location.origin}${location.pathname}?deck=${id}`;
+  const modal = document.createElement('div');
+  modal.id = 'shareModal';
+  modal.innerHTML = `
+    <div class="sm-box">
+      <h3>🔗 ${isTr?'Çalışma Kağıdını Paylaş':'Share Study Deck'}</h3>
+      <div class="sm-sub">${isTr?'Bu link ile herkes aynı slaytları görüntüleyebilir':'Anyone with this link can view these slides'}</div>
+      <div class="sm-link-row">
+        <input class="sm-link-input" id="shareLinkInput" value="${url}" readonly onclick="this.select()">
+        <button class="sm-copy" id="smCopyBtn">${isTr?'Kopyala':'Copy'}</button>
+      </div>
+      <div class="sm-info">
+        ${isTr
+          ? '✓ Ücretsiz · Hesap gerekmez · Sonsuza kadar geçerli'
+          : '✓ Free · No account needed · Valid forever'}
+      </div>
+      <button class="sm-close" onclick="document.getElementById(\'shareModal\').remove()">${isTr?'Kapat':'Close'}</button>
+    </div>`;
+  document.body.appendChild(modal);
+  modal.onclick = (e) => { if(e.target === modal) modal.remove(); };
+  document.getElementById('smCopyBtn').onclick = () => {
+    navigator.clipboard.writeText(url).then(() => {
+      const btn = document.getElementById('smCopyBtn');
+      if(btn){ btn.textContent = isTr ? '✓ Kopyalandı' : '✓ Copied'; setTimeout(()=>{ if(btn) btn.textContent = isTr?'Kopyala':'Copy'; }, 2500); }
+    }).catch(() => {
+      document.getElementById('shareLinkInput')?.select();
+    });
+  };
+}
+
+// ============================================================
+// URL PARAMETRESİNDEN DECK YÜKLEMELSİ (?deck=ID)
+// ============================================================
+(async () => {
+  const params = new URLSearchParams(location.search);
+  const deckId = params.get('deck');
+  if(!deckId || !window.fbGetDeck) return;
+
+  // Yükleme göster
+  const uploadScreen = document.getElementById('uploadScreen');
+  if(uploadScreen){
+    uploadScreen.innerHTML = `
+      <div style="text-align:center;padding:60px 20px;color:rgba(180,160,255,.7)">
+        <div style="font-size:2rem;margin-bottom:16px;animation:float-logo 2s ease-in-out infinite">🔗</div>
+        <div style="font-family:'Space Mono',monospace;font-size:.8rem">Çalışma kağıdı yükleniyor…</div>
+      </div>`;
+  }
+
+  const data = await window.fbGetDeck(deckId);
+  if(data && data.slides?.length){
+    deck = data;
+    deck._shareId = deckId;
+    uploadScreen?.classList.add('hidden');
+    renderDeck();
+    // URL temizle (tekrar yüklenmesin)
+    history.replaceState({}, '', location.pathname);
+  } else {
+    if(uploadScreen){
+      uploadScreen.innerHTML = `
+        <div style="text-align:center;padding:60px 20px">
+          <div style="font-size:2rem;margin-bottom:12px">❌</div>
+          <div style="color:rgba(255,110,200,.8);font-size:.9rem;margin-bottom:20px">
+            ${currentLang==='tr'?'Bu çalışma kağıdı bulunamadı.':'This study deck was not found.'}
+          </div>
+          <button class="btn primary" onclick="location.href=location.pathname" style="padding:10px 24px">
+            ${currentLang==='tr'?'Ana sayfaya dön':'Go to homepage'}
+          </button>
+        </div>`;
+    }
+  }
+})();
+
+// ============================================================
+// AI QUICK PROMPTS — chip tıklaması
+// ============================================================
+document.querySelectorAll('.ai-chip').forEach(chip => {
+  chip.addEventListener('click', () => {
+    const prompt = chip.dataset.prompt;
+    if(!prompt) return;
+
+    // Masaüstü veya mobil input'u bul
+    const desktopInput = document.getElementById('aiInput');
+    const mobileInput  = document.getElementById('aiInputMobile');
+    const activeInput  = (desktopInput && getComputedStyle(desktopInput).display !== 'none')
+      ? desktopInput : mobileInput;
+
+    if(!activeInput) return;
+
+    // Deck konusuyla zenginleştir
+    const topic = deck?.title ? ` (${deck.title})` : '';
+    activeInput.value = prompt + topic;
+    activeInput.focus();
+
+    // Gönder — send butonu ID'si
+    const sendBtnId = activeInput.id === 'aiInput' ? 'aiSendBtn' : 'aiSendBtnMobile';
+    const sendBtn = document.getElementById(sendBtnId);
+    if(sendBtn && !sendBtn.disabled){
+      setTimeout(() => sendBtn.click(), 80);
+    }
+  });
+});
 
 // Footer accordion
 document.querySelectorAll('.footer-acc-btn').forEach(btn => {
