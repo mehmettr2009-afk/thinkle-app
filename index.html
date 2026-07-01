@@ -550,14 +550,14 @@
         status: 'waiting', // waiting | countdown | playing | finished
         createdAt: new Date().toISOString(),
         startedAt: null,
-        maxPlayers: 6
+        maxPlayers: 20
       };
       await setDoc(doc(db, 'battleRooms', code), roomData);
       return { ok: true, code };
     } catch(e){ return { ok: false }; }
   };
 
-  window.fbJoinRoom = async (code, uid, username) => {
+  window.fbJoinRoom = async (code, uid, username, isBot = false) => {
     try {
       const ref = doc(db, 'battleRooms', code.toUpperCase());
       const snap = await getDoc(ref);
@@ -567,7 +567,7 @@
       const playerCount = Object.keys(data.players || {}).length;
       if(playerCount >= data.maxPlayers) return { ok: false, reason: 'full' };
       await updateDoc(ref, {
-        [`players.${uid}`]: { name: username || uid.slice(0,8), ready: false, score: 0, answers: {}, finishedAt: null }
+        [`players.${uid}`]: { name: username || uid.slice(0,8), ready: false, score: 0, answers: {}, finishedAt: null, isBot: isBot || false }
       });
       return { ok: true, data };
     } catch(e){ return { ok: false, reason: 'error' }; }
@@ -3438,120 +3438,179 @@
   }
   .battle-box{
     background:rgba(8,6,24,.98);
-    border:1px solid rgba(110,231,255,.2);
+    border:1.5px solid rgba(110,231,255,.18);
     border-radius:24px;padding:28px 24px;
-    max-width:520px;width:100%;
-    box-shadow:0 20px 60px rgba(0,0,0,.7);
+    max-width:540px;width:100%;
+    box-shadow:0 0 60px -10px rgba(110,231,255,.15), 0 20px 60px rgba(0,0,0,.7);
     position:relative;max-height:92vh;overflow-y:auto;
     animation:auth-slide .4s cubic-bezier(.16,1,.3,1) both;
   }
   .battle-title{
-    font-family:'Orbitron',sans-serif;font-size:1.1rem;font-weight:900;
+    font-family:'Orbitron',sans-serif;font-size:1.2rem;font-weight:900;
     background:linear-gradient(135deg,#ff6ec7,#b46bff,#6ee7ff);
     -webkit-background-clip:text;-webkit-text-fill-color:transparent;
     background-clip:text;margin:0 0 4px;
+    filter:drop-shadow(0 0 16px rgba(255,110,199,.3));
   }
   .category-grid{
-    display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:14px 0;
+    display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin:14px 0;
   }
   .cat-btn{
-    padding:12px 10px;border-radius:12px;
-    border:1px solid rgba(180,107,255,.2);
-    background:rgba(180,107,255,.05);
-    color:rgba(200,190,220,.8);font-size:.8rem;
+    padding:12px 8px;border-radius:14px;
+    border:1.5px solid rgba(180,107,255,.18);
+    background:rgba(180,107,255,.04);
+    color:rgba(200,190,220,.8);font-size:.76rem;
     cursor:pointer;touch-action:manipulation;
     font-family:'Space Grotesk',sans-serif;font-weight:600;
-    text-align:center;transition:.15s;
+    text-align:center;transition:all .18s ease;
   }
-  .cat-btn:hover{ background:rgba(180,107,255,.15);border-color:rgba(180,107,255,.5); }
+  .cat-btn:hover{ background:rgba(180,107,255,.13);border-color:rgba(180,107,255,.45);transform:translateY(-2px); }
   .cat-btn.selected{
-    background:linear-gradient(135deg,rgba(180,107,255,.25),rgba(110,231,255,.15));
-    border-color:rgba(110,231,255,.6);color:#6ee7ff;
+    background:linear-gradient(135deg,rgba(180,107,255,.22),rgba(110,231,255,.12));
+    border-color:rgba(110,231,255,.55);color:#6ee7ff;
+    box-shadow:0 0 16px -4px rgba(110,231,255,.3);
   }
   .room-code{
-    font-family:'Orbitron',sans-serif;font-size:2.4rem;font-weight:900;
-    letter-spacing:.18em;text-align:center;
+    font-family:'Orbitron',sans-serif;font-size:2.8rem;font-weight:900;
+    letter-spacing:.2em;text-align:center;
     background:linear-gradient(135deg,#6ee7ff,#b46bff);
     -webkit-background-clip:text;-webkit-text-fill-color:transparent;
-    background-clip:text;margin:12px 0;cursor:pointer;
+    background-clip:text;margin:10px 0;cursor:pointer;
+    filter:drop-shadow(0 0 20px rgba(110,231,255,.35));
     transition:.2s;
   }
   .room-code:hover{ opacity:.75; }
   .player-slot{
     display:flex;align-items:center;gap:10px;
-    padding:10px 12px;border-radius:12px;
+    padding:10px 14px;border-radius:14px;
     background:rgba(255,255,255,.03);
-    border:1px solid rgba(255,255,255,.07);
+    border:1.5px solid rgba(255,255,255,.07);
     margin-bottom:6px;transition:.3s;
   }
-  .player-slot.ready{ border-color:rgba(77,255,176,.4);background:rgba(77,255,176,.06); }
+  .player-slot.ready{
+    border-color:rgba(77,255,176,.35);background:rgba(77,255,176,.05);
+    box-shadow:0 0 12px -4px rgba(77,255,176,.2);
+  }
   .player-avatar{
-    width:32px;height:32px;border-radius:50%;
+    width:34px;height:34px;border-radius:50%;
     display:flex;align-items:center;justify-content:center;
     font-size:1.1rem;flex-shrink:0;
-    background:rgba(14,10,36,.8);border:1px solid rgba(180,107,255,.3);
+    background:rgba(14,10,36,.8);border:1.5px solid rgba(180,107,255,.3);
   }
-  .player-name{ flex:1;font-size:.82rem;font-weight:600; }
+  .player-name{ flex:1;font-size:.83rem;font-weight:600; }
   .player-ready-badge{
-    font-size:.62rem;font-family:'Space Mono',monospace;
-    padding:2px 8px;border-radius:6px;
+    font-size:.6rem;font-family:'Space Mono',monospace;
+    padding:3px 8px;border-radius:8px;
   }
-  /* Battle oyun ekranı */
+  /* ===== BATTLE OYUN EKRANI ===== */
   .battle-screen{
     position:fixed;inset:0;z-index:99200;
-    background:rgba(3,2,15,.97);
+    background:#03010e;
     display:flex;flex-direction:column;overflow:hidden;
   }
+  .battle-screen::before{
+    content:'';position:absolute;inset:0;pointer-events:none;z-index:0;
+    background-image:
+      linear-gradient(rgba(255,110,199,.04) 1px,transparent 1px),
+      linear-gradient(90deg,rgba(180,107,255,.04) 1px,transparent 1px);
+    background-size:40px 40px;
+  }
+  .battle-screen > *{ position:relative;z-index:1; }
   .battle-header{
     display:flex;align-items:center;justify-content:space-between;
-    padding:10px 16px;border-bottom:1px solid rgba(255,255,255,.07);
-    background:rgba(8,6,24,.9);flex-shrink:0;
+    padding:12px 20px;
+    border-bottom:1px solid rgba(180,107,255,.18);
+    background:rgba(8,6,24,.85);backdrop-filter:blur(12px);
+    flex-shrink:0;
+    position:relative;overflow:hidden;
+  }
+  .battle-header::after{
+    content:'';position:absolute;left:0;right:0;bottom:-1px;height:2px;
+    background:linear-gradient(90deg,transparent,#ff6ec7 25%,#b46bff 50%,#6ee7ff 75%,transparent);
+    background-size:200% 100%;
+    animation:topbar-scan 5s linear infinite;
   }
   .battle-timer{
-    font-family:'Orbitron',sans-serif;font-size:1.4rem;font-weight:900;
-    width:48px;height:48px;border-radius:50%;
+    font-family:'Orbitron',sans-serif;font-size:1.5rem;font-weight:900;
+    width:52px;height:52px;border-radius:50%;
     display:flex;align-items:center;justify-content:center;
-    border:2px solid;transition:color .3s,border-color .3s;
+    border:2.5px solid;transition:color .3s,border-color .3s,box-shadow .3s;
+  }
+  .battle-timer.urgent{
+    animation:timer-urgent .6s ease-in-out infinite alternate;
+  }
+  @keyframes timer-urgent{
+    0%{box-shadow:0 0 0 0 rgba(255,110,199,.4);}
+    100%{box-shadow:0 0 0 8px rgba(255,110,199,.0);}
   }
   .battle-scoreboard{
-    display:flex;gap:6px;overflow-x:auto;padding:8px 12px;
-    border-bottom:1px solid rgba(255,255,255,.06);
+    display:flex;gap:8px;overflow-x:auto;padding:10px 16px;
+    border-bottom:1px solid rgba(180,107,255,.1);
     flex-shrink:0;-webkit-overflow-scrolling:touch;
+    scrollbar-width:none;
   }
+  .battle-scoreboard::-webkit-scrollbar{display:none;}
   .battle-player-card{
-    flex-shrink:0;min-width:90px;padding:8px 10px;border-radius:10px;
-    background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);
-    text-align:center;transition:.3s;
+    flex-shrink:0;min-width:88px;padding:8px 12px;border-radius:14px;
+    background:rgba(255,255,255,.03);border:1.5px solid rgba(255,255,255,.07);
+    text-align:center;transition:.25s;
   }
   .battle-player-card.me{
     border-color:rgba(110,231,255,.4);background:rgba(110,231,255,.06);
+    box-shadow:0 0 14px -4px rgba(110,231,255,.3);
   }
   .battle-player-card.leading{
     border-color:rgba(255,200,0,.5);background:rgba(255,200,0,.06);
+    box-shadow:0 0 14px -4px rgba(255,200,0,.3);
   }
+  .battle-player-card.bot-card{ border-color:rgba(110,231,255,.18);opacity:.85; }
   .battle-player-score{
-    font-family:'Space Mono',monospace;font-size:1rem;font-weight:700;
+    font-family:'Orbitron',sans-serif;font-size:1.1rem;font-weight:700;
   }
-  .battle-player-nick{ font-size:.6rem;color:rgba(255,255,255,.5);margin-top:2px; }
+  .battle-player-nick{ font-size:.6rem;color:rgba(255,255,255,.45);margin-top:2px;font-family:'Space Mono',monospace; }
   .battle-q-area{
-    flex:1;overflow-y:auto;padding:14px 16px;
+    flex:1;overflow-y:auto;padding:16px 20px;max-width:680px;margin:0 auto;width:100%;
   }
   .battle-q{
-    background:rgba(16,22,58,.6);border:1px solid rgba(255,255,255,.1);
-    border-radius:14px;padding:16px 18px;margin-bottom:10px;
+    background:rgba(14,12,40,.75);backdrop-filter:blur(10px);
+    border:1.5px solid rgba(180,107,255,.22);border-radius:20px;
+    padding:20px 22px;margin-bottom:12px;
+    position:relative;overflow:hidden;
+    box-shadow:0 0 0 1px rgba(110,231,255,.04), 0 16px 40px -16px rgba(180,107,255,.2);
   }
-  .battle-q h3{ font-size:.95rem;margin:0 0 12px;line-height:1.4; }
+  .battle-q::before{
+    content:'';position:absolute;top:0;left:14%;right:14%;height:1.5px;
+    background:linear-gradient(90deg,transparent,#b46bff,#6ee7ff,transparent);
+    opacity:.55;
+  }
+  .battle-q h3{
+    font-size:1rem;margin:10px 0 16px;line-height:1.5;
+    font-family:'Space Grotesk',sans-serif;font-weight:600;
+    color:#eaf0ff;
+    position:relative;z-index:1;
+  }
   .battle-opt{
-    display:block;width:100%;text-align:left;padding:9px 12px;margin-bottom:6px;
-    border:1px solid rgba(255,255,255,.1);border-radius:9px;
-    background:rgba(255,255,255,.03);color:rgba(220,210,255,.85);
-    font-size:.82rem;cursor:pointer;touch-action:manipulation;
-    font-family:'Space Grotesk',sans-serif;transition:.15s;
+    display:block;width:100%;text-align:left;padding:11px 16px;margin-bottom:8px;
+    border:1.5px solid rgba(255,255,255,.08);border-radius:14px;
+    background:rgba(255,255,255,.025);color:rgba(220,210,255,.85);
+    font-size:.85rem;cursor:pointer;touch-action:manipulation;
+    font-family:'Space Grotesk',sans-serif;transition:all .18s ease;
+    position:relative;z-index:1;
   }
-  .battle-opt:hover:not(:disabled){ border-color:#6ee7ff;background:rgba(110,231,255,.07); }
-  .battle-opt.correct{ border-color:#4dffb0;background:rgba(77,255,176,.12);color:#4dffb0;font-weight:600; }
-  .battle-opt.wrong{ border-color:#ff6ec7;background:rgba(255,110,199,.1);color:#ff6ec7; }
-  .battle-opt.rival-correct{ border-color:rgba(255,200,0,.6);background:rgba(255,200,0,.08); }
+  .battle-opt:hover:not(:disabled){
+    border-color:rgba(110,231,255,.55);background:rgba(110,231,255,.09);
+    color:#fff;transform:translateX(3px);
+    box-shadow:0 0 16px -4px rgba(110,231,255,.25);
+  }
+  .battle-opt.correct{
+    border-color:#4dffb0;background:rgba(77,255,176,.14);color:#4dffb0;font-weight:700;
+    box-shadow:0 0 18px -4px rgba(77,255,176,.35);
+  }
+  .battle-opt.wrong{
+    border-color:#ff6ec7;background:rgba(255,110,199,.12);color:#ff6ec7;
+    box-shadow:0 0 14px -4px rgba(255,110,199,.3);
+  }
+  .battle-opt.rival-correct{ border-color:rgba(255,200,0,.5);background:rgba(255,200,0,.07); }
   .countdown-overlay{
     position:fixed;inset:0;z-index:99300;
     background:rgba(3,2,15,.92);backdrop-filter:blur(8px);
@@ -5318,16 +5377,28 @@ function showGalaxyApplyForm(user, isTr, onSuccess){
 // BATTLE ROOM SİSTEMİ — Gartic.io tarzı çok oyunculu quiz
 // ============================================================
 const BATTLE_CATEGORIES = [
-  { id:'general',   emoji:'🌍', label:'Genel Kültür',   labelEn:'General Knowledge' },
-  { id:'science',   emoji:'🔬', label:'Fen & Bilim',    labelEn:'Science' },
-  { id:'history',   emoji:'🏛️', label:'Tarih',          labelEn:'History' },
-  { id:'geography', emoji:'🗺️', label:'Coğrafya',       labelEn:'Geography' },
-  { id:'sports',    emoji:'⚽', label:'Spor',            labelEn:'Sports' },
-  { id:'movies',    emoji:'🎬', label:'Film & Dizi',    labelEn:'Movies & TV' },
-  { id:'music',     emoji:'🎵', label:'Müzik',           labelEn:'Music' },
-  { id:'tech',      emoji:'💻', label:'Teknoloji',       labelEn:'Technology' },
-  { id:'ehliyet',   emoji:'🚗', label:'Ehliyet Sınavı', labelEn:'Driving Test' },
-  { id:'math',      emoji:'➕', label:'Matematik',       labelEn:'Mathematics' },
+  { id:'general',    emoji:'🌍', label:'Genel Kültür',      labelEn:'General Knowledge' },
+  { id:'science',    emoji:'🔬', label:'Fen & Bilim',       labelEn:'Science & Nature' },
+  { id:'history',    emoji:'🏛️', label:'Tarih',             labelEn:'History' },
+  { id:'geography',  emoji:'🗺️', label:'Coğrafya',          labelEn:'Geography' },
+  { id:'sports',     emoji:'⚽', label:'Spor',               labelEn:'Sports' },
+  { id:'movies',     emoji:'🎬', label:'Film & Dizi',       labelEn:'Movies & TV' },
+  { id:'music',      emoji:'🎵', label:'Müzik',              labelEn:'Music' },
+  { id:'tech',       emoji:'💻', label:'Teknoloji',          labelEn:'Technology' },
+  { id:'ehliyet',    emoji:'🚗', label:'Ehliyet Sınavı',    labelEn:'Driving Test' },
+  { id:'math',       emoji:'➕', label:'Matematik',          labelEn:'Mathematics' },
+  { id:'literature', emoji:'📚', label:'Edebiyat & Dil',    labelEn:'Literature & Language' },
+  { id:'nature',     emoji:'🌿', label:'Doğa & Hayvanlar',  labelEn:'Nature & Animals' },
+  { id:'health',     emoji:'🏥', label:'Sağlık & Biyoloji', labelEn:'Health & Biology' },
+  { id:'art',        emoji:'🎨', label:'Sanat & Mimari',    labelEn:'Art & Architecture' },
+  { id:'food',       emoji:'🍽️', label:'Yemek & Mutfak',   labelEn:'Food & Cuisine' },
+  { id:'space',      emoji:'🚀', label:'Uzay & Astronomi',  labelEn:'Space & Astronomy' },
+  { id:'mythology',  emoji:'⚡', label:'Mitoloji',           labelEn:'Mythology' },
+  { id:'flags',      emoji:'🏳️', label:'Bayraklar & Ülkeler',labelEn:'Flags & Countries' },
+  { id:'games',      emoji:'🎮', label:'Oyun & Animasyon',  labelEn:'Games & Animation' },
+  { id:'economy',    emoji:'💰', label:'Ekonomi & İş',      labelEn:'Economy & Business' },
+  { id:'turkish',    emoji:'🇹🇷', label:'Türkiye & Kültür',  labelEn:'Turkey & Culture' },
+  { id:'brain',      emoji:'🧩', label:'Zeka & Mantık',     labelEn:'Logic & Puzzles' },
 ];
 
 let battleRoomCode = null;
@@ -5358,7 +5429,7 @@ function showBattleModal(){
       <div style="text-align:center;margin-bottom:16px">
         <div style="font-size:2rem;margin-bottom:6px">⚔️</div>
         <h2 class="battle-title">${isTr?'Yarışma Modu':'Battle Mode'}</h2>
-        <div style="font-size:.72rem;color:rgba(180,160,255,.5)">${isTr?'Gartic tarzı çok oyunculu quiz · Maks 6 kişi':'Gartic-style multiplayer quiz · Max 6 players'}</div>
+        <div style="font-size:.72rem;color:rgba(180,160,255,.5)">${isTr?'Gerçek zamanlı çok oyunculu quiz · Maks 20 kişi':'Real-time multiplayer quiz · Max 20 players'}</div>
       </div>
       <div style="display:flex;gap:8px;margin-bottom:18px">
         <button id="btnCreateRoom" onclick="showCreateRoom()" style="flex:1;padding:12px;border-radius:12px;border:none;background:linear-gradient(135deg,#ff6ec7,#b46bff);color:#070a18;font-weight:700;font-size:.85rem;cursor:pointer;touch-action:manipulation;font-family:'Space Grotesk',sans-serif">
@@ -5390,7 +5461,7 @@ function showCreateRoom(){
           ${c.emoji} ${isTr ? c.label : c.labelEn}
         </button>`).join('')}
     </div>
-    <div style="font-size:.7rem;color:rgba(180,160,255,.4);margin-bottom:10px">⏱ ${isTr?'Soru başına 20 saniye · 10 soru':'20 seconds per question · 10 questions'}</div>
+    <div style="font-size:.7rem;color:rgba(180,160,255,.4);margin-bottom:10px">⏱ ${isTr?'Soru başına 20 saniye · 20 soru':'20 seconds per question · 20 questions'}</div>
     <button id="createRoomBtn" onclick="doCreateRoom()" disabled style="
       width:100%;padding:13px;border-radius:12px;border:none;
       background:linear-gradient(135deg,#ff6ec7,#b46bff);
@@ -5451,7 +5522,7 @@ async function generateBattleQuestions(category){
         uid: window.currentUser?.uid||'', sig: getRequestSignature(),
         isDeck: true,
         messages:[{role:'user', content:
-          `"${category}" kategorisinde tam olarak 10 çoktan seçmeli soru. SADECE bu format:
+          `"${category}" kategorisinde tam olarak 20 çoktan seçmeli soru. SADECE bu format:
 
 TOPIC:${category}
 ---
@@ -5463,10 +5534,10 @@ D:seçenek
 CORRECT:doğru harf
 EXP:kısa açıklama
 ---
-(10 soru, her biri --- ile ayrılmış)
+(20 soru, her biri --- ile ayrılmış)
 ---END
 
-Kurallar: Türkçe yaz. Sorular net ve kısa olsun. Yanıltıcı ama mantıklı yanlış seçenekler kullan.`
+Kurallar: Türkçe yaz. Sorular net ve kısa olsun. Farklı zorluk seviyeleri kullan (kolay, orta, zor). Yanıltıcı ama mantıklı yanlış seçenekler kullan. Aynı cevap harfi arka arkaya gelmesin.`
         }]
       })
     });
@@ -5493,40 +5564,53 @@ function showWaitingRoom(code){
   const catLabel = catObj ? (isTr ? catObj.label : catObj.labelEn) : '';
 
   box.innerHTML = `
-    <button onclick="leaveBattleRoom()" style="position:absolute;top:14px;right:14px;background:rgba(255,255,255,.08);border:none;border-radius:8px;width:28px;height:28px;cursor:pointer;color:rgba(255,255,255,.6);font-size:.8rem;touch-action:manipulation">✕</button>
-    <div style="text-align:center;margin-bottom:16px">
-      <div style="font-size:.7rem;color:rgba(180,160,255,.5);font-family:'Space Mono',monospace;margin-bottom:4px">${isTr?'ODA KODU — arkadaşınla paylaş':'ROOM CODE — share with friends'}</div>
+    <button onclick="leaveBattleRoom()" style="position:absolute;top:14px;right:14px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);border-radius:10px;width:30px;height:30px;cursor:pointer;color:rgba(255,255,255,.5);font-size:.8rem;touch-action:manipulation;display:flex;align-items:center;justify-content:center">✕</button>
+
+    <div style="text-align:center;margin-bottom:20px">
+      <div style="font-family:'Space Mono',monospace;font-size:.58rem;letter-spacing:.22em;text-transform:uppercase;color:rgba(110,231,255,.4);margin-bottom:10px">${isTr?'ODA KODU — arkadaşınla paylaş':'ROOM CODE — share with friends'}</div>
       <div class="room-code" onclick="copyRoomCode('${code}')" title="${isTr?'Kopyala':'Copy'}">${code}</div>
-      <div style="font-size:.65rem;color:rgba(255,255,255,.3);margin-bottom:8px">${isTr?'Tıkla → Kopyala':'Click → Copy'} · ${catLabel}</div>
-      <div style="display:inline-flex;align-items:center;gap:6px;padding:5px 12px;border-radius:20px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08)">
-        <span style="width:6px;height:6px;border-radius:50%;background:#4dffb0;animation:pulse-dot 1.5s infinite"></span>
-        <span id="waitingCount" style="font-size:.7rem;color:rgba(255,255,255,.5);font-family:'Space Mono',monospace">1 / 6 ${isTr?'oyuncu':'players'}</span>
+      <div style="font-size:.65rem;color:rgba(255,255,255,.25);margin-bottom:12px">${isTr?'Tıkla kopyala':'Click to copy'} · ${catLabel}</div>
+      <div style="display:inline-flex;align-items:center;gap:8px;padding:6px 16px;border-radius:20px;background:rgba(180,107,255,.08);border:1px solid rgba(180,107,255,.22)">
+        <span style="width:7px;height:7px;border-radius:50%;background:#4dffb0;box-shadow:0 0 8px #4dffb0;animation:pulse-dot 1.5s infinite;flex-shrink:0"></span>
+        <span id="waitingCount" style="font-size:.72rem;color:rgba(200,190,230,.7);font-family:'Space Mono',monospace">1 / 20 ${isTr?'oyuncu':'players'}</span>
       </div>
     </div>
 
-    <div id="playerList" style="margin-bottom:14px"></div>
+    <div id="playerList" style="margin-bottom:14px;max-height:240px;overflow-y:auto"></div>
 
     <div id="hostControls" style="${battleIsHost?'':'display:none'}">
-      <button id="startBattleBtn" onclick="doStartBattle()" disabled style="
-        width:100%;padding:13px;border-radius:12px;border:none;
-        background:linear-gradient(135deg,#ff6ec7,#b46bff);
-        color:#070a18;font-weight:700;font-size:.88rem;cursor:pointer;
-        touch-action:manipulation;font-family:'Space Grotesk',sans-serif;
-        opacity:.4;transition:.2s;
-      ">🚀 ${isTr?'Yarışmayı Başlat':'Start Battle'}</button>
-      <div style="font-size:.65rem;color:rgba(180,160,255,.4);text-align:center;margin-top:6px">${isTr?'En az 2 oyuncu hazır olmalı':'At least 2 players must be ready'}</div>
+      <div style="display:flex;gap:8px;margin-bottom:10px">
+        <button onclick="addBotToRoom()" style="
+          flex:1;padding:10px;border-radius:12px;
+          border:1.5px solid rgba(110,231,255,.25);
+          background:rgba(110,231,255,.06);
+          color:rgba(110,231,255,.75);font-weight:600;font-size:.78rem;
+          cursor:pointer;touch-action:manipulation;font-family:'Space Grotesk',sans-serif;
+          transition:.15s;
+        " onmouseover="this.style.borderColor='rgba(110,231,255,.55)'" onmouseout="this.style.borderColor='rgba(110,231,255,.25)'">
+          🤖 ${isTr?'Bot Ekle':'Add Bot'}
+        </button>
+        <button id="startBattleBtn" onclick="doStartBattle()" disabled style="
+          flex:2;padding:10px;border-radius:12px;border:none;
+          background:linear-gradient(135deg,#ff6ec7,#b46bff);
+          color:#070a18;font-weight:700;font-size:.82rem;cursor:pointer;
+          touch-action:manipulation;font-family:'Space Grotesk',sans-serif;
+          opacity:.4;transition:.2s;
+        ">🚀 ${isTr?'Yarışmayı Başlat':'Start Battle'}</button>
+      </div>
+      <div style="font-size:.62rem;color:rgba(180,160,255,.35);text-align:center">${isTr?'Bot ekleyerek tek başına da oynayabilirsin':'You can also play solo by adding bots'}</div>
     </div>
-    <div id="guestWaiting" style="${battleIsHost?'display:none':'text-align:center;color:rgba(180,160,255,.5);font-size:.78rem;padding:10px'}">
+    <div id="guestWaiting" style="${battleIsHost?'display:none':'text-align:center;color:rgba(180,160,255,.45);font-size:.78rem;padding:10px;font-family:Space Grotesk,sans-serif'}">
       ⏳ ${isTr?'Host başlatmasını bekliyorsun...':'Waiting for host to start...'}
     </div>
-
-    <div style="margin-top:12px;text-align:center">
+    <div style="margin-top:10px;text-align:center">
       <button id="myReadyBtn" onclick="toggleMyReady()" style="
-        padding:9px 20px;border-radius:10px;
-        border:1px solid rgba(77,255,176,.3);
+        padding:9px 22px;border-radius:50px;
+        border:1.5px solid rgba(77,255,176,.3);
         background:rgba(77,255,176,.06);color:#4dffb0;
         cursor:pointer;font-size:.78rem;touch-action:manipulation;
         font-family:'Space Grotesk',sans-serif;font-weight:600;
+        transition:.18s;
       ">✓ ${isTr?'Hazırım':'Ready'}</button>
     </div>`;
 
@@ -5583,10 +5667,11 @@ function updateWaitingRoom(roomData){
     }).join('');
   }
 
-  // Host kontrolü — 2+ kişi varsa ve en az 2 hazırsa başlat butonu aktif
+  // Host kontrolü — Bot varsa 1 kişiyle bile başlanabilir
   if(battleIsHost){
     const startBtn = document.getElementById('startBattleBtn');
-    const canStart = count >= 2 && readyCount >= 2;
+    const hasBot = Object.values(players).some(p => p.isBot);
+    const canStart = hasBot ? count >= 2 : (count >= 2 && readyCount >= 2);
     if(startBtn){ startBtn.disabled = !canStart; startBtn.style.opacity = canStart ? '1' : '.4'; }
   }
 }
@@ -5604,6 +5689,57 @@ async function doStartBattle(){
   const btn = document.getElementById('startBattleBtn');
   if(btn){ btn.disabled=true; btn.textContent='⏳ Başlatılıyor...'; }
   await window.fbStartRoom(battleRoomCode);
+}
+
+// ============ BOT SİSTEMİ ============
+const BOT_NAMES = [
+  'Bot_Alpha','Bot_Nexus','Bot_Sigma','Bot_Orion',
+  'Bot_Vega','Bot_Pulsar','Bot_Quasar','Bot_Zenith',
+  'Bot_Atlas','Bot_Nova','Bot_Celeste','Bot_Draco'
+];
+const BOT_AVATARS = ['🤖','👾','🦾','🧠','⚡','💡'];
+let botCount = 0;
+
+async function addBotToRoom(){
+  if(!battleRoomCode || !window.fbJoinRoom) return;
+  if(botCount >= 5){ showToast('Maksimum 5 bot eklenebilir'); return; }
+  const isTr = currentLang === 'tr';
+  const botName = BOT_NAMES[botCount % BOT_NAMES.length] + '_' + Math.floor(Math.random()*99);
+  const botUid = 'bot_' + Date.now() + '_' + Math.random().toString(36).slice(2,6);
+  botCount++;
+  try {
+    await window.fbJoinRoom(battleRoomCode, botUid, botName, true /* isBot */);
+    // Botu otomatik hazır yap
+    await window.fbSetReady(battleRoomCode, botUid, true);
+    showToast(isTr ? `🤖 ${botName} odaya katıldı!` : `🤖 ${botName} joined!`);
+  } catch(e){ showToast(isTr ? 'Bot eklenemedi' : 'Could not add bot'); }
+}
+
+// Bot cevap simülasyonu — battle başladığında host çağırır
+function simulateBotAnswers(qi, roomData, questionData){
+  if(!battleIsHost || !battleRoomCode) return;
+  const players = roomData.players || {};
+  const bots = Object.entries(players).filter(([uid, p]) => p.isBot);
+  if(!bots.length) return;
+
+  bots.forEach(([botUid, botData]) => {
+    // Bot 3-17 saniye arasında cevap verir
+    const delay = (3 + Math.random() * 14) * 1000;
+    // %40 doğru, %60 yanlış (zorlu ama yenilmez değil)
+    const isCorrect = Math.random() < 0.40;
+    const correctIdx = questionData.answerIndex;
+    let answerIdx;
+    if(isCorrect){
+      answerIdx = correctIdx;
+    } else {
+      const opts = [0,1,2,3].filter(i => i !== correctIdx);
+      answerIdx = opts[Math.floor(Math.random()*opts.length)];
+    }
+    setTimeout(() => {
+      if(!battleRoomCode) return;
+      window.fbSetBattleAnswer?.(battleRoomCode, botUid, qi, answerIdx);
+    }, delay);
+  });
 }
 
 function showJoinRoom(){
@@ -5778,12 +5914,20 @@ function startBattleGame(roomData){
   screen.className = 'battle-screen';
   screen.innerHTML = `
     <div class="battle-header">
-      <div style="display:flex;align-items:center;gap:8px">
-        <button onclick="confirmLeaveBattle()" style="background:rgba(255,110,199,.12);border:1px solid rgba(255,110,199,.25);border-radius:8px;padding:5px 10px;cursor:pointer;color:#ff6ec7;font-size:.7rem;font-family:'Space Grotesk',sans-serif;touch-action:manipulation;font-weight:600">✕ ${currentLang==='tr'?'Ayrıl':'Leave'}</button>
-        <div style="font-family:'Orbitron',sans-serif;font-size:.7rem;color:rgba(180,160,255,.6);letter-spacing:.08em">⚔️ ${currentLang==='tr'?'YARIŞMA':'BATTLE'}</div>
+      <div style="display:flex;align-items:center;gap:10px">
+        <button onclick="confirmLeaveBattle()" style="background:rgba(255,110,199,.1);border:1.5px solid rgba(255,110,199,.2);border-radius:12px;padding:6px 12px;cursor:pointer;color:#ff6ec7;font-size:.72rem;font-family:'Space Grotesk',sans-serif;touch-action:manipulation;font-weight:600;transition:.15s">✕ ${currentLang==='tr'?'Ayrıl':'Leave'}</button>
+        <div>
+          <div style="font-family:'Orbitron',sans-serif;font-size:.62rem;color:rgba(180,160,255,.5);letter-spacing:.1em">⚔️ ${currentLang==='tr'?'YARIŞMA':'BATTLE'}</div>
+          <div style="font-size:.68rem;color:rgba(180,160,255,.35);font-family:'Space Mono',monospace" id="battleQNum">1 / ${battleQuestions.length}</div>
+        </div>
       </div>
       <div class="battle-timer" id="battleTimer" style="color:#4dffb0;border-color:#4dffb0">20</div>
-      <div style="font-size:.7rem;color:rgba(255,255,255,.4);font-family:'Space Mono',monospace" id="battleQNum">1 / ${battleQuestions.length}</div>
+      <div style="min-width:80px;text-align:right">
+        <div style="font-size:.62rem;color:rgba(180,160,255,.4);font-family:'Space Mono',monospace;margin-bottom:4px">${currentLang==='tr'?'İLERLEME':'PROGRESS'}</div>
+        <div style="height:4px;background:rgba(255,255,255,.08);border-radius:4px;overflow:hidden;width:80px">
+          <div id="battleProgress" style="height:100%;background:linear-gradient(90deg,#ff6ec7,#b46bff);width:0%;transition:width .4s ease;border-radius:4px"></div>
+        </div>
+      </div>
     </div>
     <div class="battle-scoreboard" id="battleScoreboard"></div>
     <div class="battle-q-area" id="battleQArea"></div>`;
@@ -5817,7 +5961,9 @@ function renderBattleQuestion(qi, roomData){
   const q = battleQuestions[qi];
   const qArea = document.getElementById('battleQArea');
   const qNumEl = document.getElementById('battleQNum');
+  const progressEl = document.getElementById('battleProgress');
   if(qNumEl) qNumEl.textContent = `${qi+1} / ${battleQuestions.length}`;
+  if(progressEl) progressEl.style.width = `${Math.round((qi/battleQuestions.length)*100)}%`;
 
   if(qArea){
     qArea.innerHTML = `
@@ -5834,6 +5980,8 @@ function renderBattleQuestion(qi, roomData){
 
   // Timer
   updateTimerUI();
+  // Bot cevap simülasyonu
+  if(battleIsHost && roomData) simulateBotAnswers(qi, roomData, q);
   battleTimerInterval = setInterval(()=>{
     battleTimeLeft--;
     updateTimerUI();
@@ -5923,9 +6071,16 @@ function updateTimerUI(){
   const el = document.getElementById('battleTimer');
   if(!el) return;
   el.textContent = battleTimeLeft;
-  if(battleTimeLeft > 10){ el.style.color='#4dffb0'; el.style.borderColor='#4dffb0'; }
-  else if(battleTimeLeft > 5){ el.style.color='#ffd700'; el.style.borderColor='#ffd700'; }
-  else { el.style.color='#ff6ec7'; el.style.borderColor='#ff6ec7'; }
+  if(battleTimeLeft > 10){
+    el.style.color='#4dffb0'; el.style.borderColor='#4dffb0';
+    el.classList.remove('urgent');
+  } else if(battleTimeLeft > 5){
+    el.style.color='#ffd700'; el.style.borderColor='#ffd700';
+    el.classList.remove('urgent');
+  } else {
+    el.style.color='#ff6ec7'; el.style.borderColor='#ff6ec7';
+    el.classList.add('urgent');
+  }
 }
 
 async function submitBattleAnswer(qi, oi){
