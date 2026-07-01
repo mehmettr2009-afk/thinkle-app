@@ -456,6 +456,7 @@
       try{
         await setDoc(presenceRef, {
           uid: window.currentUser?.uid || null,
+          username: window.currentUsername || null,
           at: new Date().toISOString(),
           expires: Date.now() + 90000,
           device: deviceType
@@ -602,13 +603,13 @@
     } catch(e){}
   };
 
-  // Bot cevap gönderme alias'ı
-  window.fbSetBattleAnswer = async (code, uid, qi, answerIndex) => {
-    // Bot için correct'i hesapla — battleQuestions global'den al
+  // Bot cevap gönderme — insan skorlamasıyla aynı mantık
+  window.fbSetBattleAnswer = async (code, uid, qi, answerIndex, timeLeft = 10) => {
     try {
       const q = window._battleQuestionsCache?.[qi];
       const correct = q ? (answerIndex === q.answerIndex) : false;
-      const scoreIncrement = correct ? Math.floor(80 + Math.random()*40) : 0;
+      const timeBonus = Math.round((timeLeft / 20) * 50);
+      const scoreIncrement = correct ? 100 + timeBonus : 0;
       await updateDoc(doc(db, 'battleRooms', code), {
         [`players.${uid}.answers.${qi}`]: { answerIndex, correct, time: Date.now() },
         [`players.${uid}.score`]: increment(scoreIncrement)
@@ -789,6 +790,55 @@
   // Daveti sil
   window.fbClearBattleInvite = async (uid) => {
     try { await deleteDoc(doc(db, `battleInvites/${uid}`)); } catch(e){}
+  };
+
+  // ======== EMOJI SİSTEMİ ========
+  window.fbSendBattleEmoji = async (code, uid, emoji, name) => {
+    try {
+      await setDoc(doc(collection(db, `battleRooms/${code}/emojis`)), {
+        uid, emoji, name, ts: Date.now()
+      });
+    } catch(e){}
+  };
+
+  window.fbWatchEmojis = (code, callback) => {
+    const q = query(collection(db, `battleRooms/${code}/emojis`), orderBy('ts','desc'), limit(1));
+    return onSnapshot(q, (snap) => {
+      if(!snap.empty && !snap.metadata.hasPendingWrites){
+        const d = snap.docs[0].data();
+        // Sadece son 5 saniyeye ait emojileri işle
+        if(Date.now() - d.ts < 5000) callback(d);
+      }
+    }, ()=>{});
+  };
+
+  // ======== ARKADAŞ CHAT ========
+  window.fbSendMessage = async (fromUid, toUid, text) => {
+    try {
+      const chatId = [fromUid, toUid].sort().join('_');
+      await setDoc(doc(collection(db, `chats/${chatId}/messages`)), {
+        from: fromUid, text, ts: Date.now()
+      });
+    } catch(e){}
+  };
+
+  window.fbWatchChat = (myUid, friendUid, callback) => {
+    const chatId = [myUid, friendUid].sort().join('_');
+    const q = query(collection(db, `chats/${chatId}/messages`), orderBy('ts','asc'), limit(50));
+    return onSnapshot(q, (snap) => {
+      callback(snap.docs.map(d => d.data()));
+    }, ()=>{});
+  };
+
+  // ======== ONLINE USERS (genel matchmaking) ========
+  window.fbGetOnlineUsers = async (myUid) => {
+    try {
+      const now = Date.now();
+      const snap = await getDocs(collection(db, 'presence'));
+      return snap.docs
+        .filter(d => d.data().expires > now && d.data().uid && d.data().uid !== myUid)
+        .map(d => ({ uid: d.data().uid, username: d.data().username || d.data().uid.slice(0,8), device: d.data().device || 'desktop' }));
+    } catch(e){ return []; }
   };
 </script>
 <style>
@@ -1387,6 +1437,93 @@
   }
   .ai-send-btn:hover{ box-shadow:0 4px 22px -2px rgba(110,231,255,.5); transform:translateY(-1px); }
   .ai-send-btn:disabled{ opacity:.4; cursor:not-allowed; box-shadow:none; transform:none; }
+
+  /* ===== AI PANEL COLLAPSE ===== */
+  #aiPanel.collapsed .ai-chat,
+  #aiPanel.collapsed #aiQuickPrompts,
+  #aiPanel.collapsed .ai-input-row{ display:none !important; }
+  #aiPanel.collapsed{ min-height:0 !important; flex:0 !important; }
+  #aiPanel.collapsed #aiPanelToggleBtn{ transform:rotate(180deg); }
+  #aiPanel{ transition:flex .25s ease; }
+
+  /* ===== EMOJI SİSTEMİ ===== */
+  .battle-emoji-bar{
+    display:flex;gap:6px;padding:6px 16px 8px;
+    border-bottom:1px solid rgba(180,107,255,.1);flex-shrink:0;
+    overflow-x:auto;scrollbar-width:none;
+  }
+  .battle-emoji-bar::-webkit-scrollbar{display:none;}
+  .emoji-btn{
+    font-size:1.3rem;background:rgba(255,255,255,.04);
+    border:1.5px solid rgba(255,255,255,.07);border-radius:12px;
+    width:40px;height:40px;cursor:pointer;flex-shrink:0;
+    display:flex;align-items:center;justify-content:center;
+    transition:all .15s;touch-action:manipulation;
+  }
+  .emoji-btn:hover{background:rgba(180,107,255,.12);border-color:rgba(180,107,255,.4);transform:scale(1.12);}
+  .emoji-float{
+    position:fixed;font-size:1.8rem;pointer-events:none;
+    animation:emoji-rise 2.2s cubic-bezier(.25,.46,.45,.94) forwards;
+    z-index:99999;user-select:none;
+  }
+  @keyframes emoji-rise{
+    0%{transform:translateY(0) scale(.5);opacity:1;}
+    60%{transform:translateY(-120px) scale(1.2);opacity:1;}
+    100%{transform:translateY(-220px) scale(1);opacity:0;}
+  }
+  .emoji-incoming{
+    position:fixed;bottom:80px;right:20px;
+    font-size:2rem;padding:10px 14px;border-radius:16px;
+    background:rgba(14,12,38,.9);border:1.5px solid rgba(180,107,255,.3);
+    z-index:99998;pointer-events:none;
+    animation:emoji-incoming-pop .4s cubic-bezier(.16,1,.3,1) both, emoji-fade-out 2s 1.5s ease forwards;
+  }
+  @keyframes emoji-incoming-pop{from{transform:scale(.3);opacity:0;}to{transform:scale(1);opacity:1;}}
+  @keyframes emoji-fade-out{to{opacity:0;transform:translateY(-20px);}}
+
+  /* ===== ARKADAŞ CHAT ===== */
+  .friend-chat-modal{
+    position:fixed;inset:0;z-index:9500;
+    background:rgba(3,2,15,.85);backdrop-filter:blur(12px);
+    display:flex;align-items:flex-end;justify-content:flex-end;
+    padding:20px;pointer-events:none;opacity:0;transition:opacity .25s ease;
+  }
+  .friend-chat-modal.open{pointer-events:auto;opacity:1;}
+  .friend-chat-box{
+    width:min(360px,95vw);height:min(520px,80vh);
+    background:rgba(10,7,28,.98);border:1.5px solid rgba(110,231,255,.2);
+    border-radius:20px;display:flex;flex-direction:column;overflow:hidden;
+    box-shadow:0 -8px 40px rgba(0,0,0,.5),0 0 40px -10px rgba(110,231,255,.15);
+    transform:translateY(20px);transition:transform .25s cubic-bezier(.16,1,.3,1);
+  }
+  .friend-chat-modal.open .friend-chat-box{transform:translateY(0);}
+  .fch-header{
+    display:flex;align-items:center;gap:10px;padding:14px 16px;
+    border-bottom:1px solid rgba(110,231,255,.12);background:rgba(8,6,24,.8);flex-shrink:0;
+  }
+  .fch-avatar{width:32px;height:32px;border-radius:50%;background:rgba(180,107,255,.2);border:1.5px solid rgba(180,107,255,.35);display:flex;align-items:center;justify-content:center;font-size:1rem;flex-shrink:0;}
+  .fch-name{flex:1;font-weight:600;font-size:.88rem;}
+  .fch-close{background:none;border:none;color:rgba(255,255,255,.4);cursor:pointer;font-size:1rem;padding:4px;border-radius:8px;}
+  .fch-close:hover{color:#fff;background:rgba(255,255,255,.08);}
+  .fch-messages{flex:1;overflow-y:auto;padding:12px 14px;display:flex;flex-direction:column;gap:8px;scrollbar-width:thin;scrollbar-color:rgba(180,107,255,.2) transparent;}
+  .fch-msg{max-width:80%;word-break:break-word;}
+  .fch-msg.mine{align-self:flex-end;}
+  .fch-msg.theirs{align-self:flex-start;}
+  .fch-bubble{padding:8px 12px;border-radius:14px;font-size:.82rem;line-height:1.5;}
+  .fch-msg.mine .fch-bubble{background:linear-gradient(135deg,var(--accent),var(--accent2));color:#070a18;font-weight:500;border-radius:14px 14px 2px 14px;}
+  .fch-msg.theirs .fch-bubble{background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.08);border-radius:14px 14px 14px 2px;}
+  .fch-time{font-size:.55rem;color:rgba(255,255,255,.3);margin-top:2px;font-family:'Space Mono',monospace;}
+  .fch-input-row{display:flex;gap:8px;padding:10px 12px;border-top:1px solid rgba(110,231,255,.1);flex-shrink:0;background:rgba(8,6,24,.6);}
+  .fch-input{flex:1;border-radius:12px;border:1.5px solid rgba(180,107,255,.18);background:rgba(255,255,255,.03);color:#eaf0ff;padding:8px 12px;font-family:'Space Grotesk',sans-serif;font-size:.82rem;outline:none;transition:border-color .15s;}
+  .fch-input:focus{border-color:var(--accent);}
+  .fch-send{width:36px;height:36px;border-radius:12px;border:none;flex-shrink:0;background:linear-gradient(135deg,var(--accent),var(--accent2));color:#070a18;cursor:pointer;font-size:.9rem;font-weight:700;display:flex;align-items:center;justify-content:center;transition:all .15s;}
+  .fch-send:hover{box-shadow:0 0 16px rgba(110,231,255,.35);transform:translateY(-1px);}
+
+  /* ===== 1v1 & CHAT BUTONLARI ===== */
+  .challenge-btn{padding:5px 10px;border-radius:10px;font-size:.68rem;font-weight:700;border:1.5px solid rgba(255,110,199,.3);background:rgba(255,110,199,.08);color:#ff6ec7;cursor:pointer;font-family:'Space Grotesk',sans-serif;transition:all .15s;touch-action:manipulation;flex-shrink:0;}
+  .challenge-btn:hover{background:rgba(255,110,199,.18);border-color:rgba(255,110,199,.6);}
+  .chat-open-btn{padding:5px 10px;border-radius:10px;font-size:.68rem;font-weight:700;border:1.5px solid rgba(110,231,255,.25);background:rgba(110,231,255,.06);color:#6ee7ff;cursor:pointer;font-family:'Space Grotesk',sans-serif;transition:all .15s;touch-action:manipulation;flex-shrink:0;}
+  .chat-open-btn:hover{background:rgba(110,231,255,.14);border-color:rgba(110,231,255,.55);}
   /* Hızlı prompt şablonları */
   .ai-chip{
     padding:4px 10px; border-radius:20px; font-size:.68rem;
@@ -4143,7 +4280,7 @@
   </div>
 
   <div class="ai-panel" id="aiPanel">
-    <div class="ai-panel-header">
+    <div class="ai-panel-header" style="cursor:pointer" onclick="toggleAiPanel()">
       <div style="flex:1">
         <h3 data-i18n="aiPanelTitle">Sor & Öğren</h3>
         <span class="util" data-i18n="aiPanelTagline">dosyasız da sorabilirsin</span>
@@ -4152,6 +4289,7 @@
         <div id="chatLimitText">— / 30</div>
         <div style="color:rgba(180,160,255,.5)">mesaj</div>
       </div>
+      <button id="aiPanelToggleBtn" style="margin-left:8px;background:none;border:none;color:rgba(180,160,255,.4);font-size:.85rem;cursor:pointer;padding:2px;transition:transform .25s ease" title="Daralt / Genişlet">▲</button>
     </div>
     <div class="ai-chat" id="aiChat">
       <div class="ai-panel-empty" id="aiEmptyMsg" data-i18n="aiEmptyMsg">Bir konu, fikir veya soru yaz — Thinkle sana anlatmaya başlasın. PDF yüklemen gerekmiyor.</div>
@@ -5473,11 +5611,14 @@ function showBattleModal(){
         <div style="font-size:.72rem;color:rgba(180,160,255,.5)">${isTr?'Gerçek zamanlı çok oyunculu quiz · Maks 20 kişi':'Real-time multiplayer quiz · Max 20 players'}</div>
       </div>
       <div style="display:flex;gap:8px;margin-bottom:18px">
-        <button id="btnCreateRoom" onclick="showCreateRoom()" style="flex:1;padding:12px;border-radius:12px;border:none;background:linear-gradient(135deg,#ff6ec7,#b46bff);color:#070a18;font-weight:700;font-size:.85rem;cursor:pointer;touch-action:manipulation;font-family:'Space Grotesk',sans-serif">
+        <button id="btnCreateRoom" onclick="showCreateRoom()" style="flex:1;padding:12px;border-radius:14px;border:none;background:linear-gradient(135deg,#ff6ec7,#b46bff);color:#070a18;font-weight:700;font-size:.85rem;cursor:pointer;touch-action:manipulation;font-family:'Orbitron',sans-serif;letter-spacing:.02em">
           ➕ ${isTr?'Oda Kur':'Create Room'}
         </button>
-        <button id="btnJoinRoom" onclick="showJoinRoom()" style="flex:1;padding:12px;border-radius:12px;border:1px solid rgba(110,231,255,.3);background:rgba(110,231,255,.06);color:#6ee7ff;font-weight:700;font-size:.85rem;cursor:pointer;touch-action:manipulation;font-family:'Space Grotesk',sans-serif">
-          🔑 ${isTr?'Odaya Katıl':'Join Room'}
+        <button id="btnJoinRoom" onclick="showJoinRoom()" style="flex:1;padding:12px;border-radius:14px;border:1.5px solid rgba(110,231,255,.3);background:rgba(110,231,255,.06);color:#6ee7ff;font-weight:700;font-size:.85rem;cursor:pointer;touch-action:manipulation;font-family:'Space Grotesk',sans-serif">
+          🔑 ${isTr?'Katıl':'Join'}
+        </button>
+        <button onclick="showOnlinePlayers()" style="flex:1;padding:12px;border-radius:14px;border:1.5px solid rgba(77,255,176,.25);background:rgba(77,255,176,.06);color:#4dffb0;font-weight:700;font-size:.85rem;cursor:pointer;touch-action:manipulation;font-family:'Space Grotesk',sans-serif">
+          🌍 ${isTr?'Online':'Online'}
         </button>
       </div>
       <div id="battleModalContent"></div>
@@ -5831,28 +5972,33 @@ async function removeBotFromRoom(botUid){
     if(botCount > 0) botCount--;
   } catch(e){ showToast('Bot kaldırılamadı'); }
 }
+// Bot cevap takibi — duplicate önleme
+const _botAnswered = {}; // { botUid: { 0: true, 1: true, ... } }
+
 function simulateBotAnswers(qi, roomData, questionData){
   if(!battleIsHost || !battleRoomCode) return;
-  const players = roomData.players || {};
-  const bots = Object.entries(players).filter(([uid, p]) => p.isBot);
+  const latestPlayers = window._battleLatestRoomData?.players || roomData.players || {};
+  const bots = Object.entries(latestPlayers).filter(([uid, p]) => p.isBot);
   if(!bots.length) return;
 
-  bots.forEach(([botUid, botData]) => {
-    // Bot 3-17 saniye arasında cevap verir
-    const delay = (3 + Math.random() * 14) * 1000;
-    // %40 doğru, %60 yanlış (zorlu ama yenilmez değil)
-    const isCorrect = Math.random() < 0.40;
+  bots.forEach(([botUid]) => {
+    // Zaten cevapladıysa tekrar cevaplama
+    if(_botAnswered[botUid]?.[qi]) return;
+    if(!_botAnswered[botUid]) _botAnswered[botUid] = {};
+    _botAnswered[botUid][qi] = true;
+
+    // Bot 1-8 saniye arasında cevap verir (20 saniyelik soruya yetişir)
+    const delay = (1 + Math.random() * 7) * 1000;
+    // %45 doğru — gerçekçi rakip
+    const isCorrect = Math.random() < 0.45;
     const correctIdx = questionData.answerIndex;
-    let answerIdx;
-    if(isCorrect){
-      answerIdx = correctIdx;
-    } else {
-      const opts = [0,1,2,3].filter(i => i !== correctIdx);
-      answerIdx = opts[Math.floor(Math.random()*opts.length)];
-    }
+    const answerIdx = isCorrect
+      ? correctIdx
+      : [0,1,2,3].filter(i => i !== correctIdx)[Math.floor(Math.random()*3)];
+
     setTimeout(() => {
       if(!battleRoomCode) return;
-      window.fbSetBattleAnswer?.(battleRoomCode, botUid, qi, answerIdx);
+      window.fbSetBattleAnswer?.(battleRoomCode, botUid, qi, answerIdx, battleTimeLeft);
     }, delay);
   });
 }
@@ -5921,6 +6067,7 @@ async function doLeaveBattle(){
   clearInterval(battleTimerInterval);
   clearTimeout(window._battleWaitTimeout);
   if(battleUnsubscribe){ battleUnsubscribe(); battleUnsubscribe = null; }
+  if(typeof _emojiUnsub === 'function'){ _emojiUnsub(); _emojiUnsub = null; }
   if(battleRoomCode && battleMyUid) await window.fbLeaveRoom(battleRoomCode, battleMyUid);
   battleRoomCode = null; battleIsHost = false; battleFinished = false; _battleResultShown = false;
   document.getElementById('battleScreen')?.remove();
@@ -6035,6 +6182,11 @@ function startBattleGame(roomData){
       </div>
     </div>
     <div class="battle-scoreboard" id="battleScoreboard"></div>
+    <div class="battle-emoji-bar" id="battleEmojiBar">
+      ${['🔥','💀','😂','🤔','👏','⚡','🎯','😤','🏆','🤖','🥲','🫡'].map(e =>
+        `<button class="emoji-btn" onclick="sendBattleEmoji('${e}')" title="${e}">${e}</button>`
+      ).join('')}
+    </div>
     <div class="battle-q-area" id="battleQArea"></div>`;
   document.body.appendChild(screen);
 
@@ -6054,6 +6206,8 @@ function startBattleGame(roomData){
   });
 
   renderBattleQuestion(0, roomData);
+  // Emoji listener başlat
+  startEmojiListener(battleRoomCode);
 }
 
 function renderBattleQuestion(qi, roomData){
@@ -6556,9 +6710,10 @@ function renderFriendList(){
             </div>
           </div>
           <div style="display:flex;gap:4px;align-items:center">
-            <button onclick="inviteFriendToBattle('${f.uid}','${escapeHtml(f.name||'')}','${device||''}')"
-              title="${isOnline?'Yarışmaya davet et':'Offline'}"
-              style="background:${isOnline?'rgba(255,110,199,.15)':'rgba(255,255,255,.04)'};border:1px solid ${isOnline?'rgba(255,110,199,.3)':'rgba(255,255,255,.08)'};border-radius:7px;padding:5px 8px;cursor:${isOnline?'pointer':'default'};font-size:.75rem;color:${isOnline?'#ff6ec7':'rgba(255,255,255,.2)'};touch-action:manipulation">⚔️</button>
+            <button class="chat-open-btn" onclick="openFriendChat('${f.uid}','${escapeHtml(f.name||f.uid.slice(0,8))}','${f.avatar||'👤'}')" title="${currentLang==='tr'?'Mesaj gönder':'Message'}">💬</button>
+            <button class="${isOnline?'challenge-btn':''}" onclick="${isOnline?`challengeFriend1v1('${f.uid}','${escapeHtml(f.name||'')}')`:`inviteFriendToBattle('${f.uid}','${escapeHtml(f.name||'')}','${device||''}')`}"
+              title="${isOnline?(currentLang==='tr'?'1v1 Meydan Oku':'1v1 Challenge'):(currentLang==='tr'?'Yarışmaya davet et':'Invite to battle')}"
+              style="${!isOnline?`background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:7px;padding:5px 8px;cursor:default;font-size:.75rem;color:rgba(255,255,255,.2);touch-action:manipulation`:``}">⚔️</button>
             <button onclick="removeFriend('${f.uid}','${escapeHtml(f.name||'')}',this)"
               style="background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:7px;padding:5px 8px;cursor:pointer;font-size:.7rem;color:rgba(255,255,255,.25);touch-action:manipulation">✕</button>
           </div>
@@ -6841,53 +6996,104 @@ function showFounderWelcome(){
   const style = document.createElement('style');
   style.textContent = `
     @keyframes fw-appear{from{opacity:0}to{opacity:1}}
-    @keyframes fw-slide{from{opacity:0;transform:translateY(40px) scale(.95)}to{opacity:1;transform:translateY(0) scale(1)}}
-    @keyframes fw-crown{from{transform:rotate(-8deg) scale(1)}to{transform:rotate(8deg) scale(1.1)}}
+    @keyframes fw-slide{from{opacity:0;transform:translateY(30px) scale(.97)}to{opacity:1;transform:translateY(0) scale(1)}}
+    @keyframes fw-crown{0%{transform:rotate(-6deg) scale(1);filter:drop-shadow(0 0 8px rgba(255,215,0,.5))}100%{transform:rotate(6deg) scale(1.08);filter:drop-shadow(0 0 20px rgba(255,215,0,.9))}}
+
+    #fwPanel{
+      background:rgba(10,7,28,.97);
+      border:1.5px solid rgba(255,215,0,.22);
+      border-radius:24px;
+      box-shadow:
+        0 0 0 1px rgba(255,215,0,.06),
+        0 0 60px -10px rgba(255,215,0,.2),
+        0 24px 80px rgba(0,0,0,.7);
+      position:relative; overflow:hidden;
+    }
+    #fwPanel::before{
+      content:''; position:absolute; inset:0; pointer-events:none; z-index:0;
+      background-image:
+        linear-gradient(rgba(255,215,0,.04) 1px,transparent 1px),
+        linear-gradient(90deg,rgba(255,215,0,.03) 1px,transparent 1px);
+      background-size:36px 36px;
+      -webkit-mask-image:radial-gradient(ellipse 80% 60% at 50% 0%,#000,transparent 70%);
+      mask-image:radial-gradient(ellipse 80% 60% at 50% 0%,#000,transparent 70%);
+    }
+    #fwPanel > *{ position:relative; z-index:1; }
     .fw-tab{
-      padding:8px 14px;border-radius:10px 10px 0 0;border:none;background:transparent;
-      color:rgba(255,255,255,.45);font-size:.74rem;font-family:'Space Grotesk',sans-serif;
+      padding:9px 14px;border-radius:12px 12px 0 0;border:none;background:transparent;
+      color:rgba(255,255,255,.38);font-size:.73rem;font-family:'Space Grotesk',sans-serif;
       cursor:pointer;touch-action:manipulation;white-space:nowrap;font-weight:600;
-      border-bottom:2px solid transparent;
+      border-bottom:2px solid transparent;transition:color .15s,border-color .15s;
     }
-    .fw-tab.active{ color:#ffd700; border-bottom-color:#ffd700; }
+    .fw-tab:hover{ color:rgba(255,215,0,.7); }
+    .fw-tab.active{ color:#ffd700; border-bottom-color:#ffd700; text-shadow:0 0 12px rgba(255,215,0,.4); }
     .fw-card{
-      background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.07);
-      border-radius:14px;padding:14px 16px;margin-bottom:12px;
+      background:rgba(255,255,255,.025);
+      border:1.5px solid rgba(255,215,0,.1);
+      border-radius:16px;padding:15px 16px;margin-bottom:12px;
+      position:relative;overflow:hidden;
     }
-    .fw-stat-grid{ display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px; }
+    .fw-card::before{
+      content:''; position:absolute; left:0; top:0; bottom:0; width:3px;
+      background:linear-gradient(180deg,#ffd700,rgba(255,215,0,.2));
+    }
+    .fw-stat-grid{ display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px; }
     .fw-stat-grid.cols3{ grid-template-columns:1fr 1fr 1fr; }
     .fw-stat-box{
-      background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.08);
-      border-radius:12px;padding:11px 10px;
+      background:rgba(255,255,255,.025);
+      border:1.5px solid rgba(255,215,0,.12);
+      border-radius:14px;padding:13px 12px;
+      text-align:center;
+      position:relative;overflow:hidden;
+      transition:border-color .2s;
     }
-    .fw-stat-num{ font-size:1.3rem;font-weight:700;font-family:'Space Grotesk',sans-serif; }
-    .fw-stat-label{ font-size:.6rem;color:rgba(255,255,255,.4);font-family:'Space Mono',monospace;margin-top:2px;letter-spacing:.04em; }
-    .fw-bar-row{ display:flex;align-items:center;gap:8px;margin-bottom:3px; }
+    .fw-stat-box:hover{ border-color:rgba(255,215,0,.3); }
+    .fw-stat-num{
+      font-size:1.5rem;font-weight:800;font-family:'Orbitron',sans-serif;
+      background:linear-gradient(135deg,#ffd700,#ffaa00);
+      -webkit-background-clip:text;background-clip:text;color:transparent;
+    }
+    .fw-stat-label{ font-size:.58rem;color:rgba(255,255,255,.38);font-family:'Space Mono',monospace;margin-top:3px;letter-spacing:.08em;text-transform:uppercase; }
+    .fw-bar-row{ display:flex;align-items:center;gap:8px;margin-bottom:4px; }
     .fw-bar-label{ font-size:.6rem;color:rgba(255,255,255,.35);font-family:'Space Mono',monospace;width:32px;flex-shrink:0; }
-    .fw-bar-track{ flex:1;height:10px;background:rgba(255,255,255,.05);border-radius:5px;overflow:hidden; }
-    .fw-bar-fill{ height:100%;background:linear-gradient(90deg,#6ee7ff,#b46bff);border-radius:5px;transition:width .4s ease; }
+    .fw-bar-track{ flex:1;height:8px;background:rgba(255,255,255,.05);border-radius:5px;overflow:hidden; }
+    .fw-bar-fill{ height:100%;background:linear-gradient(90deg,#ffd700,#ff6ec7);border-radius:5px;transition:width .5s ease; }
     .fw-list-item{
       display:flex;justify-content:space-between;align-items:center;gap:8px;
-      padding:8px 10px;border-radius:9px;font-size:.72rem;margin-bottom:4px;
-      background:rgba(255,255,255,.02);
+      padding:9px 12px;border-radius:12px;font-size:.73rem;margin-bottom:5px;
+      background:rgba(255,255,255,.02);border:1px solid rgba(255,255,255,.05);
+      transition:border-color .15s;
     }
+    .fw-list-item:hover{ border-color:rgba(255,215,0,.18); }
     .fw-badge{
-      font-size:.6rem;padding:2px 7px;border-radius:6px;font-family:'Space Mono',monospace;
+      font-size:.6rem;padding:2px 8px;border-radius:8px;font-family:'Space Mono',monospace;
       white-space:nowrap;
     }
     .fw-input{
-      width:100%;padding:9px 11px;border-radius:10px;border:1px solid rgba(255,255,255,.12);
-      background:rgba(255,255,255,.04);color:#fff;font-size:.8rem;font-family:'Space Grotesk',sans-serif;
-      box-sizing:border-box;
+      width:100%;padding:10px 13px;border-radius:12px;
+      border:1.5px solid rgba(255,215,0,.15);
+      background:rgba(255,215,0,.03);color:#fff;
+      font-size:.82rem;font-family:'Space Grotesk',sans-serif;
+      box-sizing:border-box;transition:border-color .15s;outline:none;
     }
+    .fw-input:focus{ border-color:rgba(255,215,0,.45); box-shadow:0 0 12px rgba(255,215,0,.1); }
     .fw-btn{
-      padding:9px 14px;border-radius:10px;border:none;cursor:pointer;font-size:.78rem;
-      font-family:'Space Grotesk',sans-serif;touch-action:manipulation;font-weight:600;white-space:nowrap;
+      padding:9px 16px;border-radius:12px;border:none;cursor:pointer;font-size:.78rem;
+      font-family:'Space Grotesk',sans-serif;touch-action:manipulation;font-weight:700;
+      white-space:nowrap;transition:all .15s ease;
     }
-    .fw-btn-green{ background:rgba(77,255,150,.18);color:#4dff96; }
-    .fw-btn-red{ background:rgba(255,100,110,.18);color:#ff6e78; }
-    .fw-btn-gold{ background:rgba(255,215,0,.18);color:#ffd700; }
-    .fw-empty{ text-align:center;padding:20px;color:rgba(255,255,255,.3);font-size:.78rem; }
+    .fw-btn:hover{ transform:translateY(-1px); }
+    .fw-btn-green{ background:rgba(77,255,150,.15);color:#4dff96;border:1px solid rgba(77,255,150,.25); }
+    .fw-btn-green:hover{ background:rgba(77,255,150,.25);box-shadow:0 0 16px rgba(77,255,150,.2); }
+    .fw-btn-red{ background:rgba(255,100,110,.15);color:#ff6e78;border:1px solid rgba(255,100,110,.25); }
+    .fw-btn-red:hover{ background:rgba(255,100,110,.25);box-shadow:0 0 16px rgba(255,100,110,.2); }
+    .fw-btn-gold{ background:rgba(255,215,0,.15);color:#ffd700;border:1px solid rgba(255,215,0,.3); }
+    .fw-btn-gold:hover{ background:rgba(255,215,0,.25);box-shadow:0 0 16px rgba(255,215,0,.2); }
+    .fw-empty{ text-align:center;padding:28px;color:rgba(255,255,255,.25);font-size:.82rem; }
+    .fw-section-title{
+      font-size:.62rem;color:rgba(255,215,0,.55);font-family:'Space Mono',monospace;
+      letter-spacing:.14em;text-transform:uppercase;margin-bottom:10px;
+    }
   `;
   document.head.appendChild(style);
   document.body.appendChild(el);
@@ -10316,7 +10522,206 @@ function closeWelcomeScreen(callback){
   });
 })();
 
-// ============ Footer accordion
+// ============================================================
+// AI PANEL TOGGLE
+// ============================================================
+function toggleAiPanel(){
+  const panel = document.getElementById('aiPanel');
+  if(!panel) return;
+  panel.classList.toggle('collapsed');
+  const btn = document.getElementById('aiPanelToggleBtn');
+  if(btn) btn.title = panel.classList.contains('collapsed') ? 'Genişlet' : 'Daralt';
+}
+
+// ============================================================
+// EMOJI SİSTEMİ — Battle sırasında emoji gönder
+// ============================================================
+async function sendBattleEmoji(emoji){
+  if(!battleRoomCode) return;
+  const name = battleMyName || '?';
+  try {
+    await window.fbSendBattleEmoji?.(battleRoomCode, battleMyUid, emoji, name);
+  } catch(e){}
+  // Kendi tarafında da göster
+  showEmojiFloat(emoji, true);
+}
+
+function showEmojiFloat(emoji, isMine = false){
+  const el = document.createElement('div');
+  el.className = 'emoji-float';
+  el.textContent = emoji;
+  // Rastgele yatay konum
+  const x = 20 + Math.random() * 60;
+  const startY = window.innerHeight - 100;
+  el.style.cssText = `left:${x}vw;top:${startY}px;`;
+  document.body.appendChild(el);
+  setTimeout(() => el.remove(), 2300);
+}
+
+function showIncomingEmoji(emoji, senderName){
+  const el = document.createElement('div');
+  el.className = 'emoji-incoming';
+  el.innerHTML = `${emoji}<div style="font-size:.65rem;font-family:'Space Grotesk';color:rgba(200,190,230,.65);margin-top:4px">@${senderName}</div>`;
+  document.body.appendChild(el);
+  setTimeout(() => el.remove(), 3200);
+}
+
+// Firebase emoji dinleyicisi — battle başlayınca aktifleşir
+let _emojiUnsub = null;
+function startEmojiListener(code){
+  if(!window.fbWatchEmojis || !code) return;
+  _emojiUnsub?.();
+  _emojiUnsub = window.fbWatchEmojis(code, (emojiData) => {
+    // Benden gelen emojileri atla, başkasından gelenleri göster
+    if(emojiData.uid === battleMyUid) return;
+    showEmojiFloat(emojiData.emoji, false);
+    showIncomingEmoji(emojiData.emoji, emojiData.name || '?');
+  });
+}
+
+// ============================================================
+// ARKADAŞ CHAT SİSTEMİ
+// ============================================================
+let activeChatFriendUid = null;
+let activeChatFriendName = null;
+let chatUnsub = null;
+
+function openFriendChat(friendUid, friendName, friendEmoji = '👤'){
+  activeChatFriendUid = friendUid;
+  activeChatFriendName = friendName;
+
+  // Modal varsa kaldır
+  document.getElementById('friendChatModal')?.remove();
+  if(chatUnsub){ chatUnsub(); chatUnsub = null; }
+
+  const myUid = window.currentUser?.uid;
+  if(!myUid) return;
+
+  const modal = document.createElement('div');
+  modal.id = 'friendChatModal';
+  modal.className = 'friend-chat-modal';
+  modal.innerHTML = `
+    <div class="friend-chat-box">
+      <div class="fch-header">
+        <div class="fch-avatar">${friendEmoji}</div>
+        <div class="fch-name">${escapeHtml(friendName)}</div>
+        <button class="fch-close" onclick="closeFriendChat()">✕</button>
+      </div>
+      <div class="fch-messages" id="fchMessages">
+        <div style="text-align:center;padding:20px;font-size:.75rem;color:rgba(200,190,230,.35)">
+          ${currentLang==='tr'?'Sohbet başlıyor...':'Starting chat...'}
+        </div>
+      </div>
+      <div class="fch-input-row">
+        <input class="fch-input" id="fchInput" placeholder="${currentLang==='tr'?'Mesaj yaz...':'Type a message...'}" maxlength="500">
+        <button class="fch-send" id="fchSendBtn" onclick="sendChatMessage()">→</button>
+      </div>
+    </div>`;
+  document.body.appendChild(modal);
+  modal.onclick = (e) => { if(e.target === modal) closeFriendChat(); };
+
+  // Enter ile gönder
+  document.getElementById('fchInput')?.addEventListener('keydown', e => {
+    if(e.key === 'Enter' && !e.shiftKey){ e.preventDefault(); sendChatMessage(); }
+  });
+
+  // Animasyon
+  requestAnimationFrame(() => modal.classList.add('open'));
+
+  // Mesajları dinle
+  if(window.fbWatchChat){
+    chatUnsub = window.fbWatchChat(myUid, friendUid, (messages) => {
+      renderChatMessages(messages, myUid);
+    });
+  }
+}
+
+function closeFriendChat(){
+  const modal = document.getElementById('friendChatModal');
+  if(modal){ modal.classList.remove('open'); setTimeout(()=>modal.remove(),280); }
+  chatUnsub?.(); chatUnsub = null;
+  activeChatFriendUid = null;
+}
+
+function renderChatMessages(messages, myUid){
+  const el = document.getElementById('fchMessages');
+  if(!el) return;
+  if(!messages.length){
+    el.innerHTML = `<div style="text-align:center;padding:20px;font-size:.75rem;color:rgba(200,190,230,.3)">${currentLang==='tr'?'Henüz mesaj yok — başla!':'No messages yet — say hi!'}</div>`;
+    return;
+  }
+  el.innerHTML = messages.map(m => {
+    const isMine = m.from === myUid;
+    const t = new Date(m.ts).toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'});
+    return `
+      <div class="fch-msg ${isMine?'mine':'theirs'}">
+        <div class="fch-bubble">${escapeHtml(m.text)}</div>
+        <div class="fch-time">${t}</div>
+      </div>`;
+  }).join('');
+  el.scrollTop = el.scrollHeight;
+}
+
+async function sendChatMessage(){
+  const inp = document.getElementById('fchInput');
+  const text = inp?.value.trim();
+  if(!text || !activeChatFriendUid) return;
+  const myUid = window.currentUser?.uid;
+  if(!myUid) return;
+  inp.value = '';
+  try { await window.fbSendMessage?.(myUid, activeChatFriendUid, text); } catch(e){}
+}
+
+// ============================================================
+// 1v1 MEYDAN OKUMA
+// ============================================================
+async function challengeFriend1v1(friendUid, friendName){
+  const isTr = currentLang === 'tr';
+  showToast(isTr ? `⚔️ ${friendName}'e meydan okuyorsun...` : `⚔️ Challenging ${friendName}...`);
+  // Battle modal aç, oda kur ve arkadaşı davet et
+  closeFriendsPanel?.();
+  window._pendingBattleInvite = { friendUid, friendName };
+  if(typeof showBattleModal === 'function') showBattleModal();
+}
+
+// Online oyuncularla eşleşme
+async function showOnlinePlayers(){
+  const content = document.getElementById('battleModalContent');
+  if(!content) return;
+  const isTr = currentLang === 'tr';
+  content.innerHTML = `<div style="text-align:center;padding:20px;color:rgba(180,160,255,.5);font-size:.8rem">🌍 ${isTr?'Çevrimiçi oyuncular yükleniyor...':'Loading online players...'}</div>`;
+  const users = await window.fbGetOnlineUsers(window.currentUser?.uid || '');
+  if(!users.length){
+    content.innerHTML = `<div style="text-align:center;padding:24px;color:rgba(180,160,255,.4);font-size:.82rem;line-height:1.8">😔 ${isTr?'Şu an çevrimiçi başka oyuncu yok.<br>Oda kurarak arkadaşlarını davet et!':'No other players online right now.<br>Create a room and invite friends!'}</div>`;
+    return;
+  }
+  content.innerHTML = `
+    <div style="font-size:.65rem;color:rgba(77,255,176,.6);font-family:'Space Mono',monospace;letter-spacing:.1em;margin-bottom:10px">
+      🟢 ${users.length} ${isTr?'OYUNCU ONLINE':'PLAYERS ONLINE'}
+    </div>
+    ${users.map(u => `
+      <div style="display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:14px;background:rgba(77,255,176,.04);border:1.5px solid rgba(77,255,176,.12);margin-bottom:8px;transition:.15s">
+        <div style="width:34px;height:34px;border-radius:50%;background:rgba(77,255,176,.1);border:1.5px solid rgba(77,255,176,.25);display:flex;align-items:center;justify-content:center;font-size:1rem">
+          ${u.device === 'mobile' ? '📱' : '🖥️'}
+        </div>
+        <div style="flex:1">
+          <div style="font-weight:600;font-size:.85rem">@${escapeHtml(u.username)}</div>
+          <div style="font-size:.62rem;color:rgba(77,255,176,.5);font-family:'Space Mono',monospace">${u.device || 'online'}</div>
+        </div>
+        <button onclick="challengeOnlinePlayer('${u.uid}','${escapeHtml(u.username)}')" style="padding:7px 14px;border-radius:12px;border:none;background:linear-gradient(135deg,#ff6ec7,#b46bff);color:#070a18;font-weight:700;font-size:.75rem;cursor:pointer;touch-action:manipulation;font-family:'Space Grotesk',sans-serif">
+          ⚔️ ${isTr?'Meydan Oku':'Challenge'}
+        </button>
+      </div>`).join('')}`;
+}
+
+async function challengeOnlinePlayer(uid, username){
+  const isTr = currentLang === 'tr';
+  showToast(isTr ? `⚔️ ${username}'e meydan okuyorsun...` : `⚔️ Challenging ${username}...`);
+  window._pendingBattleInvite = { friendUid: uid, friendName: username };
+  showCreateRoom();
+}
+
+// Footer accordion
 document.querySelectorAll('.footer-acc-btn').forEach(btn => {
   btn.addEventListener('click', e => {
     e.preventDefault();
