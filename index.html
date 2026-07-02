@@ -1380,7 +1380,7 @@
     box-shadow:0 0 22px rgba(110,231,255,.45), 0 0 0 1px rgba(180,107,255,.2);
   }
   .ai-panel-header h3{
-    font-family:'Orbitron',sans-serif; font-size:.95rem; font-weight:700; margin:0;
+    font-family:'Horizon','Orbitron',sans-serif; font-size:.95rem; font-weight:700; margin:0;
     letter-spacing:.02em;
     background:linear-gradient(135deg, var(--accent), var(--accent2));
     -webkit-background-clip:text; background-clip:text; color:transparent;
@@ -1615,14 +1615,15 @@
   }
 
   .cp-title{
-    font-family:'Orbitron',sans-serif;
-    font-size:clamp(4rem,14vw,10rem);
-    font-weight:900; letter-spacing:.06em; line-height:1;
+    font-family:'Horizon','Orbitron',sans-serif;
+    font-size:clamp(2.6rem,9.5vw,6.5rem);
+    font-weight:900; letter-spacing:.03em; line-height:1;
     background:linear-gradient(135deg,#fff8e0 0%,#ffcc00 25%,#ff6600 55%,#ff2d78 80%,#b46bff 100%);
     -webkit-background-clip:text; background-clip:text; color:transparent;
     filter:drop-shadow(0 0 40px rgba(255,120,0,.5)) drop-shadow(0 0 80px rgba(180,107,255,.25));
     animation:cp-title-glitch 1s .05s cubic-bezier(.16,1,.3,1) both;
     position:relative;
+    max-width:96vw; text-align:center;
   }
   @keyframes cp-title-glitch{
     0%{ opacity:0; transform:scaleX(1.3); filter:drop-shadow(0 0 40px rgba(255,120,0,.5)) blur(12px); }
@@ -1734,7 +1735,7 @@
     padding:16px 38px; border-radius:12px; border:none;
     background:linear-gradient(135deg,#9b59ff 0%,#00f5ff 100%);
     color:#04010e; font-weight:700; font-size:.95rem;
-    font-family:'Orbitron',sans-serif; letter-spacing:.04em;
+    font-family:'Horizon','Orbitron',sans-serif; letter-spacing:.04em;
     cursor:pointer; transition:all .2s ease;
     box-shadow:0 4px 32px rgba(155,89,255,.45), 0 0 0 0 rgba(0,245,255,.3);
     display:flex; align-items:center; gap:10px; white-space:nowrap;
@@ -1905,7 +1906,7 @@
     animation:fade-up .4s .1s ease both;
   }
   .ws-title{
-    font-family:'Orbitron',sans-serif;
+    font-family:'Horizon','Orbitron',sans-serif;
     font-size:clamp(1.5rem,4vw,2.6rem);font-weight:900;
     background:linear-gradient(135deg,#fff 0%,#c8b4ff 50%,#6ee7ff 100%);
     -webkit-background-clip:text;background-clip:text;color:transparent;
@@ -1966,7 +1967,7 @@
   }
   .ws-card-text{flex:1;}
   .ws-card-title{
-    font-family:'Orbitron',sans-serif;font-size:.88rem;font-weight:700;
+    font-family:'Horizon','Orbitron',sans-serif;font-size:.88rem;font-weight:700;
     color:#eaf0ff;letter-spacing:.02em;margin-bottom:4px;
   }
   .ws-card-desc{
@@ -2018,14 +2019,14 @@
     background-size:50px 50px;
   }
   .bi-category{
-    font-family:'Orbitron',sans-serif; font-size:clamp(.6rem,1.5vw,.85rem);
+    font-family:'Horizon','Orbitron',sans-serif; font-size:clamp(.6rem,1.5vw,.85rem);
     font-weight:700; letter-spacing:.22em; text-transform:uppercase;
     color:rgba(255,110,199,.65); margin-bottom:12px;
     animation:fade-up .4s ease both;
     position:relative; z-index:2;
   }
   .bi-versus{
-    font-family:'Orbitron',sans-serif;
+    font-family:'Horizon','Orbitron',sans-serif;
     font-size:clamp(1.8rem,6vw,4rem);
     font-weight:900; letter-spacing:.1em; color:#fff;
     text-shadow:0 0 40px rgba(255,110,199,.6);
@@ -2059,11 +2060,11 @@
     overflow:hidden; text-overflow:ellipsis; white-space:nowrap; text-align:center;
   }
   .bi-vs-sep{
-    font-family:'Orbitron',sans-serif; font-size:1.2rem; font-weight:900;
+    font-family:'Horizon','Orbitron',sans-serif; font-size:1.2rem; font-weight:900;
     color:rgba(255,110,199,.5); padding:0 4px;
   }
   .bi-countdown-num{
-    font-family:'Orbitron',sans-serif;
+    font-family:'Horizon','Orbitron',sans-serif;
     font-size:clamp(5rem,20vw,10rem); font-weight:900; line-height:1;
     background:linear-gradient(135deg,#ff6ec7,#b46bff,#6ee7ff);
     -webkit-background-clip:text; background-clip:text; color:transparent;
@@ -2077,7 +2078,7 @@
     100%{transform:scale(1);opacity:1;filter:none;}
   }
   .bi-go{
-    font-family:'Orbitron',sans-serif;
+    font-family:'Horizon','Orbitron',sans-serif;
     font-size:clamp(3rem,12vw,7rem); font-weight:900;
     background:linear-gradient(135deg,#4dffb0,#6ee7ff);
     -webkit-background-clip:text; background-clip:text; color:transparent;
@@ -2114,7 +2115,7 @@
     color:rgba(180,160,255,.4); margin-bottom:18px; text-align:center;
   }
   #focusOverlay .focus-heading{
-    font-family:'Orbitron',sans-serif; font-size:clamp(1.2rem,3vw,1.8rem);
+    font-family:'Horizon','Orbitron',sans-serif; font-size:clamp(1.2rem,3vw,1.8rem);
     font-weight:700; color:#eaf0ff; line-height:1.25;
     text-align:center; margin-bottom:24px;
   }
@@ -2180,7 +2181,7 @@
     box-shadow:0 0 60px rgba(180,107,255,.12);
   }
   #shareModal h3{
-    font-family:'Orbitron',sans-serif; font-size:.95rem; font-weight:700;
+    font-family:'Horizon','Orbitron',sans-serif; font-size:.95rem; font-weight:700;
     background:linear-gradient(135deg,var(--accent2),var(--accent));
     -webkit-background-clip:text; background-clip:text; color:transparent;
     margin:0 0 6px; text-align:center;
@@ -2242,7 +2243,7 @@
     50%{transform:translateY(-6px) rotate(6deg);}
   }
   .brand h1{
-    font-family:'Orbitron',sans-serif; font-size:1.25rem; font-weight:700; margin:0; line-height:1.1;
+    font-family:'Horizon','Orbitron',sans-serif; font-size:1.25rem; font-weight:700; margin:0; line-height:1.1;
     background:linear-gradient(135deg, var(--accent), var(--accent2));
     -webkit-background-clip:text; background-clip:text; color:transparent;
   }
@@ -2358,7 +2359,7 @@
     100%{transform:translate(0,0) rotate(0deg);}
   }
   .upload-screen h1{
-    font-family:'Orbitron',sans-serif; font-size:2.3rem; font-weight:900;
+    font-family:'Horizon','Orbitron',sans-serif; font-size:2.3rem; font-weight:900;
     letter-spacing:.01em;
     background:linear-gradient(135deg, var(--accent), #fff 45%, var(--accent2) 80%, var(--pink));
     -webkit-background-clip:text; background-clip:text; color:transparent;
@@ -2554,7 +2555,7 @@
     text-shadow:0 0 12px rgba(110,231,255,.5);
   }
   .slide-card h2{
-    font-family:'Orbitron',sans-serif; font-size:1.6rem; font-weight:700; margin-bottom:18px; line-height:1.3;
+    font-family:'Horizon','Orbitron',sans-serif; font-size:1.6rem; font-weight:700; margin-bottom:18px; line-height:1.3;
     color:var(--ink);
     text-shadow:0 0 30px rgba(180,107,255,.15);
   }
@@ -2619,7 +2620,7 @@
     opacity:0; animation: slide-in .45s ease forwards;
   }
   .quiz-result .score-num{
-    font-family:'Orbitron',sans-serif; font-size:3.2rem; font-weight:900;
+    font-family:'Horizon','Orbitron',sans-serif; font-size:3.2rem; font-weight:900;
     background:linear-gradient(135deg, var(--accent), var(--accent2));
     -webkit-background-clip:text; background-clip:text; color:transparent;
     margin:10px 0;
@@ -2899,7 +2900,7 @@
       background:radial-gradient(circle at 35% 35%, #1a0b2e 0%, #000 70%);
     }
     #mobileHeader .mh-title{
-      font-family:'Orbitron',sans-serif; font-size:.85rem; font-weight:700;
+      font-family:'Horizon','Orbitron',sans-serif; font-size:.85rem; font-weight:700;
       color:var(--ink); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
     }
     #mobileHeader .mh-right{
@@ -3217,9 +3218,216 @@
     .topbar::after { animation:none !important; opacity:.3 !important; }
     .go-btn { animation:none !important; }
 
+    /* Polish animasyonları mobilde kapat */
+    .upload-screen h1 { animation:none !important; background-size:100% 100% !important; }
+    .tab.active::after { display:none !important; }
+    .dropzone::after { display:none !important; }
+    .explain-box::after { display:none !important; }
+
     /* will-change kaldır */
     *, *::before, *::after { will-change:auto !important; }
   }
+
+  /* ═══════════════════════════════════════════════════════
+     ✨ GÖRSEL POLISH PASS — tipografi & mikro-etkileşimler
+     ═══════════════════════════════════════════════════════ */
+
+  /* --- Global tipografi netliği --- */
+  body{
+    -webkit-font-smoothing:antialiased;
+    -moz-osx-font-smoothing:grayscale;
+    text-rendering:optimizeLegibility;
+  }
+  ::selection{ background:rgba(180,107,255,.45); color:#fff; }
+  ::-moz-selection{ background:rgba(180,107,255,.45); color:#fff; }
+
+  /* --- Hero başlık: canlı akan gradient --- */
+  .upload-screen h1{
+    background:linear-gradient(110deg,
+      var(--accent) 0%, #fff 22%, var(--accent2) 45%,
+      var(--pink) 65%, #fff 82%, var(--accent) 100%) !important;
+    background-size:250% 100% !important;
+    -webkit-background-clip:text !important; background-clip:text !important;
+    animation:hero-gradient-flow 9s linear infinite !important;
+  }
+  @keyframes hero-gradient-flow{
+    0%{ background-position:0% 50%; }
+    100%{ background-position:250% 50%; }
+  }
+
+  /* --- Hero açıklama: daha rafine --- */
+  .upload-screen p{
+    border:1px solid rgba(180,107,255,.12);
+    border-radius:16px;
+    letter-spacing:.005em;
+  }
+
+  /* --- Slayt sekmeleri (tabs): pill + aktif nokta --- */
+  .tab{
+    border-radius:0 50px 50px 0;
+    margin-right:10px;
+    position:relative;
+    border-left-width:2.5px;
+  }
+  .tab:hover{ transform:translateX(2px); }
+  .tab.active{
+    background:linear-gradient(90deg, rgba(110,231,255,.14), rgba(110,231,255,.02));
+  }
+  .tab.active::after{
+    content:''; position:absolute; right:10px; top:50%;
+    width:5px; height:5px; border-radius:50%;
+    transform:translateY(-50%);
+    background:var(--accent);
+    box-shadow:0 0 8px var(--accent);
+  }
+  .tab .num{
+    background:rgba(255,255,255,.05);
+    padding:2px 7px; border-radius:8px;
+    border:1px solid rgba(255,255,255,.06);
+  }
+  .tab.active .num{
+    background:rgba(110,231,255,.12);
+    border-color:rgba(110,231,255,.25);
+    color:var(--accent); opacity:1;
+  }
+
+  /* --- Bullets: gradient çubuk marker --- */
+  .bullets li::before{
+    content:'' !important;
+    width:3px; height:1.1em; top:.28em !important;
+    border-radius:3px;
+    background:linear-gradient(180deg, var(--accent), var(--accent2));
+    box-shadow:0 0 8px rgba(110,231,255,.35);
+    font-size:0 !important;
+  }
+  .bullets li{ padding-left:20px !important; }
+
+  /* --- Explain box: köşe ışıltısı --- */
+  .explain-box{ position:relative; }
+  .explain-box::after{
+    content:''; position:absolute; top:0; right:0;
+    width:70px; height:70px; pointer-events:none;
+    background:radial-gradient(circle at top right, rgba(180,107,255,.14), transparent 70%);
+    border-radius:0 14px 0 0;
+  }
+
+  /* --- Toast: modern glassmorphism --- */
+  .toast{
+    background:rgba(12,9,32,.96) !important;
+    border:1.5px solid rgba(255,110,199,.35) !important;
+    border-radius:16px !important;
+    box-shadow:0 8px 32px rgba(0,0,0,.5), 0 0 24px -6px rgba(255,110,199,.3) !important;
+    font-family:'Space Grotesk',sans-serif;
+    letter-spacing:.01em;
+  }
+
+  /* --- Dropzone: premium hover --- */
+  .dropzone::after{
+    content:''; position:absolute; inset:0; pointer-events:none;
+    background:radial-gradient(ellipse 60% 45% at 50% 40%, rgba(180,107,255,.08), transparent 70%);
+    opacity:0; transition:opacity .3s ease;
+    border-radius:18px;
+  }
+  .dropzone:hover{
+    border-style:solid;
+    border-color:rgba(110,231,255,.5);
+    box-shadow:0 0 34px -8px rgba(110,231,255,.25), inset 0 0 40px -20px rgba(180,107,255,.2);
+    transform:translateY(-2px);
+  }
+  .dropzone:hover::after{ opacity:1; }
+
+  /* --- kbd: neon tuş --- */
+  kbd{
+    background:rgba(155,89,255,.1) !important;
+    box-shadow:0 2px 0 rgba(155,89,255,.25), 0 0 8px rgba(155,89,255,.12);
+    font-family:'Space Mono',monospace;
+  }
+
+  /* --- Tüm inputlara nazik focus ring --- */
+  input:focus-visible, textarea:focus-visible, select:focus-visible{
+    outline:none;
+    box-shadow:0 0 0 3px rgba(110,231,255,.14), 0 0 16px -4px rgba(110,231,255,.25);
+  }
+
+  /* --- Butonlara basma hissi --- */
+  .btn:active, .cat-btn:active, .qcount-btn:active,
+  .quiz-opt:active, .battle-opt:active,
+  .ws-card:active, .emoji-btn:active{
+    transform:scale(.97) !important;
+    transition-duration:.06s !important;
+  }
+
+  /* --- Sidebar brand: hover ışıltısı --- */
+  .brand:hover .brand-mark{ filter:drop-shadow(0 0 10px rgba(110,231,255,.5)); }
+  .brand-mark{ transition:filter .25s ease; }
+
+  /* --- Progress bar parlaklığı --- */
+  .progress-bar-fill{
+    box-shadow:0 0 10px rgba(110,231,255,.4);
+    border-radius:4px;
+  }
+
+  /* --- Quiz doğru cevap kutlaması --- */
+  .quiz-opt.correct{
+    animation:correct-pop .35s cubic-bezier(.16,1,.3,1);
+  }
+  @keyframes correct-pop{
+    0%{ transform:scale(1); }
+    50%{ transform:scale(1.025); }
+    100%{ transform:scale(1); }
+  }
+
+  /* --- Slide eyebrow: ışık çizgisi --- */
+  .slide-eyebrow{
+    display:inline-flex; align-items:center; gap:8px;
+  }
+  .slide-eyebrow::before{
+    content:''; width:18px; height:1.5px;
+    background:linear-gradient(90deg, var(--accent), transparent);
+  }
+
+  /* --- Sinematik vignette: statik, içeriğin altında, sadece uzay fonunu derinleştirir --- */
+  body::after{
+    content:''; position:fixed; inset:0; pointer-events:none; z-index:1;
+    background:radial-gradient(ellipse 120% 90% at 50% 45%, transparent 55%, rgba(2,1,10,.5) 100%);
+  }
+
+  /* --- AI hızlı prompt chip'leri: pill + neon hover --- */
+  .ai-chip{
+    border-radius:50px !important;
+    border:1px solid rgba(180,107,255,.22) !important;
+    transition:all .18s ease !important;
+  }
+  .ai-chip:hover{
+    border-color:var(--accent) !important;
+    color:var(--accent) !important;
+    box-shadow:0 0 14px -4px rgba(110,231,255,.4);
+    transform:translateY(-1px);
+  }
+
+  /* --- Slide kartına hover derinliği (masaüstü) --- */
+  @media (min-width:861px){
+    .slide-card{ transition:transform .3s cubic-bezier(.16,1,.3,1), box-shadow .3s ease; }
+    .slide-card:hover{
+      transform:translateY(-3px);
+      box-shadow:
+        0 0 0 1px rgba(110,231,255,.12),
+        0 0 55px -8px rgba(180,107,255,.35),
+        0 34px 80px -24px rgba(110,231,255,.3),
+        inset 0 1px 0 rgba(255,255,255,.05);
+    }
+  }
+
+  /* --- Topbar başlığı: gradient metin --- */
+  .topbar h2{
+    background:linear-gradient(90deg, var(--ink) 30%, rgba(180,160,230,.75));
+    -webkit-background-clip:text; background-clip:text; color:transparent;
+    letter-spacing:.01em;
+  }
+
+  /* --- Infinity sayaç (∞ / ∞): altın parlaklık --- */
+  .limit-line, .usage-line{ text-shadow:0 0 14px rgba(255,215,0,.25); }
+
   #siteFooter{
     margin-top: 80px;
     position: relative;
@@ -3607,7 +3815,7 @@
     animation:auth-slide .4s cubic-bezier(.16,1,.3,1) both;
   }
   .battle-title{
-    font-family:'Orbitron',sans-serif;font-size:1.2rem;font-weight:900;
+    font-family:'Horizon','Orbitron',sans-serif;font-size:1.2rem;font-weight:900;
     background:linear-gradient(135deg,#ff6ec7,#b46bff,#6ee7ff);
     -webkit-background-clip:text;-webkit-text-fill-color:transparent;
     background-clip:text;margin:0 0 4px;
@@ -3632,7 +3840,7 @@
     box-shadow:0 0 16px -4px rgba(110,231,255,.3);
   }
   .room-code{
-    font-family:'Orbitron',sans-serif;font-size:2.8rem;font-weight:900;
+    font-family:'Horizon','Orbitron',sans-serif;font-size:2.8rem;font-weight:900;
     letter-spacing:.2em;text-align:center;
     background:linear-gradient(135deg,#6ee7ff,#b46bff);
     -webkit-background-clip:text;-webkit-text-fill-color:transparent;
@@ -3692,7 +3900,7 @@
     animation:topbar-scan 5s linear infinite;
   }
   .battle-timer{
-    font-family:'Orbitron',sans-serif;font-size:1.5rem;font-weight:900;
+    font-family:'Horizon','Orbitron',sans-serif;font-size:1.5rem;font-weight:900;
     width:52px;height:52px;border-radius:50%;
     display:flex;align-items:center;justify-content:center;
     border:2.5px solid;transition:color .3s,border-color .3s,box-shadow .3s;
@@ -3726,7 +3934,7 @@
   }
   .battle-player-card.bot-card{ border-color:rgba(110,231,255,.18);opacity:.85; }
   .battle-player-score{
-    font-family:'Orbitron',sans-serif;font-size:1.1rem;font-weight:700;
+    font-family:'Horizon','Orbitron',sans-serif;font-size:1.1rem;font-weight:700;
   }
   .battle-player-nick{ font-size:.6rem;color:rgba(255,255,255,.45);margin-top:2px;font-family:'Space Mono',monospace; }
   .battle-q-area{
@@ -3788,13 +3996,27 @@
     color:#6ee7ff !important;
     box-shadow:0 0 14px -4px rgba(110,231,255,.3);
   }
+  /* ===== HORIZON FONT SIĞDIRMA — geniş font için global düzeltmeler ===== */
+  .bi-versus{ font-size:clamp(1.3rem,4.5vw,2.8rem) !important; letter-spacing:.06em !important; }
+  .bi-countdown-num{ font-size:clamp(3.5rem,15vw,7rem) !important; }
+  .bi-go{ font-size:clamp(2.2rem,9vw,5rem) !important; }
+  .ws-title{ font-size:clamp(1.2rem,3.2vw,2rem) !important; letter-spacing:.01em !important; }
+  .battle-title{ font-size:1.05rem !important; letter-spacing:.02em !important; }
+  .room-code{ font-size:clamp(1.7rem,7vw,2.3rem) !important; letter-spacing:.14em !important; }
+  .upload-screen h1{ font-size:clamp(1.3rem,4vw,2rem) !important; letter-spacing:0 !important; }
+  .slide-card h2{ font-size:clamp(1rem,2.6vw,1.35rem) !important; letter-spacing:.01em !important; line-height:1.35 !important; }
+  .focus-heading{ font-size:clamp(1rem,2.5vw,1.5rem) !important; }
+  .fw-stat-num{ font-size:1.2rem !important; }
+  /* Horizon'da uzun kelimeler taşmasın */
+  h1,h2,h3,.cp-title,.ws-title,.bi-versus{ overflow-wrap:break-word; }
+
   .countdown-overlay{
     position:fixed;inset:0;z-index:99300;
     background:rgba(3,2,15,.92);backdrop-filter:blur(8px);
     display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;
   }
   .countdown-num{
-    font-family:'Orbitron',sans-serif;font-size:6rem;font-weight:900;
+    font-family:'Horizon','Orbitron',sans-serif;font-size:6rem;font-weight:900;
     background:linear-gradient(135deg,#ff6ec7,#b46bff,#6ee7ff);
     -webkit-background-clip:text;-webkit-text-fill-color:transparent;
     background-clip:text;
@@ -3849,7 +4071,7 @@
     flex-shrink:0;
   }
   .friends-title{
-    font-family:'Orbitron',sans-serif; font-size:.85rem; font-weight:700;
+    font-family:'Horizon','Orbitron',sans-serif; font-size:.85rem; font-weight:700;
     background:linear-gradient(135deg,#6ee7ff,#b46bff);
     -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text;
   }
@@ -4058,7 +4280,7 @@
 <div class="ai-float-panel" id="aiFloatPanel">
   <div style="display:flex;align-items:center;padding:10px 14px;border-bottom:1px solid var(--line);flex-shrink:0;gap:10px;cursor:pointer;touch-action:manipulation"
     onclick="document.getElementById('aiFloatPanel').classList.remove('open');document.getElementById('aiFloatBtn').style.display='flex'">
-    <div style="font-family:'Orbitron',sans-serif;font-size:.85rem;font-weight:700;color:var(--ink);flex:1" data-i18n="aiPanelTitle">Sor & Öğren</div>
+    <div style="font-family:'Horizon','Orbitron',sans-serif;font-size:.85rem;font-weight:700;color:var(--ink);flex:1" data-i18n="aiPanelTitle">Sor & Öğren</div>
     <div style="width:32px;height:4px;background:rgba(255,255,255,.2);border-radius:2px;margin:0 auto"></div>
     <span style="color:rgba(255,255,255,.4);font-size:.75rem">▼</span>
   </div>
@@ -4127,7 +4349,7 @@
   <button id="mamGalaxyBtn" style="display:none;color:#a78bfa" onclick="(async()=>{var u=window.currentUser;if(!u||!window.fbApplyGalaxy)return;this.style.opacity='.5';this.style.pointerEvents='none';var r=await window.fbApplyGalaxy(u.uid,u.displayName,u.email);if(r&&r.ok){this.style.display='none';var p=document.getElementById('mamGalaxyPending');if(p)p.style.display='flex';}else{this.style.opacity='1';this.style.pointerEvents='';}document.getElementById('mobileActionsMenu').classList.remove('open');})()">🌌 Galaxy Üyesi Olmak İstiyorum <span style="opacity:.5;font-size:.65rem">(Beta)</span></button>
   <button id="mamGalaxyPending" style="display:none;color:rgba(140,110,255,.6);font-size:.72rem;cursor:default">⏳ Başvuru beklemede</button>
   <button id="mamGalaxyMember" style="display:none;font-size:.72rem;cursor:default">
-    <span style="font-family:'Orbitron',sans-serif;font-size:.6rem;font-weight:900;padding:1px 6px;border-radius:4px;background:linear-gradient(135deg,#8a5cff,#5c8aff);color:#fff">GALAXY</span>
+    <span style="font-family:'Horizon','Orbitron',sans-serif;font-size:.6rem;font-weight:900;padding:1px 6px;border-radius:4px;background:linear-gradient(135deg,#8a5cff,#5c8aff);color:#fff">GALAXY</span>
     <span style="color:rgba(255,255,255,.5);margin-left:4px">Üyesiniz</span>
   </button>
   <div class="mam-divider" id="mamUserDivider" style="display:none"></div>
@@ -4663,8 +4885,8 @@
                 <span class="acc-arrow">▾</span>
               </button>
               <div class="footer-acc-body">
-                <p class="tr-text">Galaxy, Thinkle'ın özel beta üyelik programıdır. Galaxy üyeleri sınırsız dosya yükleme ve sınırsız AI chat hakkına sahip olur. Üyelik başvurusu hesabındaki "🌌 Galaxy Üyesi Olmak İstiyorum" butonundan yapılır; kurucu tarafından incelenerek onaylanır veya reddedilir. Onaylanan üyeler profillerinde <strong style="font-family:'Orbitron',sans-serif;background:linear-gradient(135deg,#8a5cff,#5c8aff);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text">GALAXY</strong> rozeti kazanır. Üyelik herhangi bir zamanda platorm kuralları çerçevesinde iptal edilebilir.</p>
-                <p class="en-text">Galaxy is Thinkle's exclusive beta membership program. Galaxy members receive unlimited file uploads and unlimited AI chat. Membership applications are made via the "🌌 I Want to Become a Galaxy Member" button in your account; reviewed by the founder and approved or rejected. Approved members earn a <strong style="font-family:'Orbitron',sans-serif;background:linear-gradient(135deg,#8a5cff,#5c8aff);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text">GALAXY</strong> badge on their profile. Membership may be revoked at any time within the framework of platform rules.</p>
+                <p class="tr-text">Galaxy, Thinkle'ın özel beta üyelik programıdır. Galaxy üyeleri sınırsız dosya yükleme ve sınırsız AI chat hakkına sahip olur. Üyelik başvurusu hesabındaki "🌌 Galaxy Üyesi Olmak İstiyorum" butonundan yapılır; kurucu tarafından incelenerek onaylanır veya reddedilir. Onaylanan üyeler profillerinde <strong style="font-family:'Horizon','Orbitron',sans-serif;background:linear-gradient(135deg,#8a5cff,#5c8aff);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text">GALAXY</strong> rozeti kazanır. Üyelik herhangi bir zamanda platorm kuralları çerçevesinde iptal edilebilir.</p>
+                <p class="en-text">Galaxy is Thinkle's exclusive beta membership program. Galaxy members receive unlimited file uploads and unlimited AI chat. Membership applications are made via the "🌌 I Want to Become a Galaxy Member" button in your account; reviewed by the founder and approved or rejected. Approved members earn a <strong style="font-family:'Horizon','Orbitron',sans-serif;background:linear-gradient(135deg,#8a5cff,#5c8aff);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text">GALAXY</strong> badge on their profile. Membership may be revoked at any time within the framework of platform rules.</p>
               </div>
             </div>
 
@@ -4971,7 +5193,7 @@ async function showProfileModal(){
 
         <!-- İsim ve kullanıcı adı -->
         <div style="font-size:.8rem;color:rgba(255,255,255,.5);margin-bottom:2px">${user.displayName || ''}</div>
-        <div style="font-family:'Orbitron',sans-serif;font-size:1rem;font-weight:700;color:#6ee7ff">@${currentUsername}</div>
+        <div style="font-family:'Horizon','Orbitron',sans-serif;font-size:1rem;font-weight:700;color:#6ee7ff">@${currentUsername}</div>
       </div>
 
       <!-- Streak -->
@@ -5116,7 +5338,7 @@ function showUsernameModal(user){
   modal.innerHTML = `
     <div style="background:rgba(14,10,36,.97);border:1px solid rgba(110,231,255,.25);border-radius:24px;padding:36px 28px;max-width:380px;width:100%;text-align:center;box-shadow:0 20px 60px rgba(0,0,0,.6);animation:auth-slide .4s cubic-bezier(.16,1,.3,1) both">
       <div style="font-size:2rem;margin-bottom:10px">✨</div>
-      <h2 style="font-family:'Orbitron',sans-serif;font-size:1.1rem;margin:0 0 8px;background:linear-gradient(135deg,#6ee7ff,#b46bff);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text">
+      <h2 style="font-family:'Horizon','Orbitron',sans-serif;font-size:1.1rem;margin:0 0 8px;background:linear-gradient(135deg,#6ee7ff,#b46bff);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text">
         ${isTr ? 'Kullanıcı Adı Seç' : 'Choose a Username'}
       </h2>
       <p style="color:rgba(180,160,255,.7);font-size:.82rem;margin:0 0 22px;line-height:1.5">
@@ -5285,7 +5507,7 @@ document.addEventListener('authChanged', e => {  const user = e.detail;
           }          <div style="flex:1;min-width:0">
             <div style="font-size:.75rem;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:flex;align-items:center;gap:6px">
               <span class="mh-uname" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${isFounder ? '👑 ' : ''}${window.currentUsername ? '@'+window.currentUsername : (user.displayName||user.email||'Ziyaretçi')}</span>
-              <span id="galaxyBadge" style="display:none;flex-shrink:0;font-family:'Orbitron',sans-serif;font-size:.55rem;font-weight:900;letter-spacing:.1em;padding:2px 8px;border-radius:6px;background:linear-gradient(135deg,#6d28d9,#2563eb);color:#e0d7ff;box-shadow:0 0 10px rgba(109,40,217,.5),0 0 20px rgba(37,99,235,.3)">GALAXY</span>
+              <span id="galaxyBadge" style="display:none;flex-shrink:0;font-family:'Horizon','Orbitron',sans-serif;font-size:.55rem;font-weight:900;letter-spacing:.1em;padding:2px 8px;border-radius:6px;background:linear-gradient(135deg,#6d28d9,#2563eb);color:#e0d7ff;box-shadow:0 0 10px rgba(109,40,217,.5),0 0 20px rgba(37,99,235,.3)">GALAXY</span>
             </div>
             <div style="font-size:.62rem;color:${isFounder?'#ffd700':'var(--ink-soft)'}">
               ${isFounder ? '⚡ Kurucu' : '✓ '+(currentLang==='tr'?'Giriş yapıldı':'Signed in')}
@@ -5415,7 +5637,7 @@ function showGalaxyApplyForm(user, isTr, onSuccess){
     <div style="background:rgba(12,9,32,.98);border:1px solid rgba(140,92,255,.3);border-radius:22px;padding:28px 24px;max-width:420px;width:100%;max-height:90vh;overflow-y:auto;box-shadow:0 0 80px rgba(140,92,255,.15);animation:auth-slide .4s cubic-bezier(.16,1,.3,1) both">
       <div style="text-align:center;margin-bottom:20px">
         <div style="font-size:1.8rem;margin-bottom:6px">🌌</div>
-        <h3 style="font-family:'Orbitron',sans-serif;font-size:1rem;font-weight:900;margin:0 0 4px;background:linear-gradient(135deg,#8a5cff,#5c8aff);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text">
+        <h3 style="font-family:'Horizon','Orbitron',sans-serif;font-size:1rem;font-weight:900;margin:0 0 4px;background:linear-gradient(135deg,#8a5cff,#5c8aff);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text">
           ${isTr?'Galaxy Üyelik Başvurusu':'Galaxy Membership Application'}
         </h3>
         <div style="font-size:.72rem;color:rgba(180,160,255,.5)">${isTr?'Kurucu tarafından incelenecek':'Will be reviewed by the founder'}</div>
@@ -5611,7 +5833,7 @@ function showBattleModal(){
         <div style="font-size:.72rem;color:rgba(180,160,255,.5)">${isTr?'Gerçek zamanlı çok oyunculu quiz · Maks 20 kişi':'Real-time multiplayer quiz · Max 20 players'}</div>
       </div>
       <div style="display:flex;gap:8px;margin-bottom:18px">
-        <button id="btnCreateRoom" onclick="showCreateRoom()" style="flex:1;padding:12px;border-radius:14px;border:none;background:linear-gradient(135deg,#ff6ec7,#b46bff);color:#070a18;font-weight:700;font-size:.85rem;cursor:pointer;touch-action:manipulation;font-family:'Orbitron',sans-serif;letter-spacing:.02em">
+        <button id="btnCreateRoom" onclick="showCreateRoom()" style="flex:1;padding:12px;border-radius:14px;border:none;background:linear-gradient(135deg,#ff6ec7,#b46bff);color:#070a18;font-weight:700;font-size:.85rem;cursor:pointer;touch-action:manipulation;font-family:'Horizon','Orbitron',sans-serif;letter-spacing:.02em">
           ➕ ${isTr?'Oda Kur':'Create Room'}
         </button>
         <button id="btnJoinRoom" onclick="showJoinRoom()" style="flex:1;padding:12px;border-radius:14px;border:1.5px solid rgba(110,231,255,.3);background:rgba(110,231,255,.06);color:#6ee7ff;font-weight:700;font-size:.85rem;cursor:pointer;touch-action:manipulation;font-family:'Space Grotesk',sans-serif">
@@ -5668,7 +5890,7 @@ function showCreateRoom(){
       <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px">
         ${[10,15,20,30].map(n => `
           <button class="qcount-btn ${n===10?'qcount-active':''}" onclick="selectQuestionCount(${n},this)" data-count="${n}">
-            <div style="font-family:'Orbitron',sans-serif;font-weight:800;font-size:.95rem">${n}</div>
+            <div style="font-family:'Horizon','Orbitron',sans-serif;font-weight:800;font-size:.95rem">${n}</div>
             <div style="font-size:.52rem;opacity:.5;margin-top:3px">${n===10?'~3dk':n===15?'~5dk':n===20?'~7dk':'~10dk'}</div>
           </button>`).join('')}
       </div>
@@ -5678,7 +5900,7 @@ function showCreateRoom(){
       width:100%;padding:14px;border-radius:14px;border:none;
       background:linear-gradient(135deg,#ff6ec7,#b46bff);
       color:#070a18;font-weight:800;font-size:.9rem;cursor:pointer;
-      touch-action:manipulation;font-family:'Orbitron',sans-serif;letter-spacing:.03em;
+      touch-action:manipulation;font-family:'Horizon','Orbitron',sans-serif;letter-spacing:.03em;
       opacity:.4;transition:.25s;
     ">🚀 ${isTr?'Oda Oluştur':'Create Room'}</button>`;
 }
@@ -6010,7 +6232,7 @@ function showJoinRoom(){
   content.innerHTML = `
     <div style="font-size:.75rem;color:rgba(180,160,255,.6);margin-bottom:8px;font-weight:600">🔑 ${isTr?'Oda Kodu Gir':'Enter Room Code'}</div>
     <input id="joinCodeInput" type="text" maxlength="6" placeholder="${isTr?'ÖRNEK: AB3K7P':'EXAMPLE: AB3K7P'}"
-      style="width:100%;padding:12px 14px;border:1px solid rgba(110,231,255,.25);border-radius:12px;background:rgba(255,255,255,.04);color:#fff;font-size:1.2rem;font-family:'Orbitron',sans-serif;font-weight:700;letter-spacing:.15em;text-align:center;text-transform:uppercase;box-sizing:border-box;outline:none;-webkit-user-select:text;user-select:text;margin-bottom:10px"
+      style="width:100%;padding:12px 14px;border:1px solid rgba(110,231,255,.25);border-radius:12px;background:rgba(255,255,255,.04);color:#fff;font-size:1.2rem;font-family:'Horizon','Orbitron',sans-serif;font-weight:700;letter-spacing:.15em;text-align:center;text-transform:uppercase;box-sizing:border-box;outline:none;-webkit-user-select:text;user-select:text;margin-bottom:10px"
     >
     <div id="joinError" style="font-size:.72rem;color:#ff6ec7;min-height:1.2em;margin-bottom:8px"></div>
     <button onclick="doJoinRoom()" style="
@@ -6169,7 +6391,7 @@ function startBattleGame(roomData){
       <div style="display:flex;align-items:center;gap:10px">
         <button onclick="confirmLeaveBattle()" style="background:rgba(255,110,199,.1);border:1.5px solid rgba(255,110,199,.2);border-radius:12px;padding:6px 12px;cursor:pointer;color:#ff6ec7;font-size:.72rem;font-family:'Space Grotesk',sans-serif;touch-action:manipulation;font-weight:600;transition:.15s">✕ ${currentLang==='tr'?'Ayrıl':'Leave'}</button>
         <div>
-          <div style="font-family:'Orbitron',sans-serif;font-size:.62rem;color:rgba(180,160,255,.5);letter-spacing:.1em">⚔️ ${currentLang==='tr'?'YARIŞMA':'BATTLE'}</div>
+          <div style="font-family:'Horizon','Orbitron',sans-serif;font-size:.62rem;color:rgba(180,160,255,.5);letter-spacing:.1em">⚔️ ${currentLang==='tr'?'YARIŞMA':'BATTLE'}</div>
           <div style="font-size:.68rem;color:rgba(180,160,255,.35);font-family:'Space Mono',monospace" id="battleQNum">1 / ${battleQuestions.length}</div>
         </div>
       </div>
@@ -6235,7 +6457,7 @@ function renderBattleQuestion(qi, roomData){
         <h3>${escapeHtml(q.question)}</h3>
         ${q.options.map((opt,oi)=>`
           <button class="battle-opt" id="bopt-${qi}-${oi}" data-oi="${oi}" onclick="submitBattleAnswer(${qi},${oi})">
-            <span style="font-family:'Orbitron',sans-serif;font-size:.7rem;font-weight:700;color:rgba(180,160,255,.45);margin-right:8px">${['A','B','C','D'][oi]}</span>
+            <span style="font-family:'Horizon','Orbitron',sans-serif;font-size:.7rem;font-weight:700;color:rgba(180,160,255,.45);margin-right:8px">${['A','B','C','D'][oi]}</span>
             ${escapeHtml(opt)}
           </button>`).join('')}
         <div id="bexp-${qi}" style="display:none;margin-top:10px;padding:10px 14px;border-radius:12px;font-size:.74rem;line-height:1.55;border:1px solid rgba(180,107,255,.2);background:rgba(180,107,255,.06)"></div>
@@ -6523,7 +6745,7 @@ function showBattleResult(roomData){
         <div style="font-size:4rem;margin-bottom:8px;animation:countdown-pop .7s cubic-bezier(.16,1,.3,1) both">
           ${iWon ? '🏆' : myRank===2?'🥈':myRank===3?'🥉':'😅'}
         </div>
-        <div style="font-family:'Orbitron',sans-serif;font-size:1.6rem;font-weight:900;color:${heroColor};margin-bottom:6px;letter-spacing:.04em">
+        <div style="font-family:'Horizon','Orbitron',sans-serif;font-size:1.6rem;font-weight:900;color:${heroColor};margin-bottom:6px;letter-spacing:.04em">
           ${heroMsg}
         </div>
         <div style="font-size:.85rem;color:rgba(200,190,220,.7);line-height:1.5">
@@ -6900,7 +7122,7 @@ function showBattleInviteToast(invite){
       <div>
         <div style="font-size:.82rem;font-weight:700;color:#fff">Yarışma Daveti!</div>
         <div style="font-size:.72rem;color:rgba(180,160,255,.7)"><strong style="color:#ff6ec7">${escapeHtml(invite.fromName)}</strong> seni davet etti</div>
-        <div style="font-size:.65rem;color:rgba(255,255,255,.35);margin-top:2px">📂 ${escapeHtml(invite.category||'')} · Kod: <strong style="color:#6ee7ff;font-family:'Orbitron',sans-serif;letter-spacing:.1em">${invite.roomCode}</strong></div>
+        <div style="font-size:.65rem;color:rgba(255,255,255,.35);margin-top:2px">📂 ${escapeHtml(invite.category||'')} · Kod: <strong style="color:#6ee7ff;font-family:'Horizon','Orbitron',sans-serif;letter-spacing:.1em">${invite.roomCode}</strong></div>
       </div>
     </div>
     <div style="display:flex;gap:8px">
@@ -6975,7 +7197,7 @@ function showFounderWelcome(){
       <!-- Header -->
       <div style="padding:22px 24px 14px;text-align:center;border-bottom:1px solid rgba(255,255,255,.06);flex-shrink:0">
         <div style="font-size:2.2rem;margin-bottom:4px;animation:fw-crown 1s ease-in-out infinite alternate">👑</div>
-        <div style="font-family:'Orbitron',sans-serif;font-size:1.25rem;font-weight:900;background:linear-gradient(135deg,#ffd700,#ffaa00,#ff6ec7);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;">Yönetici Paneli</div>
+        <div style="font-family:'Horizon','Orbitron',sans-serif;font-size:1.25rem;font-weight:900;background:linear-gradient(135deg,#ffd700,#ffaa00,#ff6ec7);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;">Yönetici Paneli</div>
         <button id="founderCloseBtn" style="position:absolute;top:18px;right:18px;width:30px;height:30px;border-radius:9px;border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.05);color:#ccc;cursor:pointer;font-size:.9rem;touch-action:manipulation">✕</button>
       </div>
 
@@ -7049,7 +7271,7 @@ function showFounderWelcome(){
     }
     .fw-stat-box:hover{ border-color:rgba(255,215,0,.3); }
     .fw-stat-num{
-      font-size:1.5rem;font-weight:800;font-family:'Orbitron',sans-serif;
+      font-size:1.5rem;font-weight:800;font-family:'Horizon','Orbitron',sans-serif;
       background:linear-gradient(135deg,#ffd700,#ffaa00);
       -webkit-background-clip:text;background-clip:text;color:transparent;
     }
@@ -7467,7 +7689,7 @@ function showFounderWelcome(){
               <div style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1;min-width:0">
                 <div style="font-size:.7rem;display:flex;align-items:center;gap:6px;flex-wrap:wrap">
                   ${(m.displayName||'İsimsiz').replace(/</g,'&lt;')}
-                  <span style="font-family:'Orbitron',sans-serif;font-size:.55rem;font-weight:900;padding:1px 5px;border-radius:4px;background:linear-gradient(135deg,#8a5cff,#5c8aff);color:#fff">GALAXY</span>
+                  <span style="font-family:'Horizon','Orbitron',sans-serif;font-size:.55rem;font-weight:900;padding:1px 5px;border-radius:4px;background:linear-gradient(135deg,#8a5cff,#5c8aff);color:#fff">GALAXY</span>
                   ${expiryLabel}
                 </div>
                 <div style="font-size:.6rem;color:rgba(140,110,255,.5);font-family:'Space Mono',monospace">${m.uid.slice(0,16)}…</div>
@@ -7699,7 +7921,7 @@ window.addEventListener('maintenanceMode', () => {
   document.body.innerHTML = `
     <div style="position:fixed;inset:0;background:#03020f;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:40px;font-family:'Space Grotesk',sans-serif;">
       <div style="font-size:3rem;margin-bottom:20px">🔧</div>
-      <div style="font-family:'Orbitron',sans-serif;font-size:1.4rem;color:#b46bff;margin-bottom:12px">Bakım Modu</div>
+      <div style="font-family:'Horizon','Orbitron',sans-serif;font-size:1.4rem;color:#b46bff;margin-bottom:12px">Bakım Modu</div>
       <div style="color:rgba(180,160,255,.7);font-size:.9rem;line-height:1.6">Thinkle şu an bakımda.<br>Kısa süre içinde geri döneceğiz.</div>
     </div>`;
 });
@@ -9643,36 +9865,27 @@ kendini imha edecek.</span></div>`;
   // ============ AKILLI MOD TESPİTİ ============
   const qLow2 = question.toLowerCase();
 
-  // QUIZ MODU — "YKS soruları çözmek istiyorum", "ehliyet soruları", "soru çöz" vb.
-  const isQuizRequest =
+  // ÇALIŞMA İSTEĞİ — quiz VEYA öğrenme niyeti → kullanıcıya SEÇİM sun
+  const isQuizIntent =
     (qLow2.includes('soru') && (qLow2.includes('çöz') || qLow2.includes('test') || qLow2.includes('quiz') || qLow2.includes('sınav'))) ||
     qLow2.includes('yks') || qLow2.includes('lys') || qLow2.includes('tyt') || qLow2.includes('ayt') ||
     qLow2.includes('ehliyet') || qLow2.includes('kpss') || qLow2.includes('ales') ||
     (qLow2.includes('çıkmış') && qLow2.includes('soru')) ||
     (qLow2.includes('pratik') && qLow2.includes('yap')) ||
-    qLow2.includes('bana soru sor') || qLow2.includes('quiz yap') || qLow2.includes('test et');
+    qLow2.includes('bana soru sor') || qLow2.includes('quiz yap') || qLow2.includes('test et') ||
+    (qLow2.includes('çöz') && qLow2.length < 60);
 
-  // ÖĞREN MODU — "bunu öğrenmek istiyorum", "anlat", "öğret" vb.
-  const isLearnRequest =
-    (qLow2.includes('öğrenmek istiyorum') || qLow2.includes('öğrenmek istiyorum') ||
-     qLow2.includes('öğret') || qLow2.includes('anlat') || qLow2.includes('açıkla') ||
-     qLow2.includes('nedir') || qLow2.includes('ne demek') ||
-     qLow2.includes('hakkında bilgi') || qLow2.includes('hakkında anlat') ||
-     qLow2.includes('learn about') || qLow2.includes('explain') || qLow2.includes('teach me')) &&
-    !isQuizRequest;
+  const isLearnIntent =
+    qLow2.includes('öğrenmek istiyorum') || qLow2.includes('öğrenmek istiyom') ||
+    qLow2.includes('öğret') || qLow2.includes('çalışmak istiyorum') ||
+    qLow2.includes('hakkında bilgi') || qLow2.includes('hakkında anlat') ||
+    qLow2.includes('learn about') || qLow2.includes('teach me') ||
+    (qLow2.includes('çalış') && (qLow2.includes('istiyorum') || qLow2.includes('istiyom')));
 
-  if(isQuizRequest){
+  if(isQuizIntent || isLearnIntent){
     const thinkEl = addAiMessage('ai', t('aiThinking'), true);
     if(btn) btn.disabled = false;
-    // Önce onay sor
-    await askQuizConfirmation(question, thinkEl);
-    return;
-  }
-
-  if(isLearnRequest){
-    const thinkEl = addAiMessage('ai', t('aiThinking'), true);
-    if(btn) btn.disabled = false;
-    await startAiLearnMode(question, thinkEl);
+    await askStudyModeChoice(question, thinkEl);
     return;
   }
 
@@ -9769,49 +9982,88 @@ Her konuda yardımcı ol: ders, matematik, fen, tarih, kodlama, genel sohbet.`,
   }
 }
 
-// ============ AI QUIZ MODU — ANA EKRANA ENTEGRE ============
-async function askQuizConfirmation(userRequest, thinkingEl){
+// ============ AI ÇALIŞMA MODU — QUIZ / SLAYT SEÇİMİ ============
+function extractStudyTopic(userRequest){
+  let topic = userRequest.trim();
+  // İstek/fiil kalıplarını temizle — konu ne kaldıysa o
+  const junkPatterns = [
+    /çözmek istiyorum|çözmek istiyom|çözmek isterim|çözelim|çözeyim|çöz\b/gi,
+    /öğrenmek istiyorum|öğrenmek istiyom|öğrenmek isterim|öğreneyim|öğrenelim|öğret\b/gi,
+    /çalışmak istiyorum|çalışmak istiyom|çalışayım|çalışalım|çalış\b/gi,
+    /hazırlan[a-zçğıöşü]*/gi,
+    /bana .*?(soru sor|quiz yap|test et)/gi,
+    /soru[a-zçğıöşü]*\s*(sor|çöz|hazırla|yap)?/gi,
+    /quiz[a-zçğıöşü]*\s*(yap|hazırla|çöz)?/gi,
+    /test[a-zçğıöşü]*\s*(et|yap|çöz)?/gi,
+    /sınav[a-zçğıöşü]*/gi,
+    /hakkında|konusunda|üzerine|ile ilgili/gi,
+    /pratik yap(mak)?( istiyorum)?/gi,
+    /çıkmış/gi,
+    /lütfen|acaba|bana|istiyorum|istiyom|isterim|çözelim|çözmek/gi,
+  ];
+  junkPatterns.forEach(p => { topic = topic.replace(p, ' '); });
+  topic = topic.replace(/\s+/g, ' ').trim();
+  // Boş kaldıysa orijinali kullan
+  if(!topic || topic.length < 2) topic = userRequest.trim();
+  if(topic.length > 50) topic = topic.slice(0, 50).trim();
+  // İlk harf büyük
+  return topic.charAt(0).toUpperCase() + topic.slice(1);
+}
+
+async function askStudyModeChoice(userRequest, thinkingEl){
   const isTr = currentLang === 'tr';
-  const chat = getActiveAiChat();
+  const topic = extractStudyTopic(userRequest);
+  const safeTopic = topic.replace(/</g,'&lt;');
 
-  // Konuyu AI'dan çıkar — kısa bir analiz
   thinkingEl.classList.remove('thinking');
-
-  // Konu tespiti için kısa sistem yanıtı
-  let topic = userRequest;
-  const topicKeywords = ['hakkında','konusunda','üzerine','soruları','quizi','testi','about','questions','quiz'];
-  for(const kw of topicKeywords){
-    const idx = userRequest.toLowerCase().indexOf(kw);
-    if(idx > 0){ topic = userRequest.slice(0, idx).trim(); break; }
-  }
-  if(topic.length > 40) topic = topic.slice(0,40);
-
   thinkingEl.innerHTML = `
-    <div style="line-height:1.6">${isTr
-      ? `📝 <strong style="color:#6ee7ff">"${topic.replace(/</g,'&lt;')}"</strong> konusunda 10 soruluk bir quiz hazırlayayım mı?`
-      : `📝 Shall I prepare a 10-question quiz on <strong style="color:#6ee7ff">"${topic.replace(/</g,'&lt;')}"</strong>?`
+    <div style="line-height:1.6;margin-bottom:12px">${isTr
+      ? `📚 <strong style="color:#6ee7ff">"${safeTopic}"</strong> konusunu nasıl çalışmak istersin?`
+      : `📚 How would you like to study <strong style="color:#6ee7ff">"${safeTopic}"</strong>?`
     }</div>
-    <div style="display:flex;gap:8px;margin-top:10px">
-      <button id="aiQuizConfirmYes" style="
-        padding:8px 18px;border-radius:10px;border:none;
-        background:linear-gradient(135deg,#6ee7ff,#b46bff);
-        color:#070a18;font-weight:700;cursor:pointer;font-size:.8rem;
-        touch-action:manipulation;font-family:'Space Grotesk',sans-serif
-      ">✓ ${isTr?'Hazırla':'Generate'}</button>
-      <button id="aiQuizConfirmNo" style="
-        padding:8px 14px;border-radius:10px;border:1px solid rgba(255,255,255,.15);
-        background:rgba(255,255,255,.05);color:rgba(180,160,255,.7);
-        cursor:pointer;font-size:.8rem;touch-action:manipulation;
-        font-family:'Space Grotesk',sans-serif
-      ">${isTr?'Hayır, vazgeç':'Cancel'}</button>
+    <div style="display:flex;flex-direction:column;gap:8px">
+      <button id="aiModeQuiz" style="
+        display:flex;align-items:center;gap:10px;text-align:left;
+        padding:12px 14px;border-radius:14px;
+        border:1.5px solid rgba(255,110,199,.3);background:rgba(255,110,199,.07);
+        cursor:pointer;touch-action:manipulation;transition:.15s;width:100%;
+      ">
+        <span style="font-size:1.3rem">📝</span>
+        <span style="flex:1">
+          <span style="display:block;font-weight:700;font-size:.85rem;color:#ff6ec7">${isTr?'Quiz Çöz':'Solve Quiz'}</span>
+          <span style="display:block;font-size:.68rem;color:rgba(200,190,230,.5);margin-top:2px">${isTr?'10 soruluk test, anında sonuç':'10-question test, instant results'}</span>
+        </span>
+      </button>
+      <button id="aiModeSlides" style="
+        display:flex;align-items:center;gap:10px;text-align:left;
+        padding:12px 14px;border-radius:14px;
+        border:1.5px solid rgba(110,231,255,.3);background:rgba(110,231,255,.06);
+        cursor:pointer;touch-action:manipulation;transition:.15s;width:100%;
+      ">
+        <span style="font-size:1.3rem">📖</span>
+        <span style="flex:1">
+          <span style="display:block;font-weight:700;font-size:.85rem;color:#6ee7ff">${isTr?'Slayttan Öğren':'Learn from Slides'}</span>
+          <span style="display:block;font-size:.68rem;color:rgba(200,190,230,.5);margin-top:2px">${isTr?'Konu anlatımı + mini test':'Explanation + mini test'}</span>
+        </span>
+      </button>
+      <button id="aiModeCancel" style="
+        padding:8px;border-radius:10px;border:none;background:none;
+        color:rgba(180,160,255,.4);cursor:pointer;font-size:.72rem;
+        touch-action:manipulation;font-family:'Space Mono',monospace;
+      ">${isTr?'vazgeç':'cancel'}</button>
     </div>`;
 
-  document.getElementById('aiQuizConfirmYes').onclick = async () => {
+  document.getElementById('aiModeQuiz').onclick = async () => {
     thinkingEl.innerHTML = `<div>${isTr?'⏳ Quiz hazırlanıyor...':'⏳ Generating quiz...'}</div>`;
-    await generateAndLaunchQuiz(userRequest, topic, thinkingEl);
+    await generateAndLaunchQuiz(topic, topic, thinkingEl);
   };
-  document.getElementById('aiQuizConfirmNo').onclick = () => {
-    thinkingEl.textContent = isTr ? 'Tamam, başka bir şey sorar mısın?' : 'Okay, feel free to ask something else!';
+  document.getElementById('aiModeSlides').onclick = async () => {
+    thinkingEl.innerHTML = `<div>${isTr?'⏳ Konu anlatımı hazırlanıyor...':'⏳ Preparing lesson...'}</div>`;
+    thinkingEl.classList.add('thinking');
+    await startAiLearnMode(topic, thinkingEl);
+  };
+  document.getElementById('aiModeCancel').onclick = () => {
+    thinkingEl.textContent = isTr ? 'Tamam! Başka bir şey sorabilirsin.' : 'Okay! Ask me anything else.';
   };
 }
 
@@ -9829,9 +10081,9 @@ async function generateAndLaunchQuiz(userRequest, topic, statusEl){
         uid: window.currentUser?.uid||'', sig: getRequestSignature(),
         isDeck: true,
         messages:[
-          { role:'user', content: 'trafik işaretleri 2 soru' },
+          { role:'user', content: 'Konu: Trafik İşaretleri — 2 soru' },
           { role:'assistant', content: 'TOPIC:Trafik İşaretleri\n---\nQ:Kırmızı ışıkta ne yapılır?\nA:Geçilir\nB:Durulur\nC:Yavaşlanır\nD:Korna çalınır\nCORRECT:B\nEXP:Kırmızı ışıkta durmak zorunludur.\n---\nQ:Dur işareti kaç köşelidir?\nA:4\nB:6\nC:8\nD:3\nCORRECT:C\nEXP:Dur işareti 8 köşeli oktagon şeklindedir.\n---END' },
-          { role:'user', content: `"${userRequest}" için tam olarak 10 çoktan seçmeli soru. SADECE bu format, başka hiçbir şey:\n\nTOPIC:${topic}\n---\nQ:soru\nA:seçenek\nB:seçenek\nC:seçenek\nD:seçenek\nCORRECT:doğru harf\nEXP:açıklama\n---\n(10 soru, her biri --- ile ayrılmış)\n---END` }
+          { role:'user', content: `Konu: ${topic} — 10 soru\n\nSADECE "${topic}" konusuyla ilgili tam olarak 10 çoktan seçmeli soru yaz. Konu dışına KESİNLİKLE çıkma — her soru doğrudan bu konuyla ilgili olmalı. Eğer konu bir sınav adıysa (YKS, KPSS, ehliyet vb.) o sınavda gerçekten çıkan tarz sorular yaz. SADECE bu format, başka hiçbir şey:\n\nTOPIC:${topic}\n---\nQ:soru\nA:seçenek\nB:seçenek\nC:seçenek\nD:seçenek\nCORRECT:doğru harf\nEXP:açıklama\n---\n(10 soru, her biri --- ile ayrılmış)\n---END` }
         ]
       })
     });
@@ -10038,11 +10290,11 @@ async function startAiLearnMode(userRequest, thinkingEl){
         model:'google/gemini-2.5-flash', max_tokens:2500,
         uid: window.currentUser?.uid||'', sig: getRequestSignature(),
         messages:[{ role:'user', content:
-          `Kullanıcı isteği: "${userRequest}"
+          `Konu: "${userRequest}"
 
-${isTr ? `Önce konuyu net ve anlaşılır anlat (3-4 paragraf), sonra 3 kısa çoktan seçmeli soru ekle. Sadece JSON döndür:
+${isTr ? `SADECE bu konuyu net ve anlaşılır anlat (3-4 paragraf) — konu dışına çıkma. Sonra SADECE bu konuyla ilgili 3 kısa çoktan seçmeli soru ekle. Sadece JSON döndür:
 {"topic":"konu başlığı","explanation":"konunun açıklaması (markdown yok, düz metin, 3-4 paragraf)","questions":[{"q":"soru","opts":["A) ...","B) ...","C) ...","D) ..."],"correct":0}]}`
-: `First explain the topic clearly (3-4 paragraphs), then add 3 short multiple choice questions. Return only JSON:
+: `Explain ONLY this topic clearly (3-4 paragraphs) — do not go off-topic. Then add 3 short multiple choice questions about this exact topic. Return only JSON:
 {"topic":"topic title","explanation":"topic explanation (no markdown, plain text, 3-4 paragraphs)","questions":[{"q":"question","opts":["A) ...","B) ...","C) ...","D) ..."],"correct":0}]}`}
         `}]
       })
