@@ -818,26 +818,44 @@
     }, ()=>{});
   };
 
-  // ======== ARKADAŞ CHAT — orderBy kaldırıldı (index gerekmez), client-side sort ========
+  // ======== ARKADAŞ CHAT — orderBy kaldırıldı, client-side sort ========
   window.fbSendMessage = async (fromUid, toUid, text) => {
     try {
+      if(!fromUid || !toUid || !text?.trim()) return false;
       const chatId = [fromUid, toUid].sort().join('_');
       const msgRef = doc(collection(db, `chats/${chatId}/messages`));
-      await setDoc(msgRef, { from: fromUid, text: text.trim(), ts: Date.now() });
+      await setDoc(msgRef, {
+        from: fromUid,
+        fromName: window.currentUsername || fromUid.slice(0,8),
+        text: text.trim(),
+        ts: Date.now()
+      });
       return true;
-    } catch(e){ console.warn('fbSendMessage err:', e.code, e.message); return false; }
+    } catch(e){
+      console.warn('fbSendMessage:', e.code, e.message);
+      // PERMISSION_DENIED — Firestore rules eksik
+      if(e.code === 'permission-denied'){
+        console.error('⚠️ Firestore rules eksik! Firebase Console'da chats koleksiyonu için kural ekle.');
+      }
+      return false;
+    }
   };
 
   window.fbWatchChat = (myUid, friendUid, callback) => {
     const chatId = [myUid, friendUid].sort().join('_');
-    // orderBy kullanmıyoruz — Firestore index gerektiriyor, client-side sıralıyoruz
-    const q = query(collection(db, `chats/${chatId}/messages`), limit(60));
+    const q = query(collection(db, `chats/${chatId}/messages`), limit(80));
     return onSnapshot(q,
       (snap) => {
-        const msgs = snap.docs.map(d => d.data()).sort((a,b) => a.ts - b.ts);
+        const msgs = snap.docs.map(d => ({ id: d.id, ...d.data() }))
+          .sort((a, b) => a.ts - b.ts);
         callback(msgs);
       },
-      (err) => { console.warn('fbWatchChat err:', err.code, err.message); }
+      (err) => {
+        console.warn('fbWatchChat err:', err.code, err.message);
+        if(err.code === 'permission-denied'){
+          callback(null, 'permission-denied');
+        }
+      }
     );
   };
 
@@ -1367,13 +1385,37 @@
   }
 
   .left-column{
-    width:300px; flex-shrink:0; position:relative; z-index:10;
-    background:rgba(16,22,58,.55);
-    backdrop-filter: blur(10px);
-    border-right:1px solid var(--line);
+    width:280px; flex-shrink:0; position:relative; z-index:10;
+    background:linear-gradient(170deg, rgba(8,5,24,.95) 0%, rgba(12,8,32,.97) 100%);
+    backdrop-filter:blur(14px);
+    border-right:1px solid rgba(110,231,255,.1);
     display:flex; flex-direction:column;
     max-height:100vh; overflow-y:auto;
+    -webkit-overflow-scrolling:touch;
+    overscroll-behavior:contain;
   }
+  /* Cyberpunk sol kenar çizgisi */
+  .left-column::after{
+    content:''; position:absolute; right:0; top:0; bottom:0; width:1px;
+    background:linear-gradient(180deg,
+      transparent 0%,
+      rgba(110,231,255,.2) 20%,
+      rgba(180,107,255,.3) 50%,
+      rgba(110,231,255,.2) 80%,
+      transparent 100%);
+    pointer-events:none;
+  }
+  /* Köşe scan çizgisi */
+  .left-column::before{
+    content:''; position:absolute; inset:0; pointer-events:none; z-index:0;
+    background-image:
+      linear-gradient(rgba(180,107,255,.04) 1px,transparent 1px),
+      linear-gradient(90deg,rgba(110,231,255,.025) 1px,transparent 1px);
+    background-size:28px 28px;
+    -webkit-mask-image:linear-gradient(180deg,#000,transparent 60%);
+    mask-image:linear-gradient(180deg,#000,transparent 60%);
+  }
+  .left-column > *{ position:relative; z-index:1; }
 
   .sidebar{
     flex-shrink:0; position:relative;
@@ -1498,18 +1540,22 @@
 
   /* ===== TEMA RENK SEÇİCİ ===== */
   #themePanel{
-    position:fixed; top:50%; right:0; transform:translateY(-50%);
-    z-index:99500; width:290px;
-    background:rgba(8,6,24,.99);
-    border:1.5px solid rgba(180,107,255,.25);
+    position:fixed; top:50%; right:0;
+    transform:translateY(-50%) translateX(0);
+    z-index:99999; width:290px;
+    background:rgba(6,4,18,.99);
+    border:1.5px solid rgba(180,107,255,.3);
+    border-right:none;
     border-radius:20px 0 0 20px;
-    box-shadow:-8px 0 40px rgba(0,0,0,.6), 0 0 40px -10px rgba(180,107,255,.2);
+    box-shadow:-4px 0 40px rgba(0,0,0,.7), 0 0 40px -10px rgba(180,107,255,.2);
     transition:transform .3s cubic-bezier(.16,1,.3,1);
     overflow:hidden;
-    /* body overflow fix için */
-    will-change:transform;
+    /* body overflow:hidden'ı geç — contain değil */
+    contain:none;
   }
-  #themePanel.hidden{ transform:translateY(-50%) translateX(calc(100%)); }
+  #themePanel.hidden{
+    transform:translateY(-50%) translateX(100%);
+  }
   .tp-header{
     display:flex; align-items:center; gap:10px;
     padding:14px 16px; border-bottom:1px solid rgba(180,107,255,.12);
@@ -2363,15 +2409,16 @@
   }
   #shareModal .sm-close:hover{ background:rgba(255,255,255,.08); }
   .brand{
-    padding:0 20px 8px; border-bottom:1px solid var(--line); margin-bottom:0;
+    padding:14px 16px 12px; border-bottom:1px solid rgba(110,231,255,.08); margin-bottom:0;
     display:flex; align-items:center; gap:12px;
     position:relative; overflow:visible;
+    background:linear-gradient(180deg,rgba(110,231,255,.04),transparent);
   }
   .brand-mark{
-    width:38px; height:38px; border-radius:12px; flex-shrink:0;
+    width:36px; height:36px; border-radius:11px; flex-shrink:0;
     position:relative; overflow:hidden;
     background:#05030c;
-    box-shadow:0 0 24px rgba(110,231,255,.35);
+    box-shadow:0 0 20px rgba(110,231,255,.3), 0 0 0 1px rgba(110,231,255,.15);
   }
   .brand-mark .mini-disk, .ai-panel-header .mark .mini-disk{
     position:absolute; inset:-30%; border-radius:50%;
@@ -4196,23 +4243,31 @@
     100%{transform:scale(1);opacity:1;}
   }
   /* Battle butonu sidebar */
-  /* ===== SIDEBAR ACTION BUTTONS — tek tip ghost stil ===== */
+  /* ===== SIDEBAR ACTION BUTTONS ===== */
   .battle-sidebar-btn, .friends-sidebar-btn{
-    margin:0 12px 6px; padding:10px 14px; border-radius:50px;
-    border:1.5px solid rgba(180,107,255,.18);
-    background:rgba(255,255,255,.025);
-    color:rgba(200,190,230,.65); cursor:pointer; font-size:.74rem;
-    font-family:'Space Grotesk',sans-serif; letter-spacing:.02em;
+    margin:0 10px 5px; padding:11px 14px; border-radius:14px;
+    border:1px solid rgba(180,107,255,.14);
+    background:rgba(180,107,255,.05);
+    color:rgba(200,185,240,.7); cursor:pointer; font-size:.76rem;
+    font-family:'Space Grotesk',sans-serif; letter-spacing:.01em; font-weight:500;
     touch-action:manipulation; display:flex; align-items:center;
-    justify-content:center; gap:7px; transition:all .2s cubic-bezier(.4,0,.2,1);
-    width:calc(100% - 24px); position:relative;
+    justify-content:flex-start; gap:8px; transition:all .18s cubic-bezier(.16,1,.3,1);
+    width:calc(100% - 20px); position:relative; text-align:left;
   }
   .battle-sidebar-btn:hover, .friends-sidebar-btn:hover{
-    background:rgba(180,107,255,.1);
-    border-color:rgba(180,107,255,.5);
+    background:rgba(180,107,255,.13);
+    border-color:rgba(180,107,255,.45);
     color:#fff;
-    box-shadow:0 0 20px -4px rgba(180,107,255,.4), inset 0 0 12px -6px rgba(180,107,255,.3);
-    transform:translateY(-2px);
+    box-shadow:inset 0 0 16px -8px rgba(180,107,255,.25);
+    transform:translateX(4px);
+  }
+  .battle-sidebar-btn:active, .friends-sidebar-btn:active{ transform:translateX(2px) scale(.98); }
+  #friendsSidebarBtn{
+    border-color:rgba(110,231,255,.14); background:rgba(110,231,255,.05); color:rgba(175,228,245,.7);
+  }
+  #friendsSidebarBtn:hover{
+    background:rgba(110,231,255,.11); border-color:rgba(110,231,255,.45);
+    box-shadow:inset 0 0 16px -8px rgba(110,231,255,.2);
   }
   /* ============ ARKADAŞ PANELİ CSS ============ */
   .friends-panel{
@@ -4669,18 +4724,23 @@
     <div id="userArea"></div>
   </div>
 
-  <div class="ai-panel collapsed" id="aiPanel">
-    <div class="ai-panel-header" style="cursor:pointer" onclick="toggleAiPanel()">
-      <div style="flex:1">
-        <h3 data-i18n="aiPanelTitle">Sor & Öğren</h3>
-        <span class="util" data-i18n="aiPanelTagline">dosyasız da sorabilirsin</span>
+  <div class="ai-panel collapsed" id="aiPanel" style="flex:0;min-height:0">
+    <div class="ai-panel-header" style="cursor:pointer;padding:10px 14px;border-top:1px solid rgba(110,231,255,.1)" onclick="openAiPanelFloat()">
+      <div class="mark" style="width:28px;height:28px;border-radius:9px;flex-shrink:0;overflow:hidden;background:#05030c;box-shadow:0 0 14px rgba(110,231,255,.3)">
+        <div class="mini-disk"></div><div class="mini-core"></div>
       </div>
-      <div id="chatLimitBadge" style="font-family:'Space Mono',monospace;font-size:.6rem;color:rgba(110,231,255,.7);text-align:right;line-height:1.5;display:none">
+      <div style="flex:1">
+        <h3 data-i18n="aiPanelTitle" style="font-size:.82rem">Sor & Öğren</h3>
+        <span class="util" style="font-size:.58rem" data-i18n="aiPanelTagline">dosyasız da sorabilirsin</span>
+      </div>
+      <div id="chatLimitBadge" style="font-family:'Space Mono',monospace;font-size:.58rem;color:rgba(110,231,255,.7);text-align:right;line-height:1.5;display:none">
         <div id="chatLimitText">— / 30</div>
         <div style="color:rgba(180,160,255,.5)">mesaj</div>
       </div>
-      <button id="aiPanelToggleBtn" style="margin-left:8px;background:none;border:none;color:rgba(180,160,255,.4);font-size:.85rem;cursor:pointer;padding:2px;transition:transform .25s ease" title="Daralt / Genişlet">▲</button>
+      <span style="color:rgba(110,231,255,.4);font-size:.75rem;margin-left:6px">↗</span>
     </div>
+    <!-- Masaüstünde AI içerik gizli, float panel açılıyor -->
+  </div>
     <div class="ai-chat" id="aiChat">
       <div class="ai-panel-empty" id="aiEmptyMsg" data-i18n="aiEmptyMsg">Bir konu, fikir veya soru yaz — Thinkle sana anlatmaya başlasın. PDF yüklemen gerekmiyor.</div>
     </div>
@@ -10980,15 +11040,49 @@ function closeWelcomeScreen(callback){
 })();
 
 // ============================================================
-// AI PANEL TOGGLE
+// AI PANEL TOGGLE — sol panelden float paneli açar
 // ============================================================
-function toggleAiPanel(){
-  const panel = document.getElementById('aiPanel');
-  if(!panel) return;
-  panel.classList.toggle('collapsed');
-  const btn = document.getElementById('aiPanelToggleBtn');
-  if(btn) btn.title = panel.classList.contains('collapsed') ? 'Genişlet' : 'Daralt';
+function openAiPanelFloat(){
+  const fp = document.getElementById('aiFloatPanel');
+  const btn = document.getElementById('aiFloatBtn');
+  if(fp){
+    fp.classList.add('open');
+    if(btn) btn.style.display = 'none';
+    setTimeout(() => {
+      const inp = document.getElementById('aiInput');
+      if(inp) inp.focus();
+    }, 350);
+  }
 }
+function toggleAiPanel(){ openAiPanelFloat(); }
+
+// Sol (güneş) kaybolma fix
+(function fixSol(){
+  const sol = document.querySelector('.sol');
+  if(sol) sol.style.zIndex = '3';
+  // Left column z-index'ini düzelt
+  const lc = document.querySelector('.left-column');
+  if(lc) lc.style.zIndex = '10';
+})();
+
+// Kayıtlı tema değerlerini yükle
+(function loadThemeFromStorage(){
+  try {
+    const saved = JSON.parse(localStorage.getItem('thinkle_theme') || '{}');
+    if(Object.keys(saved).length === 0) return;
+    Object.entries(saved).forEach(([prop, val]) => {
+      document.documentElement.style.setProperty(prop, val);
+    });
+    // Input'ları da güncelle — DOMContentLoaded'da
+    window.addEventListener('load', () => {
+      Object.entries(saved).forEach(([prop, val]) => {
+        const id = 'tc-' + prop.replace('--','');
+        const el = document.getElementById(id);
+        if(el) el.value = val;
+      });
+    });
+  } catch(e){}
+})();
 
 // ============================================================
 // EMOJI SİSTEMİ — Battle sırasında emoji gönder
@@ -11087,7 +11181,22 @@ function openFriendChat(friendUid, friendName, friendEmoji = '👤'){
 
   // Mesajları dinle
   if(window.fbWatchChat){
-    chatUnsub = window.fbWatchChat(myUid, friendUid, (messages) => {
+    chatUnsub = window.fbWatchChat(myUid, friendUid, (messages, err) => {
+      if(err === 'permission-denied'){
+        const el = document.getElementById('fchMessages');
+        if(el) el.innerHTML = `
+          <div style="text-align:center;padding:20px;font-size:.75rem;line-height:1.7">
+            <div style="font-size:1.5rem;margin-bottom:8px">🔒</div>
+            <div style="color:rgba(255,110,199,.8);font-weight:600;margin-bottom:6px">Erişim Engellendi</div>
+            <div style="color:rgba(180,160,220,.5)">Firebase Console'da Firestore Rules'a şunu ekle:</div>
+            <code style="display:block;margin:10px 0;padding:10px;background:rgba(0,0,0,.4);border-radius:8px;font-size:.65rem;color:#6ee7ff;text-align:left;line-height:1.6">
+              match /chats/{chatId}/messages/{msgId} {<br>
+              &nbsp;&nbsp;allow read, write: if request.auth != null;<br>
+              }
+            </code>
+          </div>`;
+        return;
+      }
       renderChatMessages(messages, myUid);
     });
   }
