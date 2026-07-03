@@ -818,7 +818,9 @@
     }, ()=>{});
   };
 
-  // ======== ARKADAŞ CHAT — orderBy kaldırıldı, client-side sort ========
+  // ======== ARKADAŞ CHAT ========
+  // chatId formatı: [uid1, uid2].sort().join('_')
+  // Firestore rules: chatId.matches('.*' + request.auth.uid + '.*')
   window.fbSendMessage = async (fromUid, toUid, text) => {
     try {
       if(!fromUid || !toUid || !text?.trim()) return false;
@@ -832,11 +834,7 @@
       });
       return true;
     } catch(e){
-      console.warn('fbSendMessage:', e.code, e.message);
-      // PERMISSION_DENIED — Firestore rules eksik
-      if(e.code === 'permission-denied'){
-        console.error('⚠️ Firestore rules eksik! Firebase Console'da chats koleksiyonu için kural ekle.');
-      }
+      console.warn('fbSendMessage err:', e.code, e.message);
       return false;
     }
   };
@@ -847,14 +845,12 @@
     return onSnapshot(q,
       (snap) => {
         const msgs = snap.docs.map(d => ({ id: d.id, ...d.data() }))
-          .sort((a, b) => a.ts - b.ts);
-        callback(msgs);
+          .sort((a, b) => (a.ts||0) - (b.ts||0));
+        callback(msgs, null);
       },
       (err) => {
         console.warn('fbWatchChat err:', err.code, err.message);
-        if(err.code === 'permission-denied'){
-          callback(null, 'permission-denied');
-        }
+        callback([], err.code);
       }
     );
   };
