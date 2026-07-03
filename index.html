@@ -371,6 +371,13 @@
         window.currentUsername = data.username || null;
         window.currentAvatar = data.avatar || null;
 
+        // Profil fotoğrafı varsa yükle
+        if(data.avatarPhoto){
+          window.currentAvatarBase64 = data.avatarPhoto;
+          // Sidebar'daki avatarı güncelle (gecikme ile — DOM hazır olsun)
+          setTimeout(() => updateAllAvatarElements(data.avatarPhoto), 500);
+        }
+
         // Rozeti güncelle
         const badge = document.getElementById('galaxyBadge');
         if(badge) badge.style.display = isGalaxy ? 'inline-block' : 'none';
@@ -837,15 +844,15 @@
   // ======== PROFİL FOTOĞRAFI ========
   window.fbSaveAvatar = async (uid, base64) => {
     try {
-      await setDoc(doc(db, 'users', uid), { avatar: base64 }, { merge: true });
+      await setDoc(doc(db, 'users', uid), { avatarPhoto: base64 }, { merge: true });
       return true;
-    } catch(e){ return false; }
+    } catch(e){ console.warn('fbSaveAvatar err:', e.code, e.message); return false; }
   };
 
   window.fbGetAvatar = async (uid) => {
     try {
       const snap = await getDoc(doc(db, 'users', uid));
-      return snap.exists() ? snap.data().avatar : null;
+      return snap.exists() ? (snap.data().avatarPhoto || null) : null;
     } catch(e){ return null; }
   };
 
@@ -931,7 +938,8 @@
     color:var(--ink);
     display:flex;
     min-height:100vh;
-    overflow:hidden;
+    overflow-x:hidden;  /* X'te scroll yok, Y'de serbest */
+    overflow-y:auto;
     position:relative;
     -webkit-user-select:none;
     user-select:none;
@@ -1491,15 +1499,17 @@
   /* ===== TEMA RENK SEÇİCİ ===== */
   #themePanel{
     position:fixed; top:50%; right:0; transform:translateY(-50%);
-    z-index:9100; width:290px;
-    background:rgba(8,6,24,.98);
+    z-index:99500; width:290px;
+    background:rgba(8,6,24,.99);
     border:1.5px solid rgba(180,107,255,.25);
     border-radius:20px 0 0 20px;
-    box-shadow:-8px 0 40px rgba(0,0,0,.5), 0 0 40px -10px rgba(180,107,255,.2);
+    box-shadow:-8px 0 40px rgba(0,0,0,.6), 0 0 40px -10px rgba(180,107,255,.2);
     transition:transform .3s cubic-bezier(.16,1,.3,1);
     overflow:hidden;
+    /* body overflow fix için */
+    will-change:transform;
   }
-  #themePanel.hidden{ transform:translateY(-50%) translateX(calc(100% - 40px)); }
+  #themePanel.hidden{ transform:translateY(-50%) translateX(calc(100%)); }
   .tp-header{
     display:flex; align-items:center; gap:10px;
     padding:14px 16px; border-bottom:1px solid rgba(180,107,255,.12);
@@ -1561,6 +1571,18 @@
     flex-shrink:0; margin-top:2px;
   }
 
+  /* ===== MOBİL SCROLL & OVERFLOW FIX ===== */
+  .left-column{
+    -webkit-overflow-scrolling:touch;
+    overscroll-behavior:contain;
+  }
+  .content, .main{
+    -webkit-overflow-scrolling:touch;
+    overscroll-behavior:contain;
+  }
+  body::after{ z-index:0 !important; }
+
+  /* ===== AI PANEL COLLAPSE ===== */
   #aiPanel.collapsed .ai-chat,
   #aiPanel.collapsed #aiQuickPrompts,
   #aiPanel.collapsed .ai-input-row{ display:none !important; }
@@ -2481,15 +2503,17 @@
     100%{transform:translate(0,0) rotate(0deg);}
   }
   .upload-screen h1{
-    font-family:'Syne',sans-serif; font-size:2.3rem; font-weight:900;
-    letter-spacing:.01em;
+    font-family:'Space Grotesk',sans-serif; font-size:clamp(1.3rem,3.2vw,2rem); font-weight:700;
+    letter-spacing:-.01em;
     background:linear-gradient(135deg, var(--accent), #fff 45%, var(--accent2) 80%, var(--pink));
     -webkit-background-clip:text; background-clip:text; color:transparent;
-    position:static; text-align:center; margin:0 0 18px;
-    line-height:1.2;
-    filter:drop-shadow(0 0 22px rgba(110,231,255,.35)) drop-shadow(0 0 44px rgba(180,107,255,.18));
+    position:static; text-align:center; margin:0 0 16px;
+    line-height:1.3;
+    filter:drop-shadow(0 0 18px rgba(110,231,255,.3));
     animation:hero-h1-in .9s cubic-bezier(.16,1,.3,1) both;
+    white-space:nowrap;
   }
+  @media(max-width:700px){ .upload-screen h1{ white-space:normal; font-size:1.3rem; } }
   @keyframes hero-h1-in{
     0%{ opacity:0; transform:scaleX(1.12); filter:blur(8px); }
     100%{ opacity:1; transform:scaleX(1); filter:drop-shadow(0 0 22px rgba(110,231,255,.35)) drop-shadow(0 0 44px rgba(180,107,255,.18)); }
@@ -3135,16 +3159,33 @@
     bottom:0; left:0; right:0; z-index:199;
     width:100%;
     height:85vh;
-    background:rgba(7,10,24,.98);
-    border:1px solid var(--line);
-    border-radius:20px 20px 0 0;
+    background:rgba(4,3,14,.97);
+    border:1.5px solid rgba(110,231,255,.18);
+    border-top:2px solid rgba(110,231,255,.3);
+    border-radius:24px 24px 0 0;
     flex-direction:column; overflow:hidden;
-    box-shadow:0 -8px 40px rgba(0,0,0,.6);
+    box-shadow:0 -12px 60px rgba(0,0,0,.7), 0 0 40px -10px rgba(110,231,255,.15);
     transform:translateY(100%);
-    transition:transform .3s cubic-bezier(.16,1,.3,1);
+    transition:transform .35s cubic-bezier(.16,1,.3,1);
     will-change:transform;
     pointer-events:none;
+    /* Cyberpunk grid arka plan */
+    background-image:
+      linear-gradient(rgba(110,231,255,.04) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(180,107,255,.03) 1px, transparent 1px);
+    background-size: 32px 32px;
+    background-color: rgba(4,3,14,.97);
   }
+  .ai-float-panel::before{
+    content:''; position:absolute; top:0; left:0; right:0; height:3px;
+    background:linear-gradient(90deg, transparent, var(--accent) 30%, var(--accent2) 70%, transparent);
+    opacity:.7;
+  }
+  .ai-float-panel::after{
+    content:''; position:absolute; inset:0; pointer-events:none;
+    background:radial-gradient(ellipse 80% 40% at 50% 0%, rgba(110,231,255,.06), transparent 60%);
+  }
+  .ai-float-panel > *{ position:relative; z-index:1; }
   .ai-float-panel.open{
     transform:translateY(0);
     pointer-events:auto;
@@ -4628,7 +4669,7 @@
     <div id="userArea"></div>
   </div>
 
-  <div class="ai-panel" id="aiPanel">
+  <div class="ai-panel collapsed" id="aiPanel">
     <div class="ai-panel-header" style="cursor:pointer" onclick="toggleAiPanel()">
       <div style="flex:1">
         <h3 data-i18n="aiPanelTitle">Sor & Öğren</h3>
@@ -5301,8 +5342,11 @@ async function showProfileModal(){
           position:relative;overflow:hidden;
           transition:.2s;
         " onclick="toggleAvatarPicker()" title="${isTr?'Avatarı değiştir':'Change avatar'}">
-          ${currentAvatar ? `<span id="profileAvatarEmoji" style="line-height:1">${currentAvatar}</span>` :
-            `<img src="${user.photoURL}" style="width:100%;height:100%;object-fit:cover;border-radius:50%" onerror="this.parentElement.innerHTML='<span style=line-height:1>🚀</span>'">`
+          ${window.currentAvatarBase64
+            ? `<img src="${window.currentAvatarBase64}" style="width:100%;height:100%;object-fit:cover;border-radius:50%" id="profileAvatarPhoto">`
+            : (currentAvatar ? `<span id="profileAvatarEmoji" style="line-height:1">${currentAvatar}</span>` :
+              `<img src="${user.photoURL||''}" style="width:100%;height:100%;object-fit:cover;border-radius:50%" onerror="this.parentElement.innerHTML='<span style=line-height:1>🚀</span>'">`
+            )
           }
           <div style="position:absolute;bottom:0;left:0;right:0;background:rgba(0,0,0,.5);font-size:.5rem;padding:2px;text-align:center;color:rgba(255,255,255,.8)">${isTr?'Değiştir':'Change'}</div>
         </div>
@@ -11080,9 +11124,21 @@ async function sendChatMessage(){
   const text = inp?.value.trim();
   if(!text || !activeChatFriendUid) return;
   const myUid = window.currentUser?.uid;
-  if(!myUid) return;
+  if(!myUid){ showToast('Giriş yapman gerekiyor'); return; }
   inp.value = '';
-  try { await window.fbSendMessage?.(myUid, activeChatFriendUid, text); } catch(e){}
+  const sendBtn = document.getElementById('fchSendBtn');
+  if(sendBtn) sendBtn.disabled = true;
+  try {
+    const ok = await window.fbSendMessage?.(myUid, activeChatFriendUid, text);
+    if(!ok){ throw new Error('send failed'); }
+  } catch(e){
+    inp.value = text; // geri koy
+    showToast('⚠️ Mesaj gönderilemedi — Firestore kurallarını kontrol et');
+    console.error('Chat send error:', e);
+  } finally {
+    if(sendBtn) sendBtn.disabled = false;
+    inp.focus();
+  }
 }
 
 // ============================================================
@@ -11283,16 +11339,22 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 function updateAllAvatarElements(base64){
-  // Sidebar avatarı
-  document.querySelectorAll('.user-avatar-img, .sidebar-avatar-img').forEach(img => {
-    img.src = base64;
-  });
-  // currentAvatar güncelle
-  window.currentAvatar = null; // emoji override'ı kaldır
-  // Sol panel avatar emoji'sini resimle değiştir
-  const sidebarAvatar = document.querySelector('#userPanel .user-avatar');
-  if(sidebarAvatar && base64){
-    sidebarAvatar.innerHTML = `<img src="${base64}" class="avatar-img" style="width:38px;height:38px;border-radius:50%;object-fit:cover;border:2px solid rgba(110,231,255,.4)">`;
+  // Profile modal içindeki fotoğrafı güncelle
+  const profilePhoto = document.getElementById('profileAvatarPhoto');
+  if(profilePhoto){ profilePhoto.src = base64; }
+  else {
+    const profileEmoji = document.getElementById('profileAvatarEmoji');
+    if(profileEmoji){
+      profileEmoji.outerHTML = `<img id="profileAvatarPhoto" src="${base64}" style="width:100%;height:100%;object-fit:cover;border-radius:50%">`;
+    }
+  }
+  // Sidebar user area avatar
+  const sidebarAvatar = document.querySelector('#userArea [style*="font-size:1.4rem"], #userArea .sol-emoji-wrap');
+  // Sol panel profil kartındaki emoji'yi değiştir
+  const profileAvatarDisplay = document.getElementById('profileAvatarDisplay');
+  if(profileAvatarDisplay){
+    const inner = profileAvatarDisplay.querySelector('span, img:not([style*="font-size"])');
+    if(inner) inner.outerHTML = `<img id="profileAvatarPhoto" src="${base64}" style="width:100%;height:100%;object-fit:cover;border-radius:50%">`;
   }
 }
 
@@ -11555,6 +11617,18 @@ setTimeout(updateFooter, 600);
       <div class="tp-color-row">
         <div class="tp-color-label">Panel Rengi</div>
         <input type="color" class="tp-color-input" id="tc-panel" value="#10163a" oninput="setThemeColor('--panel',this.value);setThemeColor('--line',shiftBg(this.value,.2))">
+      </div>
+      <div class="tp-color-row">
+        <div class="tp-color-label">Güneş Rengi ☀️</div>
+        <input type="color" class="tp-color-input" id="tc-sol" value="#ff6600" oninput="document.querySelectorAll('.sol-body,.sol-face,.mini-core').forEach(e=>e.style.background=this.value);localStorage.setItem('tc-sol',this.value)">
+      </div>
+      <div class="tp-color-row">
+        <div class="tp-color-label">Topbar Zemin</div>
+        <input type="color" class="tp-color-input" id="tc-topbar" value="#0a0d24" oninput="document.querySelectorAll('.topbar').forEach(e=>e.style.background=this.value+'dd');localStorage.setItem('tc-topbar',this.value)">
+      </div>
+      <div class="tp-color-row">
+        <div class="tp-color-label">Sol Kolon Zemin</div>
+        <input type="color" class="tp-color-input" id="tc-leftcol" value="#08061e" oninput="document.querySelectorAll('.left-column').forEach(e=>e.style.background=this.value);localStorage.setItem('tc-leftcol',this.value)">
       </div>
     </div>
 
