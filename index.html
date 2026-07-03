@@ -11073,7 +11073,6 @@ function toggleAiPanel(){ openAiPanelFloat(); }
     Object.entries(saved).forEach(([prop, val]) => {
       document.documentElement.style.setProperty(prop, val);
     });
-    // Input'ları da güncelle — DOMContentLoaded'da
     window.addEventListener('load', () => {
       Object.entries(saved).forEach(([prop, val]) => {
         const id = 'tc-' + prop.replace('--','');
@@ -11081,6 +11080,22 @@ function toggleAiPanel(){ openAiPanelFloat(); }
         if(el) el.value = val;
       });
     });
+  } catch(e){}
+  // Güneş rengi kayıtlıysa uygula
+  try {
+    const solColor = localStorage.getItem('tc-sol');
+    if(solColor){
+      window.addEventListener('load', () => {
+        const s = document.querySelector('.sol');
+        if(s){
+          const dark = solColor.replace(/^#/,'').match(/../g).map(h=>Math.max(0,parseInt(h,16)-60).toString(16).padStart(2,'0')).join('');
+          s.style.background = `radial-gradient(circle at 38% 35%, #fff8e0, ${solColor} 40%, #${dark} 70%, #cc1100)`;
+          s.style.boxShadow = `0 0 22px 8px ${solColor}77, 0 0 55px 22px ${solColor}44`;
+          const inp = document.getElementById('tc-sol');
+          if(inp) inp.value = solColor;
+        }
+      });
+    }
   } catch(e){}
 })();
 
@@ -11736,7 +11751,16 @@ setTimeout(updateFooter, 600);
       </div>
       <div class="tp-color-row">
         <div class="tp-color-label">Güneş Rengi ☀️</div>
-        <input type="color" class="tp-color-input" id="tc-sol" value="#ff6600" oninput="document.querySelectorAll('.sol-body,.sol-face,.mini-core').forEach(e=>e.style.background=this.value);localStorage.setItem('tc-sol',this.value)">
+        <input type="color" class="tp-color-input" id="tc-sol" value="#ffaa00" oninput="
+          const s=document.querySelector('.sol');
+          if(s){
+            const c=this.value;
+            const dark=c.replace(/^#/,'').match(/../g).map(h=>Math.max(0,parseInt(h,16)-60).toString(16).padStart(2,'0')).join('');
+            s.style.background='radial-gradient(circle at 38% 35%, #fff8e0, '+c+' 40%, #'+dark+' 70%, #cc1100)';
+            s.style.boxShadow='0 0 22px 8px '+c+'77, 0 0 55px 22px '+c+'44';
+          }
+          localStorage.setItem('tc-sol',this.value);
+        ">
       </div>
       <div class="tp-color-row">
         <div class="tp-color-label">Topbar Zemin</div>
