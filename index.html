@@ -1613,6 +1613,42 @@
     flex-shrink:0; margin-top:2px;
   }
 
+  /* ===== SOL PANEL COLLAPSE ===== */
+  .left-column{
+    transition:width .28s cubic-bezier(.4,0,.2,1), min-width .28s cubic-bezier(.4,0,.2,1);
+  }
+  .left-column.left-collapsed{
+    width:0 !important; min-width:0 !important; overflow:hidden !important;
+    border-right:none !important;
+  }
+
+  /* ===== CHAT BİLDİRİM ===== */
+  .chat-notif-badge{
+    position:absolute; top:-5px; right:-5px;
+    width:16px; height:16px; border-radius:50%;
+    background:linear-gradient(135deg,#ff6ec7,#b46bff);
+    color:#fff; font-size:.58rem; font-weight:700;
+    display:flex; align-items:center; justify-content:center;
+    font-family:'Space Mono',monospace;
+    box-shadow:0 0 8px rgba(255,110,199,.5);
+    pointer-events:none;
+    animation:notif-pop .3s cubic-bezier(.16,1,.3,1);
+  }
+  @keyframes notif-pop{ from{transform:scale(0);} to{transform:scale(1);} }
+
+  /* ===== YÖNETİCİ PANELİ FONT FIX ===== */
+  #fwPanel, #fwPanel button, #fwPanel input,
+  #fwPanel div, #fwPanel span, #fwPanel p, #fwPanel label{
+    font-family:'Space Grotesk',sans-serif !important;
+  }
+  #fwPanel .fw-stat-num{
+    font-family:'Orbitron',sans-serif !important;
+    letter-spacing:-.01em !important;
+  }
+  #fwPanel [style*="Syne"]{
+    font-family:'Space Grotesk',sans-serif !important;
+  }
+
   /* ===== MOBİL SCROLL & OVERFLOW FIX ===== */
   .left-column{
     -webkit-overflow-scrolling:touch;
@@ -2452,7 +2488,7 @@
   .tab .num{font-family:'Space Mono',monospace; font-size:.7rem; opacity:.6;}
   .tab.quiz-tab{border-top:1px dashed var(--line); margin-top:6px; padding-top:14px;}
 
-  .main{flex:1; display:flex; flex-direction:column; min-width:0; position:relative; z-index:2;}
+  .main{flex:1; display:flex; flex-direction:column; min-width:0; position:relative; z-index:1;}
   .topbar{
     display:flex; align-items:center; justify-content:space-between;
     padding:16px 32px; border-bottom:1px solid rgba(180,107,255,.22);
@@ -4708,7 +4744,32 @@
   })();
 </script>
 
+<!-- Sol panel AÇMA butonu — panel kapalıyken sol kenarda sabit durur -->
+<button id="leftColOpenBtn" onclick="toggleLeftPanel()" title="Paneli aç" style="
+  position:fixed; left:0; top:50%; transform:translateY(-50%);
+  z-index:60; width:26px; height:64px;
+  background:linear-gradient(135deg, rgba(110,231,255,.15), rgba(180,107,255,.15));
+  border:1.5px solid rgba(110,231,255,.3); border-left:none;
+  border-radius:0 14px 14px 0;
+  cursor:pointer; color:#6ee7ff;
+  font-size:.9rem; display:none; align-items:center; justify-content:center;
+  box-shadow:2px 0 16px rgba(110,231,255,.2);
+  transition:all .2s ease; padding:0;
+" onmouseover="this.style.background='linear-gradient(135deg, rgba(110,231,255,.28), rgba(180,107,255,.28))'"
+   onmouseout="this.style.background='linear-gradient(135deg, rgba(110,231,255,.15), rgba(180,107,255,.15))'">☰</button>
+
 <div class="left-column" id="leftColumn">
+  <!-- Sol panel KAPATMA butonu — panelin içinde sağ üstte -->
+  <button id="leftColCloseBtn" onclick="toggleLeftPanel()" title="Paneli gizle" style="
+    position:absolute; right:8px; top:10px;
+    z-index:20; width:24px; height:24px;
+    background:rgba(255,255,255,.05);
+    border:1px solid rgba(255,255,255,.1); border-radius:8px;
+    cursor:pointer; color:rgba(180,160,255,.5);
+    font-size:.75rem; display:flex; align-items:center; justify-content:center;
+    transition:all .15s ease; padding:0;
+  " onmouseover="this.style.color='#fff';this.style.background='rgba(255,255,255,.1)'"
+     onmouseout="this.style.color='rgba(180,160,255,.5)';this.style.background='rgba(255,255,255,.05)'">◀</button>
   <div class="sidebar" id="sidebar">
     <div class="brand">
       <div class="brand-mark" id="brandMark"><div class="mini-disk"></div><div class="mini-core"></div><div class="laser-eye"></div></div>
@@ -7440,7 +7501,7 @@ function showFounderWelcome(){
       <!-- Header -->
       <div style="padding:22px 24px 14px;text-align:center;border-bottom:1px solid rgba(255,255,255,.06);flex-shrink:0">
         <div style="font-size:2.2rem;margin-bottom:4px;animation:fw-crown 1s ease-in-out infinite alternate">👑</div>
-        <div style="font-family:'Syne',sans-serif;font-size:1.25rem;font-weight:900;background:linear-gradient(135deg,#ffd700,#ffaa00,#ff6ec7);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;">Yönetici Paneli</div>
+        <div style="font-family:'Space Grotesk',sans-serif;font-size:1.25rem;font-weight:800;background:linear-gradient(135deg,#ffd700,#ffaa00,#ff6ec7);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;">Yönetici Paneli</div>
         <button id="founderCloseBtn" style="position:absolute;top:18px;right:18px;width:30px;height:30px;border-radius:9px;border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.05);color:#ccc;cursor:pointer;font-size:.9rem;touch-action:manipulation">✕</button>
       </div>
 
@@ -7514,7 +7575,7 @@ function showFounderWelcome(){
     }
     .fw-stat-box:hover{ border-color:rgba(255,215,0,.3); }
     .fw-stat-num{
-      font-size:1.5rem;font-weight:800;font-family:'Syne',sans-serif;
+      font-size:1.5rem;font-weight:800;font-family:'Orbitron',sans-serif;
       background:linear-gradient(135deg,#ffd700,#ffaa00);
       -webkit-background-clip:text;background-clip:text;color:transparent;
     }
@@ -8265,7 +8326,7 @@ solEl.style.cssText = `
   background:radial-gradient(circle at 38% 35%, #fff8e0, #ffaa00 40%, #ff5500 70%, #cc1100);
   box-shadow:0 0 22px 8px rgba(255,180,0,.45), 0 0 55px 22px rgba(255,100,0,.22);
   animation:sol-pulse 4s ease-in-out infinite alternate;
-  z-index:1;
+  z-index:5;
   cursor:default;
   pointer-events:none;
   transform:translate(-50%,-50%);
@@ -8284,7 +8345,18 @@ solEl.innerHTML = `
 `;
 solEl.style.opacity = '0';
 // Portal kapanınca openApp() içinde opacity:1 yapılır
-document.body.appendChild(solEl);
+// Ama portal sessionStorage ile atlandıysa direkt göster
+if(sessionStorage.getItem('thinkle_portal_seen') || new URLSearchParams(location.search).has('intro')){
+  setTimeout(()=>{ solEl.style.opacity='0.85'; }, 300);
+}
+// #space'e ekle - z-index karmaşasından bağımsız olsun
+const _spaceForSol = document.getElementById('space');
+if(_spaceForSol){
+  solEl.style.position = 'fixed'; // fixed kalacak, space sadece context
+  _spaceForSol.appendChild(solEl);
+} else {
+  document.body.appendChild(solEl);
+}
 
 function positionSolarSystem(){
   if(!orbitContainer || !solEl) return;
@@ -11199,22 +11271,26 @@ function openFriendChat(friendUid, friendName, friendEmoji = '👤'){
     chatUnsub = window.fbWatchChat(myUid, friendUid, (messages, err) => {
       if(err === 'permission-denied'){
         const el = document.getElementById('fchMessages');
-        if(el) el.innerHTML = `
-          <div style="text-align:center;padding:20px;font-size:.75rem;line-height:1.7">
-            <div style="font-size:1.5rem;margin-bottom:8px">🔒</div>
-            <div style="color:rgba(255,110,199,.8);font-weight:600;margin-bottom:6px">Erişim Engellendi</div>
-            <div style="color:rgba(180,160,220,.5)">Firebase Console'da Firestore Rules'a şunu ekle:</div>
-            <code style="display:block;margin:10px 0;padding:10px;background:rgba(0,0,0,.4);border-radius:8px;font-size:.65rem;color:#6ee7ff;text-align:left;line-height:1.6">
-              match /chats/{chatId}/messages/{msgId} {<br>
-              &nbsp;&nbsp;allow read, write: if request.auth != null;<br>
-              }
-            </code>
-          </div>`;
+        if(el) el.innerHTML = `<div style="text-align:center;padding:20px;font-size:.75rem;color:rgba(255,110,199,.7)">🔒 Firestore rules güncellenmeli</div>`;
         return;
       }
+      // Yeni mesaj geldi mi?
+      const prev = window._chatPrevCount?.[friendUid] || 0;
+      const curr = (messages||[]).length;
+      if(curr > prev && prev > 0){
+        const lastMsg = messages[messages.length-1];
+        if(lastMsg.from !== myUid){
+          showChatNotification(friendUid, friendName);
+        }
+      }
+      window._chatPrevCount = window._chatPrevCount || {};
+      window._chatPrevCount[friendUid] = curr;
       renderChatMessages(messages, myUid);
     });
   }
+
+  // Modal açılınca bildirimi temizle
+  clearChatNotification(friendUid);
 }
 
 function closeFriendChat(){
@@ -11499,6 +11575,60 @@ document.addEventListener('thinkle:user-ready', async () => {
     updateAllAvatarElements(avatar);
   }
 });
+
+// ============================================================
+// CHAT BİLDİRİM SİSTEMİ
+// ============================================================
+const _chatUnreadCounts = {}; // { friendUid: count }
+
+function showChatNotification(friendUid, friendName){
+  _chatUnreadCounts[friendUid] = (_chatUnreadCounts[friendUid] || 0) + 1;
+  const total = Object.values(_chatUnreadCounts).reduce((a,b)=>a+b,0);
+
+  // Arkadaşlar butonunda badge göster
+  const friendsBtn = document.getElementById('friendsSidebarBtn');
+  if(friendsBtn){
+    let badge = friendsBtn.querySelector('.chat-notif-badge');
+    if(!badge){
+      badge = document.createElement('span');
+      badge.className = 'chat-notif-badge';
+      badge.style.cssText = 'position:absolute;top:-5px;right:-5px;width:16px;height:16px;border-radius:50%;background:linear-gradient(135deg,#ff6ec7,#b46bff);color:#fff;font-size:.58rem;font-weight:700;display:flex;align-items:center;justify-content:center;font-family:Space Mono,monospace;box-shadow:0 0 8px rgba(255,110,199,.5);pointer-events:none;animation:notif-pop .3s cubic-bezier(.16,1,.3,1);';
+      friendsBtn.style.position = 'relative';
+      friendsBtn.appendChild(badge);
+    }
+    badge.textContent = total > 9 ? '9+' : total;
+  }
+
+  // Toast bildirimi
+  if(!document.getElementById('friendChatModal')?.classList.contains('open')){
+    showToast(`💬 ${friendName}: Yeni mesaj`);
+  }
+}
+
+function clearChatNotification(friendUid){
+  delete _chatUnreadCounts[friendUid];
+  const total = Object.values(_chatUnreadCounts).reduce((a,b)=>a+b,0);
+  const friendsBtn = document.getElementById('friendsSidebarBtn');
+  if(friendsBtn){
+    const badge = friendsBtn.querySelector('.chat-notif-badge');
+    if(badge){
+      if(total === 0) badge.remove();
+      else badge.textContent = total > 9 ? '9+' : total;
+    }
+  }
+}
+
+// Footer accordion
+function toggleLeftPanel(){
+  const lc = document.getElementById('leftColumn');
+  const openBtn = document.getElementById('leftColOpenBtn');
+  if(!lc) return;
+  const collapsed = lc.classList.toggle('left-collapsed');
+  // Dışarıdaki açma butonu sadece panel kapalıyken görünür
+  if(openBtn) openBtn.style.display = collapsed ? 'flex' : 'none';
+  // positionSolarSystem güncelle
+  setTimeout(() => { if(typeof positionSolarSystem==='function') positionSolarSystem(); }, 310);
+}
 
 // Footer accordion
 document.querySelectorAll('.footer-acc-btn').forEach(btn => {
