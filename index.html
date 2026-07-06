@@ -1613,6 +1613,44 @@
     flex-shrink:0; margin-top:2px;
   }
 
+  /* ===== GÜNDÜZ MODU ===== */
+  html[data-mode="day"] #space{
+    background:
+      radial-gradient(ellipse at 20% 30%, rgba(124,86,214,.08), transparent 50%),
+      radial-gradient(ellipse at 80% 70%, rgba(43,143,212,.08), transparent 55%),
+      linear-gradient(160deg, #e8ecf6 0%, #dde3f2 50%, #e8ecf6 100%) !important;
+  }
+  html[data-mode="day"] .star{ background:#8090b0 !important; opacity:.35 !important; }
+  html[data-mode="day"] .left-column{
+    background:linear-gradient(170deg, rgba(255,255,255,.9), rgba(240,243,250,.95)) !important;
+    border-right:1px solid rgba(124,86,214,.15) !important;
+  }
+  html[data-mode="day"] .topbar{
+    background:rgba(255,255,255,.85) !important;
+    border-bottom:1px solid rgba(124,86,214,.12) !important;
+  }
+  html[data-mode="day"] .slide-card,
+  html[data-mode="day"] .quiz-q,
+  html[data-mode="day"] .ai-msg,
+  html[data-mode="day"] .dropzone{
+    background:rgba(255,255,255,.75) !important;
+    border-color:rgba(124,86,214,.18) !important;
+    color:#1a2038 !important;
+  }
+  html[data-mode="day"] .upload-screen p{
+    background:rgba(255,255,255,.6) !important;
+    color:rgba(40,50,90,.8) !important;
+  }
+  html[data-mode="day"] body{ color:#1a2038; }
+  html[data-mode="day"] .sidebar h1{ color:#2b8fd4 !important; }
+  html[data-mode="day"] .brand div div{ color:rgba(40,50,90,.6) !important; }
+  /* Gündüz modunda vignette'i hafiflet */
+  html[data-mode="day"] body::after{
+    background:radial-gradient(ellipse 120% 90% at 50% 45%, transparent 60%, rgba(180,190,215,.25) 100%) !important;
+  }
+  /* Mod kartları hover */
+  .mode-card:hover{ transform:translateY(-2px); }
+
   /* ===== SOL PANEL COLLAPSE ===== */
   .left-column{
     transition:width .28s cubic-bezier(.4,0,.2,1), min-width .28s cubic-bezier(.4,0,.2,1);
@@ -3060,14 +3098,20 @@
     letter-spacing:.05em;
     border:none; background:none; color:rgba(190,180,230,.45);
     padding:6px 13px; border-radius:16px; cursor:pointer;
-    transition:all .25s ease;
+    transition:all .3s cubic-bezier(.34,1.56,.64,1);
   }
   .lang-opt.active{
     background:linear-gradient(135deg,#9b59ff,#00f5ff);
     color:#04010e;
     box-shadow:0 0 14px rgba(155,89,255,.4);
+    animation:lang-pop .4s cubic-bezier(.34,1.56,.64,1);
   }
-  .lang-opt:not(.active):hover{ color:rgba(220,210,255,.85); }
+  @keyframes lang-pop{
+    0%{ transform:scale(.85); }
+    55%{ transform:scale(1.12); }
+    100%{ transform:scale(1); }
+  }
+  .lang-opt:not(.active):hover{ color:rgba(220,210,255,.85); transform:translateY(-1px); }
 
   /* ---------- Mobile menu toggle (hidden on desktop) ---------- */
   .menu-toggle{display:none;}
@@ -3232,6 +3276,11 @@
     border:none; cursor:pointer; align-items:center; justify-content:center;
     font-size:1.3rem; box-shadow:0 4px 18px rgba(0,0,0,.5);
     touch-action:manipulation;
+  }
+  /* PC'de baloncuk asla görünmesin — sol panelde zaten Sor&Öğren var */
+  @media (min-width:861px){
+    .ai-float-btn{ display:none !important; }
+    .ai-float-panel{ display:none !important; }
   }
   .ai-float-panel{
     display:flex; position:fixed;
@@ -5837,7 +5886,7 @@ document.addEventListener('authChanged', e => {  const user = e.detail;
           <span id="friendReqBadge" style="display:none" class="req-badge">0</span>
         </button>
         <button class="battle-sidebar-btn" onclick="showBattleModal()"><span style="font-size:.85rem">⚔️</span> <span class="tr-text">Yarışma Modu</span><span class="en-text">Battle Mode</span></button>
-        <button class="battle-sidebar-btn" onclick="toggleThemePanel()" style="border-color:rgba(180,107,255,.2)"><span style="font-size:.85rem">🎨</span> <span class="tr-text">Tema Renkleri</span><span class="en-text">Theme Colors</span></button>
+        <button class="battle-sidebar-btn" onclick="toggleThemePanel()" style="border-color:rgba(180,107,255,.2)"><span style="font-size:.85rem">🎨</span> <span class="tr-text">Görünüm</span><span class="en-text">Appearance</span></button>
         <a href="https://thinkle.space/landing" target="_blank" class="battle-sidebar-btn" style="text-decoration:none;margin-bottom:10px">
           <span style="font-size:.85rem">🚀</span> <span class="tr-text">Nasıl Çalışır?</span><span class="en-text">How It Works?</span>
         </a>
@@ -8897,19 +8946,59 @@ let lastSourceText = null;
 let deckLang = 'tr';
 
 function applyLanguage(lang){
+  const changed = currentLang !== lang;
   currentLang = lang;
   document.documentElement.lang = lang;
   if(typeof updateLangClass === 'function') updateLangClass();
-  document.querySelectorAll('[data-i18n]').forEach(el => {
-    const key = el.dataset.i18n;
-    const val = i18n[lang][key];
-    if(typeof val === 'string') el.innerHTML = val;
-  });
-  document.querySelectorAll('[data-i18n-placeholder]').forEach(el => {
-    const key = el.dataset.i18nPlaceholder;
-    const val = i18n[lang][key];
-    if(typeof val === 'string') el.placeholder = val;
-  });
+
+  // Dil geçiş animasyonu — çevrilebilir metinlere fade+blur uygula
+  const doTranslate = () => {
+    document.querySelectorAll('[data-i18n]').forEach(el => {
+      const key = el.dataset.i18n;
+      const val = i18n[lang][key];
+      if(typeof val === 'string') el.innerHTML = val;
+    });
+    document.querySelectorAll('[data-i18n-placeholder]').forEach(el => {
+      const key = el.dataset.i18nPlaceholder;
+      const val = i18n[lang][key];
+      if(typeof val === 'string') el.placeholder = val;
+    });
+  };
+
+  if(changed){
+    // Overlay ile yumuşak geçiş — tüm ekranda ince bir flaş
+    let overlay = document.getElementById('langSwitchOverlay');
+    if(!overlay){
+      overlay = document.createElement('div');
+      overlay.id = 'langSwitchOverlay';
+      overlay.style.cssText = 'position:fixed;inset:0;z-index:99998;pointer-events:none;opacity:0;background:radial-gradient(circle at 50% 45%,rgba(110,231,255,.06),rgba(180,107,255,.04) 50%,transparent 75%);transition:opacity .3s ease;';
+      document.body.appendChild(overlay);
+    }
+    // Çevrilebilir metinleri blur+fade yap
+    const els = document.querySelectorAll('[data-i18n]');
+    els.forEach(el => {
+      el.style.transition = 'opacity .2s ease, filter .2s ease';
+      el.style.opacity = '0';
+      el.style.filter = 'blur(4px)';
+    });
+    overlay.style.opacity = '1';
+    // Dil rozeti pill'inde küçük bir "swap" animasyonu
+    const activeBadge = document.querySelector('.lang-opt.active, .cp-lang-opt.active');
+    setTimeout(() => {
+      doTranslate();
+      els.forEach(el => {
+        el.style.opacity = '1';
+        el.style.filter = 'blur(0)';
+      });
+      overlay.style.opacity = '0';
+      setTimeout(() => {
+        els.forEach(el => { el.style.transition = ''; el.style.filter = ''; });
+      }, 250);
+    }, 200);
+  } else {
+    doTranslate();
+  }
+
   document.querySelectorAll('.lang-opt').forEach(b => {
     b.classList.toggle('active', b.dataset.lang === lang);
   });
@@ -11115,13 +11204,28 @@ function closeWelcomeScreen(callback){
 // AI PANEL TOGGLE — sol panelden float paneli açar
 // ============================================================
 function openAiPanelFloat(){
+  // PC'de sol paneldeki AI bölümünü genişlet, mobilde float panel aç
+  if(window.innerWidth > 860){
+    const panel = document.getElementById('aiPanel');
+    if(panel){
+      panel.classList.toggle('collapsed');
+      if(!panel.classList.contains('collapsed')){
+        setTimeout(() => {
+          const inp = document.getElementById('aiInput');
+          if(inp) inp.focus();
+        }, 300);
+      }
+    }
+    return;
+  }
+  // Mobil: float panel
   const fp = document.getElementById('aiFloatPanel');
   const btn = document.getElementById('aiFloatBtn');
   if(fp){
     fp.classList.add('open');
     if(btn) btn.style.display = 'none';
     setTimeout(() => {
-      const inp = document.getElementById('aiInput');
+      const inp = document.getElementById('aiInputMobile') || document.getElementById('aiInput');
       if(inp) inp.focus();
     }, 350);
   }
@@ -11135,40 +11239,6 @@ function toggleAiPanel(){ openAiPanelFloat(); }
   // Left column z-index'ini düzelt
   const lc = document.querySelector('.left-column');
   if(lc) lc.style.zIndex = '10';
-})();
-
-// Kayıtlı tema değerlerini yükle
-(function loadThemeFromStorage(){
-  try {
-    const saved = JSON.parse(localStorage.getItem('thinkle_theme') || '{}');
-    if(Object.keys(saved).length === 0) return;
-    Object.entries(saved).forEach(([prop, val]) => {
-      document.documentElement.style.setProperty(prop, val);
-    });
-    window.addEventListener('load', () => {
-      Object.entries(saved).forEach(([prop, val]) => {
-        const id = 'tc-' + prop.replace('--','');
-        const el = document.getElementById(id);
-        if(el) el.value = val;
-      });
-    });
-  } catch(e){}
-  // Güneş rengi kayıtlıysa uygula
-  try {
-    const solColor = localStorage.getItem('tc-sol');
-    if(solColor){
-      window.addEventListener('load', () => {
-        const s = document.querySelector('.sol');
-        if(s){
-          const dark = solColor.replace(/^#/,'').match(/../g).map(h=>Math.max(0,parseInt(h,16)-60).toString(16).padStart(2,'0')).join('');
-          s.style.background = `radial-gradient(circle at 38% 35%, #fff8e0, ${solColor} 40%, #${dark} 70%, #cc1100)`;
-          s.style.boxShadow = `0 0 22px 8px ${solColor}77, 0 0 55px 22px ${solColor}44`;
-          const inp = document.getElementById('tc-sol');
-          if(inp) inp.value = solColor;
-        }
-      });
-    }
-  } catch(e){}
 })();
 
 // ============================================================
@@ -11391,70 +11461,53 @@ async function challengeOnlinePlayer(uid, username){
 }
 
 // ============================================================
-// TEMA RENK SİSTEMİ
+// GECE / GÜNDÜZ MODU SİSTEMİ
 // ============================================================
-const THEME_DEFAULTS = {
-  '--accent':'#6ee7ff', '--accent2':'#b46bff',
-  '--pink':'#ff6ec7', '--ok':'#4dffb0',
-  '--bg':'#070a18', '--bg2':'#0d1230',
-  '--panel':'#10163a', '--line':'#26305f'
+const MODE_NIGHT = {
+  '--accent':'#6ee7ff', '--accent2':'#b46bff', '--pink':'#ff6ec7', '--ok':'#4dffb0',
+  '--bg':'#070a18', '--bg2':'#0d1230', '--panel':'#10163a', '--line':'#26305f',
+  '--ink':'#eaf0ff', '--ink-soft':'rgba(200,190,230,.6)'
 };
-const THEME_PRESETS = {
-  nebula:  { '--accent':'#6ee7ff','--accent2':'#b46bff','--pink':'#ff6ec7','--ok':'#4dffb0','--bg':'#070a18','--bg2':'#0d1230','--panel':'#10163a','--line':'#26305f' },
-  sunset:  { '--accent':'#ff9a3c','--accent2':'#ff4d6d','--pink':'#ffd166','--ok':'#a8ff78','--bg':'#0d0508','--bg2':'#180c10','--panel':'#2a1018','--line':'#4a1828' },
-  matrix:  { '--accent':'#00ff88','--accent2':'#00cc44','--pink':'#88ffcc','--ok':'#00ff88','--bg':'#020d04','--bg2':'#041808','--panel':'#052010','--line':'#0a3818' },
-  gold:    { '--accent':'#ffd700','--accent2':'#ff8c00','--pink':'#fff0a0','--ok':'#aaff44','--bg':'#0a0700','--bg2':'#120d00','--panel':'#1e1400','--line':'#3a2800' },
-  rose:    { '--accent':'#ff6b9d','--accent2':'#c56bff','--pink':'#ffb347','--ok':'#7affcc','--bg':'#0d0510','--bg2':'#180a1a','--panel':'#280c30','--line':'#401450' },
-  ice:     { '--accent':'#a8e6ff','--accent2':'#6bbfff','--pink':'#c8f4ff','--ok':'#aaffee','--bg':'#030810','--bg2':'#06101e','--panel':'#0c1e38','--line':'#162f52' },
+const MODE_DAY = {
+  '--accent':'#2b8fd4', '--accent2':'#7c56d6', '--pink':'#d4468f', '--ok':'#1fa87a',
+  '--bg':'#e8ecf6', '--bg2':'#dde3f2', '--panel':'#ffffff', '--line':'#c4cde0',
+  '--ink':'#1a2038', '--ink-soft':'rgba(40,50,90,.65)'
 };
 
-function setThemeColor(prop, val){
-  document.documentElement.style.setProperty(prop, val);
-  // localStorage'a kaydet
+function applyMode(mode){
+  const vars = mode === 'day' ? MODE_DAY : MODE_NIGHT;
+  Object.entries(vars).forEach(([prop,val]) => {
+    document.documentElement.style.setProperty(prop, val);
+  });
+  document.documentElement.setAttribute('data-mode', mode);
+  try { localStorage.setItem('thinkle_mode', mode); } catch(e){}
+
+  // Kart seçili görünümlerini güncelle
+  const nightCard = document.getElementById('modeNight');
+  const dayCard = document.getElementById('modeDay');
+  if(nightCard && dayCard){
+    const isNight = mode === 'night';
+    nightCard.style.borderColor = isNight ? 'rgba(110,231,255,.4)' : 'rgba(255,255,255,.1)';
+    dayCard.style.borderColor = isNight ? 'rgba(255,255,255,.1)' : 'rgba(255,180,80,.5)';
+    const nightCheck = nightCard.querySelector('.mode-check');
+    const dayCheck = dayCard.querySelector('.mode-check');
+    if(nightCheck){ nightCheck.style.borderColor = isNight?'rgba(110,231,255,.6)':'rgba(255,255,255,.2)'; nightCheck.style.color = isNight?'#6ee7ff':'transparent'; }
+    if(dayCheck){ dayCheck.style.borderColor = isNight?'rgba(255,255,255,.2)':'rgba(255,180,80,.7)'; dayCheck.style.color = isNight?'transparent':'#ff8c42'; }
+  }
+  showToast(mode === 'day' ? '☀️ Gündüz modu' : '🌙 Gece modu');
+}
+
+// Sayfa yüklenince kayıtlı modu uygula
+(function loadMode(){
   try {
-    const saved = JSON.parse(localStorage.getItem('thinkle_theme') || '{}');
-    saved[prop] = val;
-    localStorage.setItem('thinkle_theme', JSON.stringify(saved));
+    const saved = localStorage.getItem('thinkle_mode') || 'night';
+    // İlk yüklemede sadece night dışındaysa uygula (night zaten varsayılan)
+    if(saved === 'day'){
+      window.addEventListener('load', () => applyMode('day'));
+    }
+    document.documentElement.setAttribute('data-mode', saved);
   } catch(e){}
-}
-
-function shiftBg(hex, factor){
-  // Hex rengi biraz aydınlat
-  try {
-    const r = parseInt(hex.slice(1,3),16);
-    const g = parseInt(hex.slice(3,5),16);
-    const b = parseInt(hex.slice(5,7),16);
-    const toHex = n => Math.min(255,Math.round(n)).toString(16).padStart(2,'0');
-    return `#${toHex(r+factor*40)}${toHex(g+factor*40)}${toHex(b+factor*60)}`;
-  } catch(e){ return hex; }
-}
-
-function applyThemePreset(name){
-  const preset = THEME_PRESETS[name];
-  if(!preset) return;
-  Object.entries(preset).forEach(([prop,val]) => {
-    document.documentElement.style.setProperty(prop, val);
-  });
-  // Input'ları güncelle
-  Object.entries(preset).forEach(([prop,val]) => {
-    const inputId = 'tc-' + prop.replace('--','');
-    const input = document.getElementById(inputId);
-    if(input) input.value = val;
-  });
-  try { localStorage.setItem('thinkle_theme', JSON.stringify(preset)); } catch(e){}
-  showToast('🎨 Tema uygulandı: ' + name.charAt(0).toUpperCase() + name.slice(1));
-}
-
-function resetTheme(){
-  Object.entries(THEME_DEFAULTS).forEach(([prop,val]) => {
-    document.documentElement.style.setProperty(prop, val);
-    const inputId = 'tc-' + prop.replace('--','');
-    const input = document.getElementById(inputId);
-    if(input) input.value = val;
-  });
-  try { localStorage.removeItem('thinkle_theme'); } catch(e){}
-  showToast('↺ Varsayılan tema geri yüklendi');
-}
+})();
 
 function toggleThemePanel(){
   const panel = document.getElementById('themePanel');
@@ -11816,93 +11869,46 @@ setTimeout(updateFooter, 600);
   <div class="tp-header" onclick="toggleThemePanel()">
     <div style="font-size:1.1rem">🎨</div>
     <div style="flex:1">
-      <div style="font-family:'Space Grotesk',sans-serif;font-size:.9rem;font-weight:700;color:#eaf0ff">Tema Renkleri</div>
-      <div style="font-size:.6rem;color:rgba(180,160,255,.4);font-family:'Space Mono',monospace">Kişiselleştir</div>
+      <div style="font-family:'Space Grotesk',sans-serif;font-size:.9rem;font-weight:700;color:#eaf0ff">Görünüm</div>
+      <div style="font-size:.6rem;color:rgba(180,160,255,.4);font-family:'Space Mono',monospace">Tema Seç</div>
     </div>
     <div id="tpToggleArrow" style="color:rgba(180,160,255,.4);font-size:.8rem;transition:transform .3s">◀</div>
   </div>
   <div class="tp-body">
-
     <div class="tp-section">
-      <div class="tp-section-title">🌈 Hazır Temalar</div>
-      <div class="tp-preset-grid">
-        <button class="tp-preset" onclick="applyThemePreset('nebula')">
-          <div class="tp-preset-dots"><div class="tp-preset-dot" style="background:#6ee7ff"></div><div class="tp-preset-dot" style="background:#b46bff"></div><div class="tp-preset-dot" style="background:#ff6ec7"></div></div>
-          Nebula
-        </button>
-        <button class="tp-preset" onclick="applyThemePreset('sunset')">
-          <div class="tp-preset-dots"><div class="tp-preset-dot" style="background:#ff9a3c"></div><div class="tp-preset-dot" style="background:#ff4d6d"></div><div class="tp-preset-dot" style="background:#ffd166"></div></div>
-          Sunset
-        </button>
-        <button class="tp-preset" onclick="applyThemePreset('matrix')">
-          <div class="tp-preset-dots"><div class="tp-preset-dot" style="background:#00ff88"></div><div class="tp-preset-dot" style="background:#00cc44"></div><div class="tp-preset-dot" style="background:#88ffcc"></div></div>
-          Matrix
-        </button>
-        <button class="tp-preset" onclick="applyThemePreset('gold')">
-          <div class="tp-preset-dots"><div class="tp-preset-dot" style="background:#ffd700"></div><div class="tp-preset-dot" style="background:#ff8c00"></div><div class="tp-preset-dot" style="background:#fff0a0"></div></div>
-          Gold
-        </button>
-        <button class="tp-preset" onclick="applyThemePreset('rose')">
-          <div class="tp-preset-dots"><div class="tp-preset-dot" style="background:#ff6b9d"></div><div class="tp-preset-dot" style="background:#c56bff"></div><div class="tp-preset-dot" style="background:#ffb347"></div></div>
-          Rose
-        </button>
-        <button class="tp-preset" onclick="applyThemePreset('ice')">
-          <div class="tp-preset-dots"><div class="tp-preset-dot" style="background:#a8e6ff"></div><div class="tp-preset-dot" style="background:#6bbfff"></div><div class="tp-preset-dot" style="background:#c8f4ff"></div></div>
-          Ice
-        </button>
-      </div>
-    </div>
+      <div class="tp-section-title">🎭 Konsept</div>
+      <div style="display:flex;flex-direction:column;gap:12px;margin-top:6px">
 
-    <div class="tp-section">
-      <div class="tp-section-title">🖌 Renkler</div>
-      <div class="tp-color-row">
-        <div class="tp-color-label">Accent (Cyan)</div>
-        <input type="color" class="tp-color-input" id="tc-accent" value="#6ee7ff" oninput="setThemeColor('--accent',this.value)">
-      </div>
-      <div class="tp-color-row">
-        <div class="tp-color-label">Accent 2 (Mor)</div>
-        <input type="color" class="tp-color-input" id="tc-accent2" value="#b46bff" oninput="setThemeColor('--accent2',this.value)">
-      </div>
-      <div class="tp-color-row">
-        <div class="tp-color-label">Pembe / Vurgu</div>
-        <input type="color" class="tp-color-input" id="tc-pink" value="#ff6ec7" oninput="setThemeColor('--pink',this.value)">
-      </div>
-      <div class="tp-color-row">
-        <div class="tp-color-label">Doğru (Yeşil)</div>
-        <input type="color" class="tp-color-input" id="tc-ok" value="#4dffb0" oninput="setThemeColor('--ok',this.value)">
-      </div>
-      <div class="tp-color-row">
-        <div class="tp-color-label">Arkaplan</div>
-        <input type="color" class="tp-color-input" id="tc-bg" value="#070a18" oninput="setThemeColor('--bg',this.value);setThemeColor('--bg2',shiftBg(this.value,.08))">
-      </div>
-      <div class="tp-color-row">
-        <div class="tp-color-label">Panel Rengi</div>
-        <input type="color" class="tp-color-input" id="tc-panel" value="#10163a" oninput="setThemeColor('--panel',this.value);setThemeColor('--line',shiftBg(this.value,.2))">
-      </div>
-      <div class="tp-color-row">
-        <div class="tp-color-label">Güneş Rengi ☀️</div>
-        <input type="color" class="tp-color-input" id="tc-sol" value="#ffaa00" oninput="
-          const s=document.querySelector('.sol');
-          if(s){
-            const c=this.value;
-            const dark=c.replace(/^#/,'').match(/../g).map(h=>Math.max(0,parseInt(h,16)-60).toString(16).padStart(2,'0')).join('');
-            s.style.background='radial-gradient(circle at 38% 35%, #fff8e0, '+c+' 40%, #'+dark+' 70%, #cc1100)';
-            s.style.boxShadow='0 0 22px 8px '+c+'77, 0 0 55px 22px '+c+'44';
-          }
-          localStorage.setItem('tc-sol',this.value);
+        <button class="mode-card" id="modeNight" onclick="applyMode('night')" style="
+          display:flex;align-items:center;gap:14px;padding:16px 16px;border-radius:16px;
+          border:2px solid rgba(110,231,255,.4);
+          background:linear-gradient(135deg,rgba(10,7,28,.9),rgba(16,22,58,.7));
+          cursor:pointer;text-align:left;transition:all .2s ease;width:100%;
         ">
-      </div>
-      <div class="tp-color-row">
-        <div class="tp-color-label">Topbar Zemin</div>
-        <input type="color" class="tp-color-input" id="tc-topbar" value="#0a0d24" oninput="document.querySelectorAll('.topbar').forEach(e=>e.style.background=this.value+'dd');localStorage.setItem('tc-topbar',this.value)">
-      </div>
-      <div class="tp-color-row">
-        <div class="tp-color-label">Sol Kolon Zemin</div>
-        <input type="color" class="tp-color-input" id="tc-leftcol" value="#08061e" oninput="document.querySelectorAll('.left-column').forEach(e=>e.style.background=this.value);localStorage.setItem('tc-leftcol',this.value)">
+          <div style="width:44px;height:44px;border-radius:12px;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:1.5rem;background:radial-gradient(circle at 40% 35%,#1a1440,#05030c);box-shadow:0 0 16px rgba(110,231,255,.3),inset 0 0 12px rgba(180,107,255,.2)">🌙</div>
+          <div style="flex:1">
+            <div style="font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:.95rem;color:#eaf0ff;margin-bottom:2px">Gece Modu</div>
+            <div style="font-size:.68rem;color:rgba(180,160,255,.55);line-height:1.4">Koyu uzay teması · neon vurgular</div>
+          </div>
+          <div class="mode-check" style="width:22px;height:22px;border-radius:50%;flex-shrink:0;border:2px solid rgba(110,231,255,.6);display:flex;align-items:center;justify-content:center;color:#6ee7ff;font-size:.7rem">✓</div>
+        </button>
+
+        <button class="mode-card" id="modeDay" onclick="applyMode('day')" style="
+          display:flex;align-items:center;gap:14px;padding:16px 16px;border-radius:16px;
+          border:2px solid rgba(255,255,255,.1);
+          background:linear-gradient(135deg,rgba(30,25,50,.5),rgba(40,35,70,.35));
+          cursor:pointer;text-align:left;transition:all .2s ease;width:100%;
+        ">
+          <div style="width:44px;height:44px;border-radius:12px;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:1.5rem;background:radial-gradient(circle at 40% 35%,#ffe9a8,#ff8c42);box-shadow:0 0 16px rgba(255,180,80,.4)">☀️</div>
+          <div style="flex:1">
+            <div style="font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:.95rem;color:#eaf0ff;margin-bottom:2px">Gündüz Modu</div>
+            <div style="font-size:.68rem;color:rgba(180,160,255,.55);line-height:1.4">Aydınlık tema · yumuşak tonlar</div>
+          </div>
+          <div class="mode-check" style="width:22px;height:22px;border-radius:50%;flex-shrink:0;border:2px solid rgba(255,255,255,.2);display:flex;align-items:center;justify-content:center;color:transparent;font-size:.7rem">✓</div>
+        </button>
+
       </div>
     </div>
-
-    <button class="tp-reset-btn" onclick="resetTheme()">↺ Varsayılana Dön</button>
   </div>
 </div>
 
