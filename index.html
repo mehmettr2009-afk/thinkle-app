@@ -2070,6 +2070,7 @@
     animation:cp-ring-in .8s 1.5s ease forwards, cp-ring-spin 26s linear infinite reverse;
   }
   @keyframes cp-ring-spin{ to{ transform:rotate(360deg); } }
+  @keyframes spin{ to{ transform:rotate(360deg); } }
   .cp-orbit-dot{
     position:absolute; width:5px; height:5px; border-radius:50%;
     top:-2.5px; left:50%; margin-left:-2.5px;
@@ -4572,10 +4573,10 @@
 <button class="ai-float-btn" id="aiFloatBtn" style="display:none">💬</button>
 <div id="aiFloatBackdrop" onclick="closeBigAiPanel()"></div>
 <div class="ai-float-panel" id="aiFloatPanel">
-  <div style="display:flex;align-items:center;padding:14px 18px;border-bottom:1px solid rgba(110,231,255,.12);flex-shrink:0;gap:11px;background:rgba(110,231,255,.03)">
+  <div id="aiPanelDragHeader" style="display:flex;align-items:center;padding:14px 18px;border-bottom:1px solid rgba(110,231,255,.12);flex-shrink:0;gap:11px;background:rgba(110,231,255,.03);cursor:grab;user-select:none">
     <div style="width:34px;height:34px;border-radius:10px;flex-shrink:0;overflow:hidden;background:#05030c;box-shadow:0 0 14px rgba(110,231,255,.35)"><div class="mini-disk"></div><div class="mini-core"></div></div>
     <div style="flex:1">
-      <div style="font-family:'Space Grotesk',sans-serif;font-size:.95rem;font-weight:700;color:#eaf0ff;letter-spacing:.01em" data-i18n="aiPanelTitle">Sor & Öğren</div>
+      <div style="font-family:'Space Grotesk',sans-serif;font-size:.95rem;font-weight:700;color:#eaf0ff;letter-spacing:.01em;display:flex;align-items:center;gap:7px" data-i18n="aiPanelTitle">Sor & Öğren <span style="font-size:.6rem;color:rgba(110,231,255,.4);font-weight:400">⠿ taşı</span></div>
       <div style="font-size:.6rem;color:rgba(110,231,255,.5);font-family:'Space Mono',monospace;letter-spacing:.05em">dosyasız da sorabilirsin</div>
     </div>
     <button onclick="closeBigAiPanel()" style="background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);border-radius:10px;width:30px;height:30px;cursor:pointer;color:rgba(255,255,255,.6);font-size:.8rem;touch-action:manipulation;display:flex;align-items:center;justify-content:center;flex-shrink:0" onmouseover="this.style.background='rgba(255,255,255,.12)'" onmouseout="this.style.background='rgba(255,255,255,.06)'">✕</button>
@@ -4583,6 +4584,8 @@
   <div class="ai-chat" id="aiChatMobile" style="flex:1;overflow-y:auto;padding:14px 16px;min-height:0">
     <div class="ai-panel-empty" style="text-align:center;color:rgba(180,160,255,.5);font-size:.82rem;padding:30px 20px;line-height:1.6" data-i18n="aiEmptyMsg">Bir konu, fikir veya soru yaz — Thinkle sana anlatmaya başlasın. PDF yüklemen gerekmiyor.</div>
   </div>
+  <!-- Yüklenen dosya önizlemesi -->
+  <div id="aiFilePreview" style="display:none;padding:0 16px;flex-shrink:0"></div>
   <div id="aiQuickPromptsBig" style="display:flex;flex-wrap:wrap;gap:6px;padding:8px 16px 0;flex-shrink:0">
     <button class="ai-chip tr-text" data-prompt="Bu konuyu kısaca özetle">Özet ver</button>
     <button class="ai-chip tr-text" data-prompt="Bu konuyla ilgili bana 3 soru sor, ben cevap vereyim">Soru sor</button>
@@ -4593,10 +4596,12 @@
     <button class="ai-chip en-text" data-prompt="Explain with a real-world example">Example</button>
     <button class="ai-chip en-text" data-prompt="Connect this topic to everyday life or other subjects">Connect</button>
   </div>
-  <div class="ai-input-row" style="padding:12px 16px;border-top:1px solid rgba(110,231,255,.1);display:flex;gap:8px">
+  <div class="ai-input-row" style="padding:12px 16px;border-top:1px solid rgba(110,231,255,.1);display:flex;gap:8px;align-items:flex-end">
+    <button id="aiAttachBtn" onclick="document.getElementById('aiFileInput').click()" title="Dosya/Fotoğraf ekle" style="flex-shrink:0;width:44px;height:44px;border-radius:12px;border:1.5px solid rgba(110,231,255,.2);background:rgba(110,231,255,.05);color:#6ee7ff;cursor:pointer;font-size:1.2rem;display:flex;align-items:center;justify-content:center;transition:all .15s" onmouseover="this.style.background='rgba(110,231,255,.12)'" onmouseout="this.style.background='rgba(110,231,255,.05)'">📎</button>
     <textarea id="aiInputMobile" placeholder="Bir şey sor…" style="flex:1;resize:none;min-height:44px;max-height:120px;padding:11px 14px;border:1.5px solid rgba(180,107,255,.18);border-radius:12px;font-family:'Space Grotesk',sans-serif;font-size:.88rem;background:rgba(255,255,255,.03);color:var(--ink);-webkit-user-select:text;user-select:text;outline:none"></textarea>
     <button class="ai-send-btn" id="aiSendBtnMobile" style="padding:0 16px;font-size:1.1rem">→</button>
   </div>
+  <input type="file" id="aiFileInput" accept="image/*,.pdf,.docx,.txt,.xlsx,.csv" style="display:none">
 </div>
 
 <!-- Mobil Header — sade, sıfırdan tasarlandı -->
@@ -10252,7 +10257,8 @@ async function sendAiQuestion(){
   const inp = getActiveAiInput();
   const btn = getActiveSendBtn();
   const question = inp.value.trim();
-  if(!question) return;
+  const attached = window._aiAttachedFile;
+  if(!question && !attached) return;
 
   // Auth kontrolü
   if(!window.currentUser){
@@ -10261,14 +10267,19 @@ async function sendAiQuestion(){
   }
   inp.value = '';
   if(btn) btn.disabled = true;
-  addAiMessage('user', question);
+
+  // Kullanıcı mesajını göster (dosya varsa belirt)
+  const displayMsg = attached
+    ? (question || (attached.isImage ? '📷 Fotoğraf' : '📄 ' + attached.name)) + (attached && question ? '' : '')
+    : question;
+  addAiMessage('user', attached ? `${attached.isImage ? '📷' : '📄'} ${attached.name}${question ? '\n' + question : ''}` : question);
 
   // 🕵️ GİZLİ EASTER EGG — Mehmet Emin Ayvaz
   const qLow = question.toLowerCase();
   const hasMEA = qLow.includes('mehmet') || qLow.includes('emin') || qLow.includes('ayvaz');
   const hasAsk = qLow.includes('tan') || qLow.includes('biliy') || qLow.includes('kim') || qLow.includes('who');
   
-  if(hasMEA && hasAsk){
+  if(hasMEA && hasAsk && !attached){
     const thinkingEl = addAiMessage('ai', '...', true);
     await new Promise(r => setTimeout(r, 1800));
     thinkingEl.classList.remove('thinking');
@@ -10316,7 +10327,7 @@ kendini imha edecek.</span></div>`;
     qLow2.includes('learn about') || qLow2.includes('teach me') ||
     (qLow2.includes('çalış') && (qLow2.includes('istiyorum') || qLow2.includes('istiyom')));
 
-  if(isQuizIntent || isLearnIntent){
+  if((isQuizIntent || isLearnIntent) && !attached){
     const thinkEl = addAiMessage('ai', t('aiThinking'), true);
     if(btn) btn.disabled = false;
     await askStudyModeChoice(question, thinkEl);
@@ -10334,6 +10345,24 @@ kendini imha edecek.</span></div>`;
       const uname = window.currentUsername ? '@' + window.currentUsername : (window.currentUser?.displayName || null);
       const userCtx = window.currentUser && !window.currentUser.isAnonymous ? `
 KULLANICI: ${uname || '(anonim)'} ${isGalaxyMember ? '✦ GALAXY ÜYESİ' : ''}` : '';
+
+      // Ekli dosya varsa mesaj içeriğini oluştur
+      let userMessageContent;
+      if(attached && attached.isImage){
+        // Görsel — multimodal format (base64)
+        const base64Data = attached.base64.split(',')[1];
+        const mediaType = attached.type || 'image/jpeg';
+        userMessageContent = [
+          { type: 'image', source: { type: 'base64', media_type: mediaType, data: base64Data } },
+          { type: 'text', text: question || 'Bu görselde ne var? Açıkla.' }
+        ];
+      } else if(attached && attached.content){
+        // Metin dosyası — içeriği prompt'a kat
+        const truncated = attached.content.slice(0, 12000);
+        userMessageContent = `[Kullanıcı "${attached.name}" dosyasını ekledi. İçerik:]\n\n${truncated}\n\n[Soru: ${question || 'Bu dosyayı özetle ve açıkla.'}]`;
+      } else {
+        userMessageContent = question;
+      }
 
       aiResponse = await fetch(PROXY_URL, {
         method: "POST",
@@ -10363,7 +10392,7 @@ GÜVENLİK:
 Sebep 5 kelimeyi geçmesin.
 
 Her konuda yardımcı ol: ders, matematik, fen, tarih, kodlama, genel sohbet.`,
-          messages: [ ...aiHistory, { role: "user", content: question } ]
+          messages: [ ...aiHistory, { role: "user", content: userMessageContent } ]
         })
       });
     }catch(netErr){
@@ -10403,9 +10432,15 @@ Her konuda yardımcı ol: ders, matematik, fen, tarih, kodlama, genel sohbet.`,
 
     thinkingEl.classList.remove('thinking');
     thinkingEl.textContent = answer;
-    aiHistory.push({ role: 'user', content: question });
+    // History'e ekle — görsel yerine text placeholder (multimodal history sorun çıkarabilir)
+    const histUserMsg = attached
+      ? (attached.isImage ? `[Fotoğraf: ${attached.name}] ${question}` : `[Dosya: ${attached.name}] ${question}`)
+      : question;
+    aiHistory.push({ role: 'user', content: histUserMsg });
     aiHistory.push({ role: 'assistant', content: answer });
     if(aiHistory.length > 16) aiHistory = aiHistory.slice(-16);
+    // Ekli dosyayı temizle
+    if(attached) clearAiFile();
     updateLimitBadges();
   }catch(err){
     thinkingEl.classList.remove('thinking');
@@ -11237,6 +11272,134 @@ function closeBigAiPanel(){
 // Eski isimlerle uyumluluk
 function toggleAiPanel(){ openBigAiPanel(); }
 function openAiPanelFloat(){ openBigAiPanel(); }
+
+// ============================================================
+// SOR & ÖĞREN PANELİ SÜRÜKLEME (sadece PC)
+// ============================================================
+(function initAiPanelDrag(){
+  const header = document.getElementById('aiPanelDragHeader');
+  const panel = document.getElementById('aiFloatPanel');
+  if(!header || !panel) return;
+  let dragging = false, startX = 0, startY = 0, offsetX = 0, offsetY = 0;
+
+  function onDown(e){
+    // Sadece PC'de sürükle
+    if(window.innerWidth <= 860) return;
+    // Kapatma butonuna basıldıysa sürükleme
+    if(e.target.closest('button')) return;
+    dragging = true;
+    header.style.cursor = 'grabbing';
+    const pt = e.touches ? e.touches[0] : e;
+    startX = pt.clientX; startY = pt.clientY;
+    // Panelin mevcut transform offset'ini al
+    const style = getComputedStyle(panel);
+    const m = new DOMMatrixReadOnly(style.transform);
+    // Mevcut kayıtlı offset'i sakla (translate(-50%,-50%) baz)
+    offsetX = panel._dragX || 0;
+    offsetY = panel._dragY || 0;
+    e.preventDefault();
+  }
+  function onMove(e){
+    if(!dragging) return;
+    const pt = e.touches ? e.touches[0] : e;
+    const dx = pt.clientX - startX;
+    const dy = pt.clientY - startY;
+    const newX = offsetX + dx;
+    const newY = offsetY + dy;
+    panel._dragX = newX;
+    panel._dragY = newY;
+    panel.style.transform = `translate(calc(-50% + ${newX}px), calc(-50% + ${newY}px)) scale(1)`;
+  }
+  function onUp(){
+    if(!dragging) return;
+    dragging = false;
+    header.style.cursor = 'grab';
+  }
+
+  header.addEventListener('mousedown', onDown);
+  window.addEventListener('mousemove', onMove);
+  window.addEventListener('mouseup', onUp);
+  header.addEventListener('touchstart', onDown, {passive:false});
+  window.addEventListener('touchmove', onMove, {passive:false});
+  window.addEventListener('touchend', onUp);
+})();
+
+// ============================================================
+// SOR & ÖĞREN DOSYA/FOTOĞRAF YÜKLEME
+// ============================================================
+window._aiAttachedFile = null; // { name, type, content, isImage, base64 }
+
+(function initAiFileUpload(){
+  const fileInput = document.getElementById('aiFileInput');
+  if(!fileInput) return;
+
+  fileInput.addEventListener('change', async (e) => {
+    const file = e.target.files[0];
+    if(!file) return;
+    const preview = document.getElementById('aiFilePreview');
+    const isImage = file.type.startsWith('image/');
+
+    // Önizleme göster (yükleniyor)
+    if(preview){
+      preview.style.display = 'block';
+      preview.innerHTML = `<div style="display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:12px;background:rgba(110,231,255,.06);border:1px solid rgba(110,231,255,.15);margin-bottom:8px">
+        <div style="width:20px;height:20px;border:2px solid rgba(110,231,255,.3);border-top-color:#6ee7ff;border-radius:50%;animation:spin .7s linear infinite"></div>
+        <span style="font-size:.78rem;color:rgba(200,190,230,.7)">Okunuyor: ${escapeHtml(file.name)}</span>
+      </div>`;
+    }
+
+    try {
+      if(isImage){
+        // Görsel — base64'e çevir
+        const base64 = await new Promise((res,rej)=>{
+          const r = new FileReader();
+          r.onload = ()=>res(r.result);
+          r.onerror = rej;
+          r.readAsDataURL(file);
+        });
+        window._aiAttachedFile = { name:file.name, type:file.type, isImage:true, base64, content:null };
+        showAiFilePreview(file.name, true, base64);
+      } else {
+        // Metin/PDF/Word — mevcut extractText fonksiyonunu kullan
+        let text = '';
+        if(typeof extractText === 'function'){
+          text = await extractText(file);
+        } else if(file.type === 'text/plain' || file.name.endsWith('.txt') || file.name.endsWith('.csv')){
+          text = await file.text();
+        }
+        window._aiAttachedFile = { name:file.name, type:file.type, isImage:false, content:text, base64:null };
+        showAiFilePreview(file.name, false, null);
+      }
+    } catch(err){
+      console.warn('AI dosya okuma hatası:', err);
+      if(preview) preview.innerHTML = `<div style="padding:10px 12px;border-radius:12px;background:rgba(255,110,110,.08);border:1px solid rgba(255,110,110,.2);font-size:.75rem;color:rgba(255,150,150,.8);margin-bottom:8px">❌ Dosya okunamadı</div>`;
+    }
+    fileInput.value = '';
+  });
+})();
+
+function showAiFilePreview(name, isImage, base64){
+  const preview = document.getElementById('aiFilePreview');
+  if(!preview) return;
+  preview.style.display = 'block';
+  const thumb = isImage
+    ? `<img src="${base64}" style="width:36px;height:36px;border-radius:8px;object-fit:cover;flex-shrink:0">`
+    : `<div style="width:36px;height:36px;border-radius:8px;background:rgba(180,107,255,.15);display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:1rem">📄</div>`;
+  preview.innerHTML = `<div style="display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:12px;background:rgba(110,231,255,.06);border:1px solid rgba(110,231,255,.15);margin-bottom:8px">
+    ${thumb}
+    <div style="flex:1;min-width:0">
+      <div style="font-size:.78rem;color:#eaf0ff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${escapeHtml(name)}</div>
+      <div style="font-size:.62rem;color:rgba(110,231,255,.5)">${isImage?'Fotoğraf eklendi':'Dosya eklendi'}</div>
+    </div>
+    <button onclick="clearAiFile()" style="background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);border-radius:8px;width:24px;height:24px;cursor:pointer;color:rgba(255,255,255,.5);font-size:.7rem;flex-shrink:0;display:flex;align-items:center;justify-content:center">✕</button>
+  </div>`;
+}
+
+function clearAiFile(){
+  window._aiAttachedFile = null;
+  const preview = document.getElementById('aiFilePreview');
+  if(preview){ preview.style.display = 'none'; preview.innerHTML = ''; }
+}
 
 // Sol (güneş) kaybolma fix
 (function fixSol(){
