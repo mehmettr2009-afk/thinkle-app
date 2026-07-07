@@ -2518,7 +2518,7 @@
   .topbar > *{ position:relative; z-index:1; }
   .topbar h2{font-size:1.05rem; font-weight:500; color:var(--ink-soft); font-family:'Space Grotesk'; user-select:none;}
   @media (min-width: 861px){
-    #mobileActionsMenu, #mobileHeader{ display:none !important; }
+    #mobileActionsMenu, #mobileHeader, #mobileBottomNav{ display:none !important; }
   }
   .btn{
     font-family:'Space Mono',monospace; font-size:.75rem; font-weight:700;
@@ -3109,18 +3109,21 @@
     /* ===== YENİ MOBİL HEADER — sıfırdan, sade ===== */
     #mobileHeader{
       display:flex !important; align-items:center; justify-content:space-between;
-      flex-shrink:0; width:100%; height:48px; padding:0 12px;
-      background:rgba(7,10,24,.97);
-      border-bottom:1px solid var(--line); position:sticky; top:0; left:0; right:0; z-index:210;
+      flex-shrink:0; width:100%; height:52px; padding:0 14px;
+      padding-top:env(safe-area-inset-top, 0);
+      height:calc(52px + env(safe-area-inset-top, 0));
+      background:rgba(7,10,24,.92);
+      backdrop-filter:blur(18px); -webkit-backdrop-filter:blur(18px);
+      border-bottom:1px solid rgba(110,231,255,.08); position:sticky; top:0; left:0; right:0; z-index:210;
       box-sizing:border-box;
     }
     #mobileHeader .mh-left{
-      display:flex; align-items:center; gap:8px; min-width:0; flex:1;
+      display:flex; align-items:center; gap:9px; min-width:0; flex:1;
     }
     #mobileHeader .mh-logo{
-      width:26px; height:26px; border-radius:8px; flex-shrink:0;
+      width:28px; height:28px; border-radius:9px; flex-shrink:0;
       position:relative; overflow:hidden; background:#05030c;
-      box-shadow:0 0 14px rgba(110,231,255,.3);
+      box-shadow:0 0 14px rgba(110,231,255,.35);
     }
     #mobileHeader .mh-logo::before{
       content:''; position:absolute; inset:-30%; border-radius:50%;
@@ -3132,20 +3135,150 @@
       background:radial-gradient(circle at 35% 35%, #1a0b2e 0%, #000 70%);
     }
     #mobileHeader .mh-title{
-      font-family:'Space Grotesk',sans-serif; font-size:.85rem; font-weight:700;
+      font-family:'Space Grotesk',sans-serif; font-size:1rem; font-weight:700;
       color:var(--ink); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+      letter-spacing:-.01em;
     }
     #mobileHeader .mh-right{
-      display:flex; align-items:center; gap:6px; flex-shrink:0;
+      display:flex; align-items:center; gap:8px; flex-shrink:0;
     }
-    #mobileHeader button{
+    /* Dil pill'i header'da */
+    .mh-lang-pill{
+      display:flex; background:rgba(255,255,255,.05); border-radius:20px;
+      padding:2px; border:1px solid rgba(255,255,255,.08);
+    }
+    .mh-lang-pill button{
+      border:none; background:none; color:rgba(190,180,230,.5);
+      font-family:'Space Mono',monospace; font-size:.62rem; font-weight:700;
+      padding:5px 10px; border-radius:16px; cursor:pointer; letter-spacing:.05em;
+      transition:all .25s cubic-bezier(.34,1.56,.64,1);
+    }
+    .mh-lang-pill button.active{
+      background:linear-gradient(135deg,#9b59ff,#00f5ff); color:#04010e;
+    }
+    #mobileHeader #mhLoginBtn, #mobileHeader #mhLogoutBtn{
       display:flex; align-items:center; justify-content:center;
-      height:34px; min-width:34px; padding:0 10px; border-radius:8px;
-      border:1px solid var(--line); background:rgba(255,255,255,.05);
-      color:var(--ink); font-size:.68rem; font-family:'Space Grotesk',sans-serif;
+      height:34px; padding:0 14px; border-radius:20px;
+      border:1px solid rgba(110,231,255,.3); background:rgba(110,231,255,.08);
+      color:#6ee7ff; font-size:.72rem; font-weight:600; font-family:'Space Grotesk',sans-serif;
       cursor:pointer; touch-action:manipulation; white-space:nowrap;
-      -webkit-tap-highlight-color:rgba(110,231,255,.3);
-      position:relative; z-index:31;
+      -webkit-tap-highlight-color:transparent;
+    }
+    #mobileHeader #mhLogoutBtn{ border-color:rgba(255,110,199,.3); background:rgba(255,110,199,.08); color:#ff6ec7; }
+
+    /* ===== NATIVE ALT NAVİGASYON ÇUBUĞU ===== */
+    #mobileBottomNav{
+      display:flex !important; position:fixed; bottom:0; left:0; right:0; z-index:500;
+      background:rgba(7,10,24,.94);
+      backdrop-filter:blur(24px); -webkit-backdrop-filter:blur(24px);
+      border-top:1px solid rgba(110,231,255,.1);
+      padding:8px 6px calc(8px + env(safe-area-inset-bottom, 0));
+      justify-content:space-around; align-items:flex-end;
+      box-shadow:0 -8px 32px rgba(0,0,0,.4);
+    }
+    #mobileBottomNav::before{
+      content:''; position:absolute; top:0; left:15%; right:15%; height:1px;
+      background:linear-gradient(90deg, transparent, rgba(110,231,255,.3), transparent);
+    }
+    .mbn-item{
+      flex:1; display:flex; flex-direction:column; align-items:center; gap:3px;
+      background:none; border:none; cursor:pointer; padding:4px 2px;
+      color:rgba(160,150,200,.5); position:relative;
+      touch-action:manipulation; -webkit-tap-highlight-color:transparent;
+      transition:color .2s ease; max-width:76px;
+    }
+    .mbn-item .mbn-icon{ font-size:1.25rem; line-height:1; transition:transform .25s cubic-bezier(.34,1.56,.64,1); filter:grayscale(.4) opacity(.7); }
+    .mbn-item .mbn-label{
+      font-size:.58rem; font-family:'Space Grotesk',sans-serif; font-weight:600;
+      white-space:nowrap; letter-spacing:.01em;
+    }
+    .mbn-item.active{ color:#6ee7ff; }
+    .mbn-item.active .mbn-icon{ transform:translateY(-2px) scale(1.1); filter:grayscale(0) opacity(1) drop-shadow(0 0 8px rgba(110,231,255,.5)); }
+    .mbn-item:active .mbn-icon{ transform:scale(.9); }
+    /* Ortadaki büyük Sor&Öğren butonu */
+    .mbn-center .mbn-center-btn{
+      width:52px; height:52px; border-radius:50%; margin-top:-24px;
+      background:linear-gradient(135deg, var(--accent), var(--accent2));
+      display:flex; align-items:center; justify-content:center; font-size:1.4rem;
+      box-shadow:0 6px 20px rgba(110,231,255,.4), 0 0 0 4px rgba(7,10,24,.94);
+      transition:transform .25s cubic-bezier(.34,1.56,.64,1);
+    }
+    .mbn-center:active .mbn-center-btn{ transform:scale(.92); }
+    .mbn-center .mbn-label{ margin-top:2px; }
+    .mbn-badge{
+      position:absolute; top:0; right:calc(50% - 20px);
+      min-width:16px; height:16px; padding:0 4px; border-radius:8px;
+      background:linear-gradient(135deg,#ff6ec7,#b46bff); color:#fff;
+      font-size:.55rem; font-weight:700; font-family:'Space Mono',monospace;
+      display:flex; align-items:center; justify-content:center;
+      box-shadow:0 0 8px rgba(255,110,199,.5);
+    }
+    /* Panel açıkken alt bar gizlensin (temiz görünüm) */
+    body:has(.ai-float-panel.open) #mobileBottomNav,
+    body:has(#friendsPanel.open) #mobileBottomNav,
+    body:has(#mobileMenuSheet.open) #mobileBottomNav{
+      transform:translateY(100%); transition:transform .3s ease;
+    }
+    #mobileBottomNav{ transition:transform .3s ease; }
+
+    /* İçerik alt bar için padding — alta boşluk */
+    .content-inner{ padding-bottom:200px !important; }
+
+    /* ===== MOBİL MENÜ BOTTOM SHEET ===== */
+    #mobileMenuSheet{ position:fixed; inset:0; z-index:600; pointer-events:none; }
+    #mobileMenuSheet .mms-backdrop{
+      position:absolute; inset:0; background:rgba(2,1,8,.55);
+      backdrop-filter:blur(3px); opacity:0; transition:opacity .3s ease; pointer-events:none;
+    }
+    #mobileMenuSheet.open{ pointer-events:auto; }
+    #mobileMenuSheet.open .mms-backdrop{ opacity:1; pointer-events:auto; }
+    #mobileMenuSheet .mms-panel{
+      position:absolute; left:0; right:0; bottom:0;
+      background:rgba(10,8,26,.98); backdrop-filter:blur(24px);
+      border-top:1.5px solid rgba(110,231,255,.15);
+      border-radius:24px 24px 0 0;
+      padding:10px 18px calc(24px + env(safe-area-inset-bottom, 0));
+      transform:translateY(100%); transition:transform .35s cubic-bezier(.16,1,.3,1);
+      box-shadow:0 -12px 50px rgba(0,0,0,.6);
+    }
+    #mobileMenuSheet.open .mms-panel{ transform:translateY(0); }
+    .mms-handle{
+      width:40px; height:4px; border-radius:2px; background:rgba(255,255,255,.2);
+      margin:4px auto 16px;
+    }
+    .mms-profile{
+      display:flex; align-items:center; gap:12px; padding:12px 14px;
+      background:rgba(110,231,255,.05); border:1px solid rgba(110,231,255,.12);
+      border-radius:16px; margin-bottom:16px; cursor:pointer;
+    }
+    .mms-avatar{
+      width:44px; height:44px; border-radius:50%; flex-shrink:0; overflow:hidden;
+      display:flex; align-items:center; justify-content:center;
+      background:rgba(14,10,36,.8); border:1.5px solid rgba(110,231,255,.3);
+    }
+    .mms-grid{
+      display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:16px;
+    }
+    .mms-item{
+      display:flex; flex-direction:column; align-items:center; gap:8px;
+      padding:16px 10px; border-radius:16px;
+      border:1px solid rgba(180,107,255,.14); background:rgba(180,107,255,.05);
+      color:rgba(210,200,235,.85); cursor:pointer; touch-action:manipulation;
+      font-family:'Space Grotesk',sans-serif; font-size:.76rem; font-weight:600;
+      -webkit-tap-highlight-color:transparent; transition:all .15s;
+    }
+    .mms-item:active{ transform:scale(.96); background:rgba(180,107,255,.12); }
+    .mms-item-ico{ font-size:1.5rem; line-height:1; }
+    .mms-signout, .mms-signin{
+      width:100%; padding:14px; border-radius:14px; cursor:pointer;
+      font-family:'Space Grotesk',sans-serif; font-size:.85rem; font-weight:600;
+      touch-action:manipulation; -webkit-tap-highlight-color:transparent;
+    }
+    .mms-signout{
+      border:1px solid rgba(255,110,199,.25); background:rgba(255,110,199,.08); color:#ff6ec7;
+    }
+    .mms-signin{
+      border:none; background:linear-gradient(135deg,var(--accent),var(--accent2)); color:#04010e;
     }
 
     .tabs{
@@ -4638,12 +4771,40 @@
     <div class="mh-title">Thinkle</div>
   </div>
   <div class="mh-right">
-    <button id="mhLoginBtn" style="display:flex;font-family:'Horizon',sans-serif;letter-spacing:.08em;color:#6ee7ff;border-color:rgba(110,231,255,.35);background:rgba(110,231,255,.06);text-shadow:0 0 12px rgba(110,231,255,.8);box-shadow:0 0 16px rgba(110,231,255,.15)" onclick="if(typeof showAuthModal==='function')showAuthModal()">Giriş</button>
-    <button id="mhLogoutBtn" style="display:none;font-family:'Horizon',sans-serif;letter-spacing:.08em;color:#ff6ec7;border-color:rgba(255,110,199,.35);background:rgba(255,110,199,.06);text-shadow:0 0 12px rgba(255,110,199,.8);box-shadow:0 0 16px rgba(255,110,199,.15)" onclick="if(window.fbSignOut)window.fbSignOut()">Çıkış</button>
-    <button id="mhProfileBtn" style="display:none;background:none;border:none;font-size:1.1rem;cursor:pointer;touch-action:manipulation;width:34px;height:34px;border-radius:50%;align-items:center;justify-content:center" onclick="if(typeof showProfileModal==='function')showProfileModal()">👤</button>
-    <button id="mobileActionsBtn" onclick="document.getElementById('mobileActionsMenu').classList.toggle('open')">⋯</button>
+    <div class="mh-lang-pill">
+      <button class="mh-lang-tr active" data-lang="tr" onclick="applyLanguage('tr');document.querySelectorAll('.mh-lang-pill [data-lang]').forEach(b=>b.classList.toggle('active',b.dataset.lang==='tr'))">TR</button>
+      <button class="mh-lang-en" data-lang="en" onclick="applyLanguage('en');document.querySelectorAll('.mh-lang-pill [data-lang]').forEach(b=>b.classList.toggle('active',b.dataset.lang==='en'))">EN</button>
+    </div>
+    <button id="mhLoginBtn" style="display:flex" onclick="if(typeof showAuthModal==='function')showAuthModal()">Giriş</button>
+    <button id="mhLogoutBtn" style="display:none" onclick="if(window.fbSignOut)window.fbSignOut()">Çıkış</button>
   </div>
 </div>
+
+<!-- Native mobil alt navigasyon çubuğu -->
+<nav id="mobileBottomNav">
+  <button class="mbn-item active" data-nav="home" onclick="mobileNavGo('home')">
+    <span class="mbn-icon">🏠</span>
+    <span class="mbn-label tr-text">Ana Sayfa</span><span class="mbn-label en-text">Home</span>
+  </button>
+  <button class="mbn-item" data-nav="battle" onclick="mobileNavGo('battle')">
+    <span class="mbn-icon">⚔️</span>
+    <span class="mbn-label tr-text">Yarışma</span><span class="mbn-label en-text">Battle</span>
+  </button>
+  <button class="mbn-item mbn-center" data-nav="ai" onclick="mobileNavGo('ai')">
+    <span class="mbn-center-btn">💬</span>
+    <span class="mbn-label tr-text">Sor & Öğren</span><span class="mbn-label en-text">Ask AI</span>
+  </button>
+  <button class="mbn-item" data-nav="friends" onclick="mobileNavGo('friends')">
+    <span class="mbn-icon">👥</span>
+    <span class="mbn-label tr-text">Arkadaşlar</span><span class="mbn-label en-text">Friends</span>
+    <span id="mbnFriendBadge" class="mbn-badge" style="display:none">0</span>
+  </button>
+  <button class="mbn-item" data-nav="menu" onclick="mobileNavGo('menu')">
+    <span class="mbn-icon">☰</span>
+    <span class="mbn-label tr-text">Menü</span><span class="mbn-label en-text">Menu</span>
+  </button>
+</nav>
+
 <div id="mobileActionsMenu">
   <div class="mam-lang">
     <button class="mam-lang-tr active" data-lang="tr" onclick="applyLanguage('tr');this.parentElement.querySelectorAll('[data-lang]').forEach(b=>b.classList.toggle('active',b.dataset.lang==='tr'))">TR</button>
@@ -8291,20 +8452,11 @@ const aiFloatBtn = document.getElementById('aiFloatBtn');
 const aiFloatPanel = document.getElementById('aiFloatPanel');
 function isMobile(){ return window.innerWidth <= 860; }
 function updateFloatBtn(){
-  // PC'de baloncuk asla görünmez, sadece mobilde
-  if(aiFloatBtn) aiFloatBtn.style.display = isMobile() ? 'flex' : 'none';
+  // Eski 💬 baloncuğu artık kullanılmıyor — bottom nav'daki merkezi buton var
+  if(aiFloatBtn) aiFloatBtn.style.display = 'none';
 }
 updateFloatBtn();
 window.addEventListener('resize', updateFloatBtn);
-if(aiFloatBtn){
-  // Mobil float panel toggle — sidebar toggleAiPanel'i EZMEZ
-  function toggleMobileFloat(){
-    const isOpen = aiFloatPanel.classList.toggle('open');
-    aiFloatBtn.style.display = isOpen ? 'none' : 'flex';
-  }
-  aiFloatBtn.addEventListener('click', toggleMobileFloat);
-  aiFloatBtn.addEventListener('touchend', (e)=>{ e.preventDefault(); toggleMobileFloat(); }, {passive:false});
-}
 
 // ============================================================
 // GALAKSİ — daha fazla detay: HII bölgeleri, toz bantları, parıltılar
@@ -11268,13 +11420,125 @@ function closeBigAiPanel(){
   if(backdrop) backdrop.classList.remove('open');
   // Mobilde baloncuğu geri getir
   if(btn && window.innerWidth <= 860) btn.style.display = 'flex';
+  if(typeof syncMobileNav === 'function') setTimeout(syncMobileNav, 50);
 }
 // Eski isimlerle uyumluluk
 function toggleAiPanel(){ openBigAiPanel(); }
 function openAiPanelFloat(){ openBigAiPanel(); }
 
 // ============================================================
-// SOR & ÖĞREN PANELİ SÜRÜKLEME (sadece PC)
+// NATIVE MOBİL ALT NAVİGASYON
+// ============================================================
+function mobileNavGo(target){
+  // Aktif tab görünümü
+  document.querySelectorAll('.mbn-item').forEach(b => {
+    b.classList.toggle('active', b.dataset.nav === target);
+  });
+
+  switch(target){
+    case 'home':
+      // Ana ekrana dön — açık panelleri kapat
+      closeBigAiPanel?.();
+      document.getElementById('friendsPanel')?.classList.remove('open');
+      document.getElementById('mobileMenuSheet')?.classList.remove('open');
+      // İçeriği en üste kaydır
+      document.querySelector('.content')?.scrollTo({top:0, behavior:'smooth'});
+      break;
+    case 'battle':
+      document.getElementById('mobileMenuSheet')?.classList.remove('open');
+      if(typeof showBattleModal === 'function') showBattleModal();
+      break;
+    case 'ai':
+      document.getElementById('mobileMenuSheet')?.classList.remove('open');
+      openBigAiPanel?.();
+      break;
+    case 'friends':
+      document.getElementById('mobileMenuSheet')?.classList.remove('open');
+      if(typeof toggleFriendsPanel === 'function') toggleFriendsPanel();
+      break;
+    case 'menu':
+      toggleMobileMenuSheet();
+      break;
+  }
+}
+
+function toggleMobileMenuSheet(){
+  let sheet = document.getElementById('mobileMenuSheet');
+  if(!sheet){
+    sheet = document.createElement('div');
+    sheet.id = 'mobileMenuSheet';
+    document.body.appendChild(sheet);
+  }
+  const isTr = currentLang === 'tr';
+  const isFounder = window.currentUser?.uid === 'l8Tih1awnjP7fRXnUsFVVAuXEZu2';
+  const uname = window.currentUsername ? '@'+window.currentUsername : (window.currentUser?.displayName || (isTr?'Ziyaretçi':'Guest'));
+  const avatar = window.currentAvatarBase64
+    ? `<img src="${window.currentAvatarBase64}" style="width:44px;height:44px;border-radius:50%;object-fit:cover">`
+    : `<span style="font-size:1.4rem">${window.currentAvatar||'🚀'}</span>`;
+
+  sheet.innerHTML = `
+    <div class="mms-backdrop" onclick="toggleMobileMenuSheet()"></div>
+    <div class="mms-panel">
+      <div class="mms-handle"></div>
+      <div class="mms-profile" onclick="if(typeof showProfileModal==='function'){showProfileModal();toggleMobileMenuSheet();}">
+        <div class="mms-avatar">${avatar}</div>
+        <div style="flex:1;min-width:0">
+          <div style="font-size:.92rem;font-weight:700;color:#eaf0ff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${isFounder?'👑 ':''}${uname}</div>
+          <div style="font-size:.68rem;color:${isFounder?'#ffd700':'rgba(110,231,255,.5)'}">${isFounder?(isTr?'⚡ Kurucu':'⚡ Founder'):(window.currentUser?(isTr?'✓ Giriş yapıldı':'✓ Signed in'):(isTr?'Giriş yapılmadı':'Not signed in'))}</div>
+        </div>
+        <span style="color:rgba(110,231,255,.4)">›</span>
+      </div>
+      <div class="mms-grid">
+        <button class="mms-item" onclick="var t=document.getElementById('tabs');if(t&&t.children.length>0)t.classList.add('open');toggleMobileMenuSheet()">
+          <span class="mms-item-ico">📑</span><span>${isTr?'Slaytlar':'Slides'}</span>
+        </button>
+        <button class="mms-item" onclick="document.getElementById('restartBtn')?.click();toggleMobileMenuSheet()">
+          <span class="mms-item-ico">↺</span><span>${isTr?'Yeni Dosya':'New File'}</span>
+        </button>
+        <button class="mms-item" onclick="toggleThemePanel();toggleMobileMenuSheet()">
+          <span class="mms-item-ico">☀️</span><span>${isTr?'Güneş Rengi':'Sun Color'}</span>
+        </button>
+        <button class="mms-item" onclick="window.open('https://thinkle.space/landing','_blank');toggleMobileMenuSheet()">
+          <span class="mms-item-ico">🚀</span><span>${isTr?'Nasıl Çalışır':'How It Works'}</span>
+        </button>
+        ${!document.getElementById('exportBtn')?.disabled ? `
+        <button class="mms-item" onclick="document.getElementById('exportBtn')?.click();toggleMobileMenuSheet()">
+          <span class="mms-item-ico">⬇</span><span>${isTr?'.pptx İndir':'.pptx Export'}</span>
+        </button>` : ''}
+        ${isFounder ? `
+        <button class="mms-item" style="border-color:rgba(255,215,0,.2)" onclick="if(typeof showFounderWelcome==='function')showFounderWelcome();toggleMobileMenuSheet()">
+          <span class="mms-item-ico">👑</span><span style="color:#ffd700">${isTr?'Yönetici':'Admin'}</span>
+        </button>` : ''}
+      </div>
+      ${window.currentUser ? `
+      <button class="mms-signout" onclick="if(window.fbSignOut)window.fbSignOut();toggleMobileMenuSheet()">
+        ${isTr?'↪ Çıkış Yap':'↪ Sign Out'}
+      </button>` : `
+      <button class="mms-signin" onclick="if(typeof showAuthModal==='function')showAuthModal();toggleMobileMenuSheet()">
+        ${isTr?'Giriş Yap':'Sign In'}
+      </button>`}
+    </div>
+  `;
+  requestAnimationFrame(() => sheet.classList.toggle('open'));
+}
+
+// Alt bar aktif durumunu senkronize et — paneller kapanınca home'a dön
+function syncMobileNav(){
+  const aiOpen = document.getElementById('aiFloatPanel')?.classList.contains('open');
+  const friendsOpen = document.getElementById('friendsPanel')?.classList.contains('open');
+  const menuOpen = document.getElementById('mobileMenuSheet')?.classList.contains('open');
+  document.querySelectorAll('.mbn-item').forEach(b => {
+    const nav = b.dataset.nav;
+    if(nav === 'ai') b.classList.toggle('active', !!aiOpen);
+    else if(nav === 'friends') b.classList.toggle('active', !!friendsOpen);
+    else if(nav === 'menu') b.classList.toggle('active', !!menuOpen);
+    else if(nav === 'home') b.classList.toggle('active', !aiOpen && !friendsOpen && !menuOpen);
+    else b.classList.remove('active');
+  });
+}
+
+// ============================================================
+// NATIVE MOBİL ALT NAVİGASYON — son
 // ============================================================
 (function initAiPanelDrag(){
   const header = document.getElementById('aiPanelDragHeader');
