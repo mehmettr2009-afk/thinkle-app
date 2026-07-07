@@ -1613,81 +1613,6 @@
     flex-shrink:0; margin-top:2px;
   }
 
-  /* ===== GÜNDÜZ MODU — göz yormayan, yumuşak aydınlık tema ===== */
-  html[data-mode="day"] #space{
-    background:
-      radial-gradient(ellipse at 20% 20%, rgba(124,86,214,.05), transparent 45%),
-      radial-gradient(ellipse at 80% 75%, rgba(43,143,212,.05), transparent 50%),
-      linear-gradient(160deg, #f4f6fb 0%, #eef1f8 50%, #f4f6fb 100%) !important;
-  }
-  html[data-mode="day"] .star{ background:#a8b2c8 !important; opacity:.25 !important; }
-  html[data-mode="day"] .stars{ opacity:.4 !important; }
-  html[data-mode="day"] .left-column{
-    background:linear-gradient(170deg, #ffffff, #f6f8fc) !important;
-    border-right:1px solid rgba(124,86,214,.12) !important;
-  }
-  html[data-mode="day"] .left-column::before{ opacity:.4 !important; }
-  html[data-mode="day"] .topbar{
-    background:rgba(255,255,255,.92) !important;
-    border-bottom:1px solid rgba(124,86,214,.1) !important;
-  }
-  html[data-mode="day"] .topbar h2{ color:#2a3252 !important; }
-  html[data-mode="day"] .slide-card,
-  html[data-mode="day"] .quiz-q,
-  html[data-mode="day"] .ai-msg,
-  html[data-mode="day"] .dropzone,
-  html[data-mode="day"] .flashcard,
-  html[data-mode="day"] .study-mode-card{
-    background:#ffffff !important;
-    border-color:rgba(124,86,214,.15) !important;
-    color:#2a3252 !important;
-    box-shadow:0 2px 12px rgba(80,90,140,.06) !important;
-  }
-  html[data-mode="day"] .slide-card h2,
-  html[data-mode="day"] .quiz-q h3{ color:#1a2038 !important; -webkit-text-fill-color:#1a2038 !important; }
-  html[data-mode="day"] .upload-screen p{
-    background:rgba(255,255,255,.7) !important;
-    color:rgba(40,50,90,.75) !important;
-    border-color:rgba(124,86,214,.12) !important;
-  }
-  html[data-mode="day"] body{ color:#2a3252 !important; }
-  html[data-mode="day"] .sidebar h1{ color:#2b6fd4 !important; }
-  html[data-mode="day"] .brand div div,
-  html[data-mode="day"] .util,
-  html[data-mode="day"] .ai-panel-header .util{ color:rgba(60,70,110,.6) !important; }
-  /* Sidebar butonları gündüz */
-  html[data-mode="day"] .battle-sidebar-btn,
-  html[data-mode="day"] .friends-sidebar-btn{
-    background:rgba(124,86,214,.06) !important;
-    border-color:rgba(124,86,214,.15) !important;
-    color:#3a4468 !important;
-  }
-  html[data-mode="day"] .battle-sidebar-btn:hover,
-  html[data-mode="day"] .friends-sidebar-btn:hover{
-    background:rgba(124,86,214,.12) !important;
-    color:#1a2038 !important;
-  }
-  /* Quiz seçenekleri, tab'lar gündüz */
-  html[data-mode="day"] .quiz-opt{
-    background:#f6f8fc !important; border-color:rgba(124,86,214,.15) !important; color:#2a3252 !important;
-  }
-  html[data-mode="day"] .quiz-opt:hover{ background:#eef1f8 !important; }
-  html[data-mode="day"] .tab{ color:rgba(60,70,110,.6) !important; }
-  html[data-mode="day"] .tab.active{ color:#2b6fd4 !important; }
-  /* AI chat input gündüz */
-  html[data-mode="day"] .ai-input-row textarea,
-  html[data-mode="day"] #aiInput{
-    background:#ffffff !important; border-color:rgba(124,86,214,.18) !important; color:#2a3252 !important;
-  }
-  html[data-mode="day"] .ai-msg.user{ background:rgba(43,111,212,.1) !important; }
-  html[data-mode="day"] .ai-chip{
-    background:rgba(124,86,214,.08) !important; border-color:rgba(124,86,214,.18) !important; color:#3a4468 !important;
-  }
-  /* Vignette gündüzde kapalı */
-  html[data-mode="day"] body::after{ opacity:0 !important; }
-  /* Mod kartları hover */
-  .mode-card:hover{ transform:translateY(-2px); }
-
   /* ===== SOL PANEL COLLAPSE ===== */
   .left-column{
     transition:width .28s cubic-bezier(.4,0,.2,1), min-width .28s cubic-bezier(.4,0,.2,1);
@@ -3234,7 +3159,13 @@
     /* AI paneli mobilde gizle — floating buton olarak gelecek */
     .ai-panel{ display:none !important; }
 
-    .main{ flex:1; display:flex; flex-direction:column; overflow:hidden; min-height:0; position:relative; z-index:5; }
+    .main{ flex:1; display:flex; flex-direction:column; overflow:visible; min-height:0; height:auto; position:relative; z-index:5; }
+    /* Mobilde içerik alanı kaydırılabilir olmalı */
+    .content{
+      overflow-y:auto !important; -webkit-overflow-scrolling:touch !important;
+      overscroll-behavior:contain; flex:1; min-height:0;
+      max-height:none;
+    }
 
     /* Eski .topbar tamamen gizli — #mobileHeader onu değiştirdi */
     .topbar{ display:none !important; }
@@ -3314,14 +3245,29 @@
     font-size:1.3rem; box-shadow:0 4px 18px rgba(0,0,0,.5);
     touch-action:manipulation;
   }
-  /* PC'de baloncuk asla görünmesin — sol panelde zaten Sor&Öğren var */
+  /* PC'de baloncuk görünmesin — Sor&Öğren'e tıklanınca büyük panel açılır */
   @media (min-width:861px){
     .ai-float-btn{ display:none !important; }
-    .ai-float-panel{ display:none !important; }
+    /* PC: büyük merkezi panel */
+    .ai-float-panel{
+      bottom:auto !important; left:50% !important; right:auto !important; top:50% !important;
+      width:min(760px, 88vw) !important;
+      height:min(78vh, 720px) !important;
+      border-radius:24px !important;
+      transform:translate(-50%,-50%) scale(.92) !important;
+      opacity:0; pointer-events:none;
+      transition:transform .3s cubic-bezier(.16,1,.3,1), opacity .3s ease !important;
+    }
+    .ai-float-panel.open{
+      transform:translate(-50%,-50%) scale(1) !important;
+      opacity:1 !important; pointer-events:auto !important;
+    }
+    /* PC'de panel açıkken arka planı karart */
+    #aiFloatBackdrop{ display:block; }
   }
   .ai-float-panel{
     display:flex; position:fixed;
-    bottom:0; left:0; right:0; z-index:199;
+    bottom:0; left:0; right:0; z-index:2001;
     width:100%;
     height:85vh;
     background:rgba(4,3,14,.97);
@@ -3341,6 +3287,13 @@
     background-size: 32px 32px;
     background-color: rgba(4,3,14,.97);
   }
+  /* Arka plan karartma (PC panel açıkken) */
+  #aiFloatBackdrop{
+    display:none; position:fixed; inset:0; z-index:2000;
+    background:rgba(2,1,8,.6); backdrop-filter:blur(3px);
+    opacity:0; pointer-events:none; transition:opacity .3s ease;
+  }
+  #aiFloatBackdrop.open{ opacity:1; pointer-events:auto; }
   .ai-float-panel::before{
     content:''; position:absolute; top:0; left:0; right:0; height:3px;
     background:linear-gradient(90deg, transparent, var(--accent) 30%, var(--accent2) 70%, transparent);
@@ -4615,22 +4568,34 @@
 
 </div>
 
-<!-- Mobil floating AI butonu --><!-- Mobil floating AI butonu -->
+<!-- Mobil floating AI butonu -->
 <button class="ai-float-btn" id="aiFloatBtn" style="display:none">💬</button>
+<div id="aiFloatBackdrop" onclick="closeBigAiPanel()"></div>
 <div class="ai-float-panel" id="aiFloatPanel">
-  <div style="display:flex;align-items:center;padding:12px 16px;border-bottom:1px solid rgba(110,231,255,.12);flex-shrink:0;gap:10px;cursor:pointer;touch-action:manipulation;background:rgba(110,231,255,.03)"
-    onclick="document.getElementById('aiFloatPanel').classList.remove('open');document.getElementById('aiFloatBtn').style.display='flex'">
-    <div style="width:28px;height:28px;border-radius:9px;flex-shrink:0;overflow:hidden;background:#05030c;box-shadow:0 0 12px rgba(110,231,255,.3)"><div class="mini-disk"></div><div class="mini-core"></div></div>
+  <div style="display:flex;align-items:center;padding:14px 18px;border-bottom:1px solid rgba(110,231,255,.12);flex-shrink:0;gap:11px;background:rgba(110,231,255,.03)">
+    <div style="width:34px;height:34px;border-radius:10px;flex-shrink:0;overflow:hidden;background:#05030c;box-shadow:0 0 14px rgba(110,231,255,.35)"><div class="mini-disk"></div><div class="mini-core"></div></div>
     <div style="flex:1">
-      <div style="font-family:'Space Grotesk',sans-serif;font-size:.88rem;font-weight:700;color:#eaf0ff;letter-spacing:.01em" data-i18n="aiPanelTitle">Sor & Öğren</div>
-      <div style="font-size:.58rem;color:rgba(110,231,255,.45);font-family:'Space Mono',monospace;letter-spacing:.05em">dosyasız da sorabilirsin</div>
+      <div style="font-family:'Space Grotesk',sans-serif;font-size:.95rem;font-weight:700;color:#eaf0ff;letter-spacing:.01em" data-i18n="aiPanelTitle">Sor & Öğren</div>
+      <div style="font-size:.6rem;color:rgba(110,231,255,.5);font-family:'Space Mono',monospace;letter-spacing:.05em">dosyasız da sorabilirsin</div>
     </div>
-    <span style="color:rgba(110,231,255,.4);font-size:.8rem">▼</span>
+    <button onclick="closeBigAiPanel()" style="background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);border-radius:10px;width:30px;height:30px;cursor:pointer;color:rgba(255,255,255,.6);font-size:.8rem;touch-action:manipulation;display:flex;align-items:center;justify-content:center;flex-shrink:0" onmouseover="this.style.background='rgba(255,255,255,.12)'" onmouseout="this.style.background='rgba(255,255,255,.06)'">✕</button>
   </div>
-  <div class="ai-chat" id="aiChatMobile" style="flex:1;overflow-y:auto;padding:10px 12px;min-height:0"></div>
-  <div class="ai-input-row" style="padding:10px 12px;border-top:1px solid rgba(110,231,255,.1);display:flex;gap:8px">
-    <textarea id="aiInputMobile" placeholder="Bir şey sor…" style="flex:1;resize:none;min-height:40px;max-height:90px;padding:8px 12px;border:1.5px solid rgba(180,107,255,.18);border-radius:12px;font-family:'Space Grotesk',sans-serif;font-size:.82rem;background:rgba(255,255,255,.03);color:var(--ink);-webkit-user-select:text;user-select:text;outline:none"></textarea>
-    <button class="ai-send-btn" id="aiSendBtnMobile" style="padding:0 14px">→</button>
+  <div class="ai-chat" id="aiChatMobile" style="flex:1;overflow-y:auto;padding:14px 16px;min-height:0">
+    <div class="ai-panel-empty" style="text-align:center;color:rgba(180,160,255,.5);font-size:.82rem;padding:30px 20px;line-height:1.6" data-i18n="aiEmptyMsg">Bir konu, fikir veya soru yaz — Thinkle sana anlatmaya başlasın. PDF yüklemen gerekmiyor.</div>
+  </div>
+  <div id="aiQuickPromptsBig" style="display:flex;flex-wrap:wrap;gap:6px;padding:8px 16px 0;flex-shrink:0">
+    <button class="ai-chip tr-text" data-prompt="Bu konuyu kısaca özetle">Özet ver</button>
+    <button class="ai-chip tr-text" data-prompt="Bu konuyla ilgili bana 3 soru sor, ben cevap vereyim">Soru sor</button>
+    <button class="ai-chip tr-text" data-prompt="Gerçek hayattan bir örnekle anlat">Örnekle anlat</button>
+    <button class="ai-chip tr-text" data-prompt="Bu konuyu başka derslerle ya da günlük hayatla bağlantılandır">Bağlantı kur</button>
+    <button class="ai-chip en-text" data-prompt="Give me a brief summary of this topic">Summarize</button>
+    <button class="ai-chip en-text" data-prompt="Ask me 3 questions about this topic so I can practice">Quiz me</button>
+    <button class="ai-chip en-text" data-prompt="Explain with a real-world example">Example</button>
+    <button class="ai-chip en-text" data-prompt="Connect this topic to everyday life or other subjects">Connect</button>
+  </div>
+  <div class="ai-input-row" style="padding:12px 16px;border-top:1px solid rgba(110,231,255,.1);display:flex;gap:8px">
+    <textarea id="aiInputMobile" placeholder="Bir şey sor…" style="flex:1;resize:none;min-height:44px;max-height:120px;padding:11px 14px;border:1.5px solid rgba(180,107,255,.18);border-radius:12px;font-family:'Space Grotesk',sans-serif;font-size:.88rem;background:rgba(255,255,255,.03);color:var(--ink);-webkit-user-select:text;user-select:text;outline:none"></textarea>
+    <button class="ai-send-btn" id="aiSendBtnMobile" style="padding:0 16px;font-size:1.1rem">→</button>
   </div>
 </div>
 
@@ -4869,25 +4834,26 @@
     <div id="userArea"></div>
   </div>
 
-  <div class="ai-panel" id="aiPanel">
-    <div class="ai-panel-header" style="cursor:pointer;padding:10px 14px;border-top:1px solid rgba(110,231,255,.1)" onclick="toggleAiPanel()">
-      <div class="mark" style="width:28px;height:28px;border-radius:9px;flex-shrink:0;overflow:hidden;background:#05030c;box-shadow:0 0 14px rgba(110,231,255,.3)">
+  <div class="ai-panel ai-panel-trigger" id="aiPanel">
+    <div class="ai-panel-header" style="cursor:pointer;padding:12px 14px;border-top:1px solid rgba(110,231,255,.1)" onclick="openBigAiPanel()">
+      <div class="mark" style="width:30px;height:30px;border-radius:9px;flex-shrink:0;overflow:hidden;background:#05030c;box-shadow:0 0 14px rgba(110,231,255,.3)">
         <div class="mini-disk"></div><div class="mini-core"></div>
       </div>
       <div style="flex:1">
-        <h3 data-i18n="aiPanelTitle" style="font-size:.82rem">Sor & Öğren</h3>
+        <h3 data-i18n="aiPanelTitle" style="font-size:.85rem">Sor & Öğren</h3>
         <span class="util" style="font-size:.58rem" data-i18n="aiPanelTagline">dosyasız da sorabilirsin</span>
       </div>
       <div id="chatLimitBadge" style="font-family:'Space Mono',monospace;font-size:.58rem;color:rgba(110,231,255,.7);text-align:right;line-height:1.5;display:none">
         <div id="chatLimitText">— / 30</div>
         <div style="color:rgba(180,160,255,.5)">mesaj</div>
       </div>
-      <span id="aiPanelChevron" style="color:rgba(110,231,255,.5);font-size:.7rem;margin-left:6px;transition:transform .25s">▼</span>
+      <span style="color:rgba(110,231,255,.5);font-size:.85rem;margin-left:6px">↗</span>
     </div>
-    <div class="ai-chat" id="aiChat">
+    <!-- Sol paneldeki chat/input gizli — büyük panel kullanılıyor -->
+    <div class="ai-chat" id="aiChat" style="display:none">
       <div class="ai-panel-empty" id="aiEmptyMsg" data-i18n="aiEmptyMsg">Bir konu, fikir veya soru yaz — Thinkle sana anlatmaya başlasın. PDF yüklemen gerekmiyor.</div>
     </div>
-    <div id="aiQuickPrompts" style="display:flex;flex-wrap:wrap;gap:5px;padding:6px 8px 0;flex-shrink:0">
+    <div id="aiQuickPrompts" style="display:none">
       <button class="ai-chip tr-text" data-prompt="Bu konuyu kısaca özetle">Özet ver</button>
       <button class="ai-chip tr-text" data-prompt="Bu konuyla ilgili bana 3 soru sor, ben cevap vereyim">Soru sor</button>
       <button class="ai-chip tr-text" data-prompt="Gerçek hayattan bir örnekle anlat">Örnekle anlat</button>
@@ -4897,7 +4863,7 @@
       <button class="ai-chip en-text" data-prompt="Explain with a real-world example">Example</button>
       <button class="ai-chip en-text" data-prompt="Connect this topic to everyday life or other subjects">Connect</button>
     </div>
-    <div class="ai-input-row">
+    <div class="ai-input-row" style="display:none">
       <textarea id="aiInput" data-i18n-placeholder="aiInputPlaceholder" placeholder="Bir şey sor…"></textarea>
       <button class="ai-send-btn" id="aiSendBtn">→</button>
     </div>
@@ -5922,7 +5888,7 @@ document.addEventListener('authChanged', e => {  const user = e.detail;
           <span id="friendReqBadge" style="display:none" class="req-badge">0</span>
         </button>
         <button class="battle-sidebar-btn" onclick="showBattleModal()"><span style="font-size:.85rem">⚔️</span> <span class="tr-text">Yarışma Modu</span><span class="en-text">Battle Mode</span></button>
-        <button class="battle-sidebar-btn" onclick="toggleThemePanel()" style="border-color:rgba(180,107,255,.2)"><span style="font-size:.85rem">🎨</span> <span class="tr-text">Görünüm</span><span class="en-text">Appearance</span></button>
+        <button class="battle-sidebar-btn" onclick="toggleThemePanel()" style="border-color:rgba(255,180,80,.2)"><span style="font-size:.85rem">☀️</span> <span class="tr-text">Güneş Rengi</span><span class="en-text">Sun Color</span></button>
         <a href="https://thinkle.space/landing" target="_blank" class="battle-sidebar-btn" style="text-decoration:none;margin-bottom:10px">
           <span style="font-size:.85rem">🚀</span> <span class="tr-text">Nasıl Çalışır?</span><span class="en-text">How It Works?</span>
         </a>
@@ -10254,16 +10220,21 @@ const aiSendBtnMobile = document.getElementById('aiSendBtnMobile');
 const aiEmptyMsg = document.getElementById('aiEmptyMsg');
 let aiHistory = [];
 
+function isBigPanelOpen(){
+  const fp = document.getElementById('aiFloatPanel');
+  return fp && fp.classList.contains('open');
+}
 function getActiveAiInput(){
-  return isMobile() ? aiInputMobile : aiInput;
+  // Büyük panel açıksa (PC veya mobil) onun input'unu kullan
+  return (isBigPanelOpen() || isMobile()) ? aiInputMobile : aiInput;
 }
 function getActiveAiChat(){
-  return isMobile()
+  return (isBigPanelOpen() || isMobile())
     ? document.getElementById('aiChatMobile')
     : document.getElementById('aiChat');
 }
 function getActiveSendBtn(){
-  return isMobile() ? aiSendBtnMobile : aiSendBtn;
+  return (isBigPanelOpen() || isMobile()) ? aiSendBtnMobile : aiSendBtn;
 }
 
 function addAiMessage(role, text, thinking){
@@ -11132,20 +11103,20 @@ document.querySelectorAll('.ai-chip').forEach(chip => {
     const prompt = chip.dataset.prompt;
     if(!prompt) return;
 
-    // Masaüstü veya mobil input'u bul
+    // Büyük panel açıksa onun input'unu kullan, değilse görünür olanı
+    const bigOpen = document.getElementById('aiFloatPanel')?.classList.contains('open');
+    const mobileInput = document.getElementById('aiInputMobile');
     const desktopInput = document.getElementById('aiInput');
-    const mobileInput  = document.getElementById('aiInputMobile');
-    const activeInput  = (desktopInput && getComputedStyle(desktopInput).display !== 'none')
-      ? desktopInput : mobileInput;
+    const activeInput = (bigOpen || (mobileInput && getComputedStyle(mobileInput.closest('.ai-float-panel')||mobileInput).display !== 'none' && (desktopInput && getComputedStyle(desktopInput).display === 'none')))
+      ? mobileInput
+      : ((desktopInput && getComputedStyle(desktopInput).display !== 'none') ? desktopInput : mobileInput);
 
     if(!activeInput) return;
 
-    // Deck konusuyla zenginleştir
     const topic = deck?.title ? ` (${deck.title})` : '';
     activeInput.value = prompt + topic;
     activeInput.focus();
 
-    // Gönder — send butonu ID'si
     const sendBtnId = activeInput.id === 'aiInput' ? 'aiSendBtn' : 'aiSendBtnMobile';
     const sendBtn = document.getElementById(sendBtnId);
     if(sendBtn && !sendBtn.disabled){
@@ -11238,22 +11209,34 @@ function closeWelcomeScreen(callback){
 })();
 
 // ============================================================
-// AI PANEL TOGGLE — sol panelde aç/kapa
+// BÜYÜK SOR & ÖĞREN PANELİ (PC + mobil ortak)
 // ============================================================
-function toggleAiPanel(){
-  const panel = document.getElementById('aiPanel');
-  const chevron = document.getElementById('aiPanelChevron');
-  if(!panel) return;
-  const collapsed = panel.classList.toggle('collapsed');
-  if(chevron) chevron.style.transform = collapsed ? 'rotate(-90deg)' : '';
-  if(!collapsed){
+function openBigAiPanel(){
+  const fp = document.getElementById('aiFloatPanel');
+  const backdrop = document.getElementById('aiFloatBackdrop');
+  const btn = document.getElementById('aiFloatBtn');
+  if(fp){
+    fp.classList.add('open');
+    if(backdrop) backdrop.classList.add('open');
+    if(btn) btn.style.display = 'none';
     setTimeout(() => {
-      const inp = document.getElementById('aiInput');
+      const inp = document.getElementById('aiInputMobile');
       if(inp) inp.focus();
-    }, 250);
+    }, 350);
   }
 }
-function openAiPanelFloat(){ toggleAiPanel(); }
+function closeBigAiPanel(){
+  const fp = document.getElementById('aiFloatPanel');
+  const backdrop = document.getElementById('aiFloatBackdrop');
+  const btn = document.getElementById('aiFloatBtn');
+  if(fp) fp.classList.remove('open');
+  if(backdrop) backdrop.classList.remove('open');
+  // Mobilde baloncuğu geri getir
+  if(btn && window.innerWidth <= 860) btn.style.display = 'flex';
+}
+// Eski isimlerle uyumluluk
+function toggleAiPanel(){ openBigAiPanel(); }
+function openAiPanelFloat(){ openBigAiPanel(); }
 
 // Sol (güneş) kaybolma fix
 (function fixSol(){
@@ -11484,51 +11467,30 @@ async function challengeOnlinePlayer(uid, username){
 }
 
 // ============================================================
-// GECE / GÜNDÜZ MODU SİSTEMİ
+// GÜNEŞ RENGİ SİSTEMİ
 // ============================================================
-const MODE_NIGHT = {
-  '--accent':'#6ee7ff', '--accent2':'#b46bff', '--pink':'#ff6ec7', '--ok':'#4dffb0',
-  '--bg':'#070a18', '--bg2':'#0d1230', '--panel':'#10163a', '--line':'#26305f',
-  '--ink':'#eaf0ff', '--ink-soft':'rgba(200,190,230,.6)'
-};
-const MODE_DAY = {
-  '--accent':'#2b8fd4', '--accent2':'#7c56d6', '--pink':'#d4468f', '--ok':'#1fa87a',
-  '--bg':'#e8ecf6', '--bg2':'#dde3f2', '--panel':'#ffffff', '--line':'#c4cde0',
-  '--ink':'#1a2038', '--ink-soft':'rgba(40,50,90,.65)'
-};
-
-function applyMode(mode){
-  const vars = mode === 'day' ? MODE_DAY : MODE_NIGHT;
-  Object.entries(vars).forEach(([prop,val]) => {
-    document.documentElement.style.setProperty(prop, val);
-  });
-  document.documentElement.setAttribute('data-mode', mode);
-  try { localStorage.setItem('thinkle_mode', mode); } catch(e){}
-
-  // Kart seçili görünümlerini güncelle
-  const nightCard = document.getElementById('modeNight');
-  const dayCard = document.getElementById('modeDay');
-  if(nightCard && dayCard){
-    const isNight = mode === 'night';
-    nightCard.style.borderColor = isNight ? 'rgba(110,231,255,.4)' : 'rgba(255,255,255,.1)';
-    dayCard.style.borderColor = isNight ? 'rgba(255,255,255,.1)' : 'rgba(255,180,80,.5)';
-    const nightCheck = nightCard.querySelector('.mode-check');
-    const dayCheck = dayCard.querySelector('.mode-check');
-    if(nightCheck){ nightCheck.style.borderColor = isNight?'rgba(110,231,255,.6)':'rgba(255,255,255,.2)'; nightCheck.style.color = isNight?'#6ee7ff':'transparent'; }
-    if(dayCheck){ dayCheck.style.borderColor = isNight?'rgba(255,255,255,.2)':'rgba(255,180,80,.7)'; dayCheck.style.color = isNight?'transparent':'#ff8c42'; }
-  }
-  showToast(mode === 'day' ? '☀️ Gündüz modu' : '🌙 Gece modu');
+function setSolColor(color){
+  const s = document.querySelector('.sol');
+  const preview = document.getElementById('solPreview');
+  const dark = color.replace(/^#/,'').match(/../g).map(h=>Math.max(0,parseInt(h,16)-60).toString(16).padStart(2,'0')).join('');
+  const bg = `radial-gradient(circle at 38% 35%, #fff8e0, ${color} 40%, #${dark} 70%, #cc1100)`;
+  const shadow = `0 0 22px 8px ${color}77, 0 0 55px 22px ${color}44`;
+  if(s){ s.style.background = bg; s.style.boxShadow = shadow; }
+  if(preview){ preview.style.background = bg; preview.style.boxShadow = `0 0 18px ${color}88`; }
+  try { localStorage.setItem('tc-sol', color); } catch(e){}
 }
 
-// Sayfa yüklenince kayıtlı modu uygula
-(function loadMode(){
+// Sayfa yüklenince kayıtlı güneş rengini uygula
+(function loadSolColor(){
   try {
-    const saved = localStorage.getItem('thinkle_mode') || 'night';
-    // İlk yüklemede sadece night dışındaysa uygula (night zaten varsayılan)
-    if(saved === 'day'){
-      window.addEventListener('load', () => applyMode('day'));
+    const saved = localStorage.getItem('tc-sol');
+    if(saved){
+      window.addEventListener('load', () => {
+        setSolColor(saved);
+        const inp = document.getElementById('tc-sol');
+        if(inp) inp.value = saved;
+      });
     }
-    document.documentElement.setAttribute('data-mode', saved);
   } catch(e){}
 })();
 
@@ -11539,29 +11501,6 @@ function toggleThemePanel(){
   panel.classList.toggle('hidden');
   if(arrow) arrow.style.transform = panel.classList.contains('hidden') ? '' : 'rotate(180deg)';
 }
-
-// Sayfa yüklenince kayıtlı temayı uygula
-(function loadSavedTheme(){
-  try {
-    const saved = JSON.parse(localStorage.getItem('thinkle_theme') || '{}');
-    Object.entries(saved).forEach(([prop,val]) => {
-      document.documentElement.style.setProperty(prop, val);
-      const inputId = 'tc-' + prop.replace('--','');
-      // Panel henüz DOM'da değil, DOMContentLoaded'da güncelleniyor
-    });
-  } catch(e){}
-  // Input değerlerini güncelle (DOM hazır olduğunda)
-  document.addEventListener('DOMContentLoaded', () => {
-    try {
-      const saved = JSON.parse(localStorage.getItem('thinkle_theme') || '{}');
-      Object.entries(saved).forEach(([prop,val]) => {
-        const inputId = 'tc-' + prop.replace('--','');
-        const input = document.getElementById(inputId);
-        if(input) input.value = val;
-      });
-    } catch(e){}
-  });
-})();
 
 // ============================================================
 // PROFİL FOTOĞRAFI
@@ -11890,46 +11829,32 @@ setTimeout(updateFooter, 600);
 <!-- ===== TEMA RENK SEÇİCİ ===== -->
 <div id="themePanel" class="hidden">
   <div class="tp-header" onclick="toggleThemePanel()">
-    <div style="font-size:1.1rem">🎨</div>
+    <div style="font-size:1.1rem">☀️</div>
     <div style="flex:1">
-      <div style="font-family:'Space Grotesk',sans-serif;font-size:.9rem;font-weight:700;color:#eaf0ff">Görünüm</div>
-      <div style="font-size:.6rem;color:rgba(180,160,255,.4);font-family:'Space Mono',monospace">Tema Seç</div>
+      <div style="font-family:'Space Grotesk',sans-serif;font-size:.9rem;font-weight:700;color:#eaf0ff">Güneş Rengi</div>
+      <div style="font-size:.6rem;color:rgba(180,160,255,.4);font-family:'Space Mono',monospace">Kişiselleştir</div>
     </div>
     <div id="tpToggleArrow" style="color:rgba(180,160,255,.4);font-size:.8rem;transition:transform .3s">◀</div>
   </div>
   <div class="tp-body">
     <div class="tp-section">
-      <div class="tp-section-title">🎭 Konsept</div>
-      <div style="display:flex;flex-direction:column;gap:12px;margin-top:6px">
+      <div class="tp-section-title">☀️ Güneşin Rengini Seç</div>
+      <div style="display:flex;align-items:center;gap:14px;padding:14px;border-radius:14px;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.08);margin-top:6px">
+        <div id="solPreview" style="width:48px;height:48px;border-radius:50%;flex-shrink:0;background:radial-gradient(circle at 38% 35%, #fff8e0, #ffaa00 40%, #ff5500 70%, #cc1100);box-shadow:0 0 18px rgba(255,180,0,.5)"></div>
+        <div style="flex:1">
+          <div style="font-size:.8rem;color:#eaf0ff;font-weight:600;margin-bottom:2px">Güneş</div>
+          <div style="font-size:.65rem;color:rgba(180,160,255,.5)">Rengi değiştir</div>
+        </div>
+        <input type="color" class="tp-color-input" id="tc-sol" value="#ffaa00" style="width:44px;height:34px;border-radius:10px;border:1.5px solid rgba(255,255,255,.15);background:none;cursor:pointer" oninput="setSolColor(this.value)">
+      </div>
 
-        <button class="mode-card" id="modeNight" onclick="applyMode('night')" style="
-          display:flex;align-items:center;gap:14px;padding:16px 16px;border-radius:16px;
-          border:2px solid rgba(110,231,255,.4);
-          background:linear-gradient(135deg,rgba(10,7,28,.9),rgba(16,22,58,.7));
-          cursor:pointer;text-align:left;transition:all .2s ease;width:100%;
-        ">
-          <div style="width:44px;height:44px;border-radius:12px;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:1.5rem;background:radial-gradient(circle at 40% 35%,#1a1440,#05030c);box-shadow:0 0 16px rgba(110,231,255,.3),inset 0 0 12px rgba(180,107,255,.2)">🌙</div>
-          <div style="flex:1">
-            <div style="font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:.95rem;color:#eaf0ff;margin-bottom:2px">Gece Modu</div>
-            <div style="font-size:.68rem;color:rgba(180,160,255,.55);line-height:1.4">Koyu uzay teması · neon vurgular</div>
-          </div>
-          <div class="mode-check" style="width:22px;height:22px;border-radius:50%;flex-shrink:0;border:2px solid rgba(110,231,255,.6);display:flex;align-items:center;justify-content:center;color:#6ee7ff;font-size:.7rem">✓</div>
-        </button>
-
-        <button class="mode-card" id="modeDay" onclick="applyMode('day')" style="
-          display:flex;align-items:center;gap:14px;padding:16px 16px;border-radius:16px;
-          border:2px solid rgba(255,255,255,.1);
-          background:linear-gradient(135deg,rgba(30,25,50,.5),rgba(40,35,70,.35));
-          cursor:pointer;text-align:left;transition:all .2s ease;width:100%;
-        ">
-          <div style="width:44px;height:44px;border-radius:12px;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:1.5rem;background:radial-gradient(circle at 40% 35%,#ffe9a8,#ff8c42);box-shadow:0 0 16px rgba(255,180,80,.4)">☀️</div>
-          <div style="flex:1">
-            <div style="font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:.95rem;color:#eaf0ff;margin-bottom:2px">Gündüz Modu</div>
-            <div style="font-size:.68rem;color:rgba(180,160,255,.55);line-height:1.4">Aydınlık tema · yumuşak tonlar</div>
-          </div>
-          <div class="mode-check" style="width:22px;height:22px;border-radius:50%;flex-shrink:0;border:2px solid rgba(255,255,255,.2);display:flex;align-items:center;justify-content:center;color:transparent;font-size:.7rem">✓</div>
-        </button>
-
+      <!-- Hazır güneş renkleri -->
+      <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin-top:14px">
+        <button onclick="setSolColor('#ffaa00');document.getElementById('tc-sol').value='#ffaa00'" style="aspect-ratio:1;border-radius:10px;border:1.5px solid rgba(255,255,255,.1);cursor:pointer;background:radial-gradient(circle at 38% 35%,#fff8e0,#ffaa00 60%,#ff5500)" title="Turuncu"></button>
+        <button onclick="setSolColor('#ff5e3a');document.getElementById('tc-sol').value='#ff5e3a'" style="aspect-ratio:1;border-radius:10px;border:1.5px solid rgba(255,255,255,.1);cursor:pointer;background:radial-gradient(circle at 38% 35%,#ffd0c0,#ff5e3a 60%,#cc2200)" title="Kızıl"></button>
+        <button onclick="setSolColor('#ffd700');document.getElementById('tc-sol').value='#ffd700'" style="aspect-ratio:1;border-radius:10px;border:1.5px solid rgba(255,255,255,.1);cursor:pointer;background:radial-gradient(circle at 38% 35%,#fffce0,#ffd700 60%,#ff9500)" title="Altın"></button>
+        <button onclick="setSolColor('#6ee7ff');document.getElementById('tc-sol').value='#6ee7ff'" style="aspect-ratio:1;border-radius:10px;border:1.5px solid rgba(255,255,255,.1);cursor:pointer;background:radial-gradient(circle at 38% 35%,#e0faff,#6ee7ff 60%,#1a9fcc)" title="Cyan"></button>
+        <button onclick="setSolColor('#c56bff');document.getElementById('tc-sol').value='#c56bff'" style="aspect-ratio:1;border-radius:10px;border:1.5px solid rgba(255,255,255,.1);cursor:pointer;background:radial-gradient(circle at 38% 35%,#f5e0ff,#c56bff 60%,#7a2acc)" title="Mor"></button>
       </div>
     </div>
   </div>
