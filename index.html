@@ -1613,41 +1613,78 @@
     flex-shrink:0; margin-top:2px;
   }
 
-  /* ===== GÜNDÜZ MODU ===== */
+  /* ===== GÜNDÜZ MODU — göz yormayan, yumuşak aydınlık tema ===== */
   html[data-mode="day"] #space{
     background:
-      radial-gradient(ellipse at 20% 30%, rgba(124,86,214,.08), transparent 50%),
-      radial-gradient(ellipse at 80% 70%, rgba(43,143,212,.08), transparent 55%),
-      linear-gradient(160deg, #e8ecf6 0%, #dde3f2 50%, #e8ecf6 100%) !important;
+      radial-gradient(ellipse at 20% 20%, rgba(124,86,214,.05), transparent 45%),
+      radial-gradient(ellipse at 80% 75%, rgba(43,143,212,.05), transparent 50%),
+      linear-gradient(160deg, #f4f6fb 0%, #eef1f8 50%, #f4f6fb 100%) !important;
   }
-  html[data-mode="day"] .star{ background:#8090b0 !important; opacity:.35 !important; }
+  html[data-mode="day"] .star{ background:#a8b2c8 !important; opacity:.25 !important; }
+  html[data-mode="day"] .stars{ opacity:.4 !important; }
   html[data-mode="day"] .left-column{
-    background:linear-gradient(170deg, rgba(255,255,255,.9), rgba(240,243,250,.95)) !important;
-    border-right:1px solid rgba(124,86,214,.15) !important;
+    background:linear-gradient(170deg, #ffffff, #f6f8fc) !important;
+    border-right:1px solid rgba(124,86,214,.12) !important;
   }
+  html[data-mode="day"] .left-column::before{ opacity:.4 !important; }
   html[data-mode="day"] .topbar{
-    background:rgba(255,255,255,.85) !important;
-    border-bottom:1px solid rgba(124,86,214,.12) !important;
+    background:rgba(255,255,255,.92) !important;
+    border-bottom:1px solid rgba(124,86,214,.1) !important;
   }
+  html[data-mode="day"] .topbar h2{ color:#2a3252 !important; }
   html[data-mode="day"] .slide-card,
   html[data-mode="day"] .quiz-q,
   html[data-mode="day"] .ai-msg,
-  html[data-mode="day"] .dropzone{
-    background:rgba(255,255,255,.75) !important;
-    border-color:rgba(124,86,214,.18) !important;
+  html[data-mode="day"] .dropzone,
+  html[data-mode="day"] .flashcard,
+  html[data-mode="day"] .study-mode-card{
+    background:#ffffff !important;
+    border-color:rgba(124,86,214,.15) !important;
+    color:#2a3252 !important;
+    box-shadow:0 2px 12px rgba(80,90,140,.06) !important;
+  }
+  html[data-mode="day"] .slide-card h2,
+  html[data-mode="day"] .quiz-q h3{ color:#1a2038 !important; -webkit-text-fill-color:#1a2038 !important; }
+  html[data-mode="day"] .upload-screen p{
+    background:rgba(255,255,255,.7) !important;
+    color:rgba(40,50,90,.75) !important;
+    border-color:rgba(124,86,214,.12) !important;
+  }
+  html[data-mode="day"] body{ color:#2a3252 !important; }
+  html[data-mode="day"] .sidebar h1{ color:#2b6fd4 !important; }
+  html[data-mode="day"] .brand div div,
+  html[data-mode="day"] .util,
+  html[data-mode="day"] .ai-panel-header .util{ color:rgba(60,70,110,.6) !important; }
+  /* Sidebar butonları gündüz */
+  html[data-mode="day"] .battle-sidebar-btn,
+  html[data-mode="day"] .friends-sidebar-btn{
+    background:rgba(124,86,214,.06) !important;
+    border-color:rgba(124,86,214,.15) !important;
+    color:#3a4468 !important;
+  }
+  html[data-mode="day"] .battle-sidebar-btn:hover,
+  html[data-mode="day"] .friends-sidebar-btn:hover{
+    background:rgba(124,86,214,.12) !important;
     color:#1a2038 !important;
   }
-  html[data-mode="day"] .upload-screen p{
-    background:rgba(255,255,255,.6) !important;
-    color:rgba(40,50,90,.8) !important;
+  /* Quiz seçenekleri, tab'lar gündüz */
+  html[data-mode="day"] .quiz-opt{
+    background:#f6f8fc !important; border-color:rgba(124,86,214,.15) !important; color:#2a3252 !important;
   }
-  html[data-mode="day"] body{ color:#1a2038; }
-  html[data-mode="day"] .sidebar h1{ color:#2b8fd4 !important; }
-  html[data-mode="day"] .brand div div{ color:rgba(40,50,90,.6) !important; }
-  /* Gündüz modunda vignette'i hafiflet */
-  html[data-mode="day"] body::after{
-    background:radial-gradient(ellipse 120% 90% at 50% 45%, transparent 60%, rgba(180,190,215,.25) 100%) !important;
+  html[data-mode="day"] .quiz-opt:hover{ background:#eef1f8 !important; }
+  html[data-mode="day"] .tab{ color:rgba(60,70,110,.6) !important; }
+  html[data-mode="day"] .tab.active{ color:#2b6fd4 !important; }
+  /* AI chat input gündüz */
+  html[data-mode="day"] .ai-input-row textarea,
+  html[data-mode="day"] #aiInput{
+    background:#ffffff !important; border-color:rgba(124,86,214,.18) !important; color:#2a3252 !important;
   }
+  html[data-mode="day"] .ai-msg.user{ background:rgba(43,111,212,.1) !important; }
+  html[data-mode="day"] .ai-chip{
+    background:rgba(124,86,214,.08) !important; border-color:rgba(124,86,214,.18) !important; color:#3a4468 !important;
+  }
+  /* Vignette gündüzde kapalı */
+  html[data-mode="day"] body::after{ opacity:0 !important; }
   /* Mod kartları hover */
   .mode-card:hover{ transform:translateY(-2px); }
 
@@ -4832,8 +4869,8 @@
     <div id="userArea"></div>
   </div>
 
-  <div class="ai-panel collapsed" id="aiPanel" style="flex:0;min-height:0">
-    <div class="ai-panel-header" style="cursor:pointer;padding:10px 14px;border-top:1px solid rgba(110,231,255,.1)" onclick="openAiPanelFloat()">
+  <div class="ai-panel" id="aiPanel">
+    <div class="ai-panel-header" style="cursor:pointer;padding:10px 14px;border-top:1px solid rgba(110,231,255,.1)" onclick="toggleAiPanel()">
       <div class="mark" style="width:28px;height:28px;border-radius:9px;flex-shrink:0;overflow:hidden;background:#05030c;box-shadow:0 0 14px rgba(110,231,255,.3)">
         <div class="mini-disk"></div><div class="mini-core"></div>
       </div>
@@ -4845,9 +4882,8 @@
         <div id="chatLimitText">— / 30</div>
         <div style="color:rgba(180,160,255,.5)">mesaj</div>
       </div>
-      <span style="color:rgba(110,231,255,.4);font-size:.75rem;margin-left:6px">↗</span>
+      <span id="aiPanelChevron" style="color:rgba(110,231,255,.5);font-size:.7rem;margin-left:6px;transition:transform .25s">▼</span>
     </div>
-    <!-- AI içerik - masaüstünde collapsed, float panel açılıyor -->
     <div class="ai-chat" id="aiChat">
       <div class="ai-panel-empty" id="aiEmptyMsg" data-i18n="aiEmptyMsg">Bir konu, fikir veya soru yaz — Thinkle sana anlatmaya başlasın. PDF yüklemen gerekmiyor.</div>
     </div>
@@ -8284,18 +8320,19 @@ const aiFloatBtn = document.getElementById('aiFloatBtn');
 const aiFloatPanel = document.getElementById('aiFloatPanel');
 function isMobile(){ return window.innerWidth <= 860; }
 function updateFloatBtn(){
+  // PC'de baloncuk asla görünmez, sadece mobilde
   if(aiFloatBtn) aiFloatBtn.style.display = isMobile() ? 'flex' : 'none';
 }
 updateFloatBtn();
 window.addEventListener('resize', updateFloatBtn);
 if(aiFloatBtn){
-  function toggleAiPanel(){
+  // Mobil float panel toggle — sidebar toggleAiPanel'i EZMEZ
+  function toggleMobileFloat(){
     const isOpen = aiFloatPanel.classList.toggle('open');
-    // Panel açıkken butonu gizle — gönder tuşunu engellemez
     aiFloatBtn.style.display = isOpen ? 'none' : 'flex';
   }
-  aiFloatBtn.addEventListener('click', toggleAiPanel);
-  aiFloatBtn.addEventListener('touchend', (e)=>{ e.preventDefault(); toggleAiPanel(); }, {passive:false});
+  aiFloatBtn.addEventListener('click', toggleMobileFloat);
+  aiFloatBtn.addEventListener('touchend', (e)=>{ e.preventDefault(); toggleMobileFloat(); }, {passive:false});
 }
 
 // ============================================================
@@ -11201,36 +11238,22 @@ function closeWelcomeScreen(callback){
 })();
 
 // ============================================================
-// AI PANEL TOGGLE — sol panelden float paneli açar
+// AI PANEL TOGGLE — sol panelde aç/kapa
 // ============================================================
-function openAiPanelFloat(){
-  // PC'de sol paneldeki AI bölümünü genişlet, mobilde float panel aç
-  if(window.innerWidth > 860){
-    const panel = document.getElementById('aiPanel');
-    if(panel){
-      panel.classList.toggle('collapsed');
-      if(!panel.classList.contains('collapsed')){
-        setTimeout(() => {
-          const inp = document.getElementById('aiInput');
-          if(inp) inp.focus();
-        }, 300);
-      }
-    }
-    return;
-  }
-  // Mobil: float panel
-  const fp = document.getElementById('aiFloatPanel');
-  const btn = document.getElementById('aiFloatBtn');
-  if(fp){
-    fp.classList.add('open');
-    if(btn) btn.style.display = 'none';
+function toggleAiPanel(){
+  const panel = document.getElementById('aiPanel');
+  const chevron = document.getElementById('aiPanelChevron');
+  if(!panel) return;
+  const collapsed = panel.classList.toggle('collapsed');
+  if(chevron) chevron.style.transform = collapsed ? 'rotate(-90deg)' : '';
+  if(!collapsed){
     setTimeout(() => {
-      const inp = document.getElementById('aiInputMobile') || document.getElementById('aiInput');
+      const inp = document.getElementById('aiInput');
       if(inp) inp.focus();
-    }, 350);
+    }, 250);
   }
 }
-function toggleAiPanel(){ openAiPanelFloat(); }
+function openAiPanelFloat(){ toggleAiPanel(); }
 
 // Sol (güneş) kaybolma fix
 (function fixSol(){
