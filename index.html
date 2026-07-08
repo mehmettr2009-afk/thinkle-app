@@ -1754,6 +1754,92 @@
     .cr-emoji-bubble.theirs{ left:14px; }
   }
 
+  /* ===== YENİ ÖĞRENME MODLARI KARTLARI ===== */
+  .learn-mode-card{
+    display:flex; align-items:center; gap:11px; width:100%;
+    padding:11px 12px; border-radius:14px; cursor:pointer;
+    border:1.5px solid rgba(180,107,255,.18);
+    background:linear-gradient(135deg, rgba(180,107,255,.06), rgba(110,231,255,.03));
+    transition:all .2s cubic-bezier(.34,1.56,.64,1);
+    text-align:left; position:relative; overflow:hidden;
+    -webkit-tap-highlight-color:transparent; touch-action:manipulation;
+  }
+  .learn-mode-card::before{
+    content:''; position:absolute; left:0; top:0; bottom:0; width:3px;
+    opacity:.75;
+  }
+  .learn-mode-card.feynman::before{ background:linear-gradient(180deg,#4dffb0,#6ee7ff); }
+  .learn-mode-card.persona::before{ background:linear-gradient(180deg,#ffd700,#ff9a3c); }
+  .learn-mode-card.owndeck::before{ background:linear-gradient(180deg,#ff6ec7,#b46bff); }
+  .learn-mode-card:hover{
+    border-color:rgba(180,107,255,.4);
+    transform:translateX(3px);
+    box-shadow:0 4px 18px -4px rgba(180,107,255,.35);
+  }
+  .learn-mode-card:active{ transform:translateX(3px) scale(.98); }
+  .lmc-icon{
+    font-size:1.5rem; flex-shrink:0; width:38px; height:38px;
+    display:flex; align-items:center; justify-content:center;
+    background:rgba(255,255,255,.04); border-radius:11px;
+  }
+  .lmc-text{ flex:1; min-width:0; }
+  .lmc-title{ font-family:'Space Grotesk',sans-serif; font-size:.82rem; font-weight:700; color:#eaf0ff; margin-bottom:1px; }
+  .lmc-desc{ font-size:.62rem; color:rgba(180,160,255,.55); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .lmc-arrow{ color:rgba(110,231,255,.5); font-size:.9rem; flex-shrink:0; transition:transform .2s; }
+  .learn-mode-card:hover .lmc-arrow{ transform:translateX(3px); color:#6ee7ff; }
+
+  /* Öğrenme modu tam ekran overlay */
+  .lm-overlay{
+    position:fixed; inset:0; z-index:9997;
+    background:rgba(3,2,12,.75); backdrop-filter:blur(6px);
+    display:flex; align-items:center; justify-content:center; padding:20px;
+    opacity:0; pointer-events:none; transition:opacity .3s ease;
+  }
+  .lm-overlay.open{ opacity:1; pointer-events:auto; }
+  .lm-modal{
+    width:min(560px,94vw); max-height:88vh; display:flex; flex-direction:column;
+    background:linear-gradient(160deg, rgba(16,12,40,.98), rgba(8,6,22,.98));
+    border:1.5px solid rgba(180,107,255,.25); border-radius:22px;
+    box-shadow:0 24px 70px rgba(0,0,0,.6); overflow:hidden;
+    transform:scale(.92); transition:transform .35s cubic-bezier(.16,1,.3,1);
+  }
+  .lm-overlay.open .lm-modal{ transform:scale(1); }
+  .lm-header{
+    display:flex; align-items:center; gap:12px; padding:16px 18px;
+    border-bottom:1px solid rgba(180,107,255,.12); flex-shrink:0;
+    background:rgba(180,107,255,.04);
+  }
+  .lm-header .lm-h-icon{ font-size:1.6rem; }
+  .lm-header .lm-h-title{ font-family:'Space Grotesk',sans-serif; font-weight:700; font-size:1rem; color:#eaf0ff; flex:1; }
+  .lm-header .lm-h-sub{ font-size:.62rem; color:rgba(180,160,255,.5); font-family:'Space Mono',monospace; }
+  .lm-close{ background:rgba(255,255,255,.06); border:1px solid rgba(255,255,255,.1); border-radius:10px; width:32px; height:32px; cursor:pointer; color:rgba(255,255,255,.6); font-size:.85rem; flex-shrink:0; }
+  .lm-body{ flex:1; overflow-y:auto; padding:18px; min-height:0; }
+  .lm-chat-msg{ margin-bottom:12px; display:flex; gap:9px; align-items:flex-start; }
+  .lm-chat-msg.user{ flex-direction:row-reverse; }
+  .lm-chat-avatar{ width:30px; height:30px; border-radius:50%; flex-shrink:0; display:flex; align-items:center; justify-content:center; font-size:1rem; background:rgba(180,107,255,.15); border:1px solid rgba(180,107,255,.3); }
+  .lm-chat-bubble{ max-width:78%; padding:10px 13px; border-radius:14px; font-size:.85rem; line-height:1.55; }
+  .lm-chat-msg.ai .lm-chat-bubble{ background:rgba(255,255,255,.05); border:1px solid rgba(180,107,255,.15); color:#eaf0ff; border-top-left-radius:4px; }
+  .lm-chat-msg.user .lm-chat-bubble{ background:linear-gradient(135deg, rgba(110,231,255,.15), rgba(180,107,255,.12)); border:1px solid rgba(110,231,255,.2); color:#eaf0ff; border-top-right-radius:4px; }
+  .lm-input-row{ display:flex; gap:8px; padding:14px 18px; border-top:1px solid rgba(180,107,255,.12); flex-shrink:0; align-items:flex-end; }
+  .lm-input-row textarea{ flex:1; resize:none; min-height:44px; max-height:110px; padding:11px 14px; border:1.5px solid rgba(180,107,255,.2); border-radius:13px; font-family:'Space Grotesk',sans-serif; font-size:.86rem; background:rgba(255,255,255,.03); color:var(--ink); outline:none; }
+  .lm-send{ padding:0 16px; height:44px; border:none; border-radius:13px; background:linear-gradient(135deg,var(--accent),var(--accent2)); color:#04010e; font-size:1.1rem; cursor:pointer; font-weight:700; }
+  .persona-grid{ display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+  .persona-pick{ display:flex; flex-direction:column; align-items:center; gap:6px; padding:16px 10px; border-radius:16px; border:1.5px solid rgba(255,215,0,.18); background:rgba(255,215,0,.04); cursor:pointer; transition:all .18s; text-align:center; -webkit-tap-highlight-color:transparent; }
+  .persona-pick:hover{ border-color:rgba(255,215,0,.45); transform:translateY(-2px); background:rgba(255,215,0,.08); }
+  .persona-pick:active{ transform:scale(.96); }
+  .persona-pick .pp-emoji{ font-size:2rem; }
+  .persona-pick .pp-name{ font-family:'Space Grotesk',sans-serif; font-weight:700; font-size:.82rem; color:#eaf0ff; }
+  .persona-pick .pp-field{ font-size:.6rem; color:rgba(255,215,0,.6); font-family:'Space Mono',monospace; }
+  .feynman-roles{ display:flex; flex-direction:column; gap:10px; }
+  .feynman-role{ display:flex; align-items:center; gap:12px; padding:14px; border-radius:14px; border:1.5px solid rgba(77,255,176,.18); background:rgba(77,255,176,.04); cursor:pointer; transition:all .18s; text-align:left; -webkit-tap-highlight-color:transparent; }
+  .feynman-role:hover{ border-color:rgba(77,255,176,.4); transform:translateX(3px); }
+  .feynman-role .fr-emoji{ font-size:1.8rem; flex-shrink:0; }
+  .feynman-score .fs-num{ font-family:'Orbitron',sans-serif; font-size:3.5rem; font-weight:900; background:linear-gradient(135deg,#4dffb0,#6ee7ff); -webkit-background-clip:text; background-clip:text; color:transparent; text-align:center; }
+  @media (max-width:860px){
+    .lm-overlay{ align-items:flex-end; padding:0; }
+    .lm-modal{ width:100%; max-height:90vh; border-radius:22px 22px 0 0; }
+  }
+
   /* ===== ARKADAŞ CHAT ===== */
   .friend-chat-modal{
     position:fixed;inset:0;z-index:9500;
@@ -5220,6 +5306,47 @@
       <button class="ai-send-btn" id="aiSendBtn">→</button>
     </div>
   </div>
+
+  <!-- ✨ YENİ ÖĞRENME MODLARI -->
+  <div class="learn-modes" style="padding:0 8px 12px;display:flex;flex-direction:column;gap:8px">
+    <div style="font-size:.58rem;font-family:'Space Mono',monospace;color:rgba(180,160,255,.4);letter-spacing:.08em;text-transform:uppercase;padding:4px 8px 2px">✦ <span class="tr-text">Öğrenme Modları</span><span class="en-text">Learning Modes</span></div>
+
+    <!-- Bana Anlat (Feynman) -->
+    <button class="learn-mode-card feynman" onclick="openFeynmanMode()">
+      <div class="lmc-icon">🎙️</div>
+      <div class="lmc-text">
+        <div class="lmc-title tr-text">Bana Anlat</div>
+        <div class="lmc-title en-text">Teach Me</div>
+        <div class="lmc-desc tr-text">Sen anlat, ben öğrenci olayım</div>
+        <div class="lmc-desc en-text">You explain, I'll be the student</div>
+      </div>
+      <span class="lmc-arrow">→</span>
+    </button>
+
+    <!-- Tarihi Kişiyle Sohbet -->
+    <button class="learn-mode-card persona" onclick="openPersonaMode()">
+      <div class="lmc-icon">🎭</div>
+      <div class="lmc-text">
+        <div class="lmc-title tr-text">Tarihi Kişiyle Sohbet</div>
+        <div class="lmc-title en-text">Chat with History</div>
+        <div class="lmc-desc tr-text">Atatürk, Einstein, Mevlana…</div>
+        <div class="lmc-desc en-text">Atatürk, Einstein, Rumi…</div>
+      </div>
+      <span class="lmc-arrow">→</span>
+    </button>
+
+    <!-- Kendi Desteğinle Yarışma -->
+    <button class="learn-mode-card owndeck" onclick="openOwnDeckBattle()">
+      <div class="lmc-icon">⚔️</div>
+      <div class="lmc-text">
+        <div class="lmc-title tr-text">Dosyandan Yarışma</div>
+        <div class="lmc-title en-text">Battle from File</div>
+        <div class="lmc-desc tr-text">Kendi dersinden oda kur</div>
+        <div class="lmc-desc en-text">Create a room from your notes</div>
+      </div>
+      <span class="lmc-arrow">→</span>
+    </button>
+  </div>
 </div>
 
 <div class="main">
@@ -6640,9 +6767,15 @@ async function doCreateRoom(){
   const btn = document.getElementById('createRoomBtn');
   if(btn){ btn.disabled = true; btn.textContent = currentLang==='tr' ? '⏳ Sorular hazırlanıyor...' : '⏳ Generating questions...'; btn.style.opacity = '.7'; }
 
-  // AI ile soru üret
-  const catLabel = BATTLE_CATEGORIES.find(c=>c.id===battleSelectedCategory)?.label || battleSelectedCategory;
-  const questions = await generateBattleQuestions(catLabel, battleSelectedCategory, battleQuestionCount);
+  // Dosyandan Yarışma — hazır sorular varsa onları kullan
+  let questions;
+  if(window._pendingOwnDeckQuestions?.length){
+    questions = window._pendingOwnDeckQuestions;
+    window._pendingOwnDeckQuestions = null;
+  } else {
+    const catLabel = BATTLE_CATEGORIES.find(c=>c.id===battleSelectedCategory)?.label || battleSelectedCategory;
+    questions = await generateBattleQuestions(catLabel, battleSelectedCategory, battleQuestionCount);
+  }
   if(!questions){ if(btn){ btn.disabled=false; btn.textContent=currentLang==='tr'?'🚀 Odayı Oluştur':'🚀 Create Room'; btn.style.opacity='1'; } return; }
 
   battleMyUid = user.uid;
@@ -11699,6 +11832,334 @@ function populateAiTicker(){
   void track.offsetWidth; // reflow tetikle
   track.style.animation = '';
 }
+
+// ============================================================
+// ✦ YENİ ÖĞRENME MODLARI — Feynman, Persona, Dosyadan Yarışma
+// ============================================================
+
+// Ortak AI çağrısı (proxy)
+async function lmCallAI(systemPrompt, messages, maxTokens = 900){
+  const resp = await fetch(PROXY_URL, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      model: "google/gemini-2.5-pro",
+      max_tokens: maxTokens,
+      uid: window.currentUser?.uid || '',
+      sig: getRequestSignature(),
+      system: systemPrompt,
+      messages
+    })
+  });
+  const data = await resp.json();
+  return data?.content?.find?.(b => b.type === 'text')?.text || '';
+}
+
+// Ortak modal iskeleti
+function lmBuildModal(icon, title, sub, bodyHTML, hasInput){
+  document.getElementById('lmOverlay')?.remove();
+  const ov = document.createElement('div');
+  ov.id = 'lmOverlay';
+  ov.className = 'lm-overlay';
+  ov.innerHTML = `
+    <div class="lm-modal">
+      <div class="lm-header">
+        <span class="lm-h-icon">${icon}</span>
+        <div style="flex:1">
+          <div class="lm-h-title">${title}</div>
+          <div class="lm-h-sub">${sub}</div>
+        </div>
+        <button class="lm-close" onclick="closeLearnMode()">✕</button>
+      </div>
+      <div class="lm-body" id="lmBody">${bodyHTML}</div>
+      ${hasInput ? `
+      <div class="lm-input-row">
+        <textarea id="lmInput" placeholder="${currentLang==='tr'?'Yaz…':'Type…'}"></textarea>
+        <button class="lm-send" id="lmSend">→</button>
+      </div>` : ''}
+    </div>`;
+  document.body.appendChild(ov);
+  ov.addEventListener('click', e => { if(e.target === ov) closeLearnMode(); });
+  requestAnimationFrame(() => ov.classList.add('open'));
+  return ov;
+}
+function closeLearnMode(){
+  const ov = document.getElementById('lmOverlay');
+  if(ov){ ov.classList.remove('open'); setTimeout(()=>ov.remove(), 300); }
+}
+function lmAddMsg(role, text){
+  const body = document.getElementById('lmBody');
+  if(!body) return null;
+  const wrap = document.createElement('div');
+  wrap.className = 'lm-chat-msg ' + role;
+  const avatar = role === 'user' ? (window.currentAvatar || '🧑‍🎓') : (window._lmAvatar || '🤖');
+  wrap.innerHTML = `<div class="lm-chat-avatar">${avatar}</div><div class="lm-chat-bubble">${escapeHtml(text).replace(/\n/g,'<br>')}</div>`;
+  body.appendChild(wrap);
+  body.scrollTop = body.scrollHeight;
+  return wrap.querySelector('.lm-chat-bubble');
+}
+
+// ──────────────────────────────────────────
+// 🎙️ BANA ANLAT (Feynman Tekniği)
+// ──────────────────────────────────────────
+let _feynmanState = null;
+function openFeynmanMode(){
+  if(!window.currentUser){ showAuthModal?.(()=>openFeynmanMode()); return; }
+  const isTr = currentLang === 'tr';
+  const rolesHTML = `
+    <div style="font-size:.85rem;color:rgba(200,190,235,.75);line-height:1.6;margin-bottom:16px">
+      ${isTr ? 'Bir konuyu <b>sen bana anlat</b>. Ben öğrencin olacağım ve anlamadığım yerleri soracağım. Ne kadar iyi anlatırsan o kadar iyi öğrenirsin! Önce bir karakter seç:' : 'You <b>teach me</b> a topic. I\'ll be your student and ask about things I don\'t get. Pick my character first:'}
+    </div>
+    <div class="feynman-roles">
+      <button class="feynman-role" onclick="startFeynman('kid')">
+        <span class="fr-emoji">🧒</span>
+        <div><div style="font-weight:700;color:#eaf0ff;font-size:.9rem">${isTr?'5 Yaşında Çocuk':'5-Year-Old Kid'}</div><div style="font-size:.7rem;color:rgba(180,160,255,.6)">${isTr?'Her şeyi merak eder, "neden?" der':'Curious, keeps asking "why?"'}</div></div>
+      </button>
+      <button class="feynman-role" onclick="startFeynman('professor')">
+        <span class="fr-emoji">🧐</span>
+        <div><div style="font-weight:700;color:#eaf0ff;font-size:.9rem">${isTr?'Şüpheci Profesör':'Skeptical Professor'}</div><div style="font-size:.7rem;color:rgba(180,160,255,.6)">${isTr?'Zor sorular sorar, kanıt ister':'Asks hard questions, wants proof'}</div></div>
+      </button>
+      <button class="feynman-role" onclick="startFeynman('bored')">
+        <span class="fr-emoji">😪</span>
+        <div><div style="font-weight:700;color:#eaf0ff;font-size:.9rem">${isTr?'Sıkılmış Öğrenci':'Bored Student'}</div><div style="font-size:.7rem;color:rgba(180,160,255,.6)">${isTr?'İlgisini çekmen gerek':'You need to make it interesting'}</div></div>
+      </button>
+    </div>`;
+  lmBuildModal('🎙️', isTr?'Bana Anlat':'Teach Me', isTr?'Feynman Tekniği':'Feynman Technique', rolesHTML, false);
+}
+
+function startFeynman(role){
+  const isTr = currentLang === 'tr';
+  const personas = {
+    kid:       { emoji:'🧒', tr:'meraklı 5 yaşında bir çocuk', en:'a curious 5-year-old child' },
+    professor: { emoji:'🧐', tr:'şüpheci, titiz bir profesör', en:'a skeptical, rigorous professor' },
+    bored:     { emoji:'😪', tr:'kolay sıkılan, ilgisiz bir öğrenci', en:'an easily bored, disengaged student' }
+  };
+  const p = personas[role];
+  window._lmAvatar = p.emoji;
+  _feynmanState = { role, turns: 0, history: [] };
+
+  const sys = isTr
+    ? `Sen ${p.tr} rolündesin. Kullanıcı sana bir konuyu ÖĞRETMEYE çalışacak. Sen o karakterin ağzından, o karakterin seviyesinde tepki ver:
+- Anlamadığın yerleri SOR ("Ama neden öyle?", "Bunu anlamadım, basitleştir")
+- Karakterine sadık kal (çocuksan basit merak, profesörsen zorlayıcı kanıt isteği, sıkılmış öğrenciysen ilgisizlik)
+- Kısa konuş (2-4 cümle), tek bir soru sor
+- Kullanıcı iyi açıkladıkça "Aa şimdi anladım!" gibi ilerleme göster
+- ASLA cevabı sen verme, öğrenmeye çalışan taraf sensin
+Türkçe konuş.`
+    : `You are playing ${p.en}. The user will try to TEACH you a topic. React in that character's voice and level:
+- Ask about things you don't understand ("But why?", "I don't get it, simplify")
+- Stay in character
+- Keep it short (2-4 sentences), ask one question
+- Show progress as they explain well ("Oh now I get it!")
+- NEVER give the answer yourself, you're the one learning
+Speak English.`;
+  window._feynmanSys = sys;
+
+  const introHTML = `<div style="text-align:center;padding:10px 0 4px">
+    <div style="font-size:2.5rem;margin-bottom:8px">${p.emoji}</div>
+    <div style="font-size:.85rem;color:rgba(200,190,235,.8);line-height:1.6">${isTr?'Hazırım! Bana bir konu seç ve anlatmaya başla. Örneğin: "Fotosentezi anlatacağım" yaz.':'I\'m ready! Pick a topic and start teaching. E.g. type: "I\'ll explain photosynthesis".'}</div>
+  </div>`;
+  lmBuildModal(p.emoji, isTr?'Bana Anlat':'Teach Me', isTr?'Sen öğretmensin':'You are the teacher', introHTML, true);
+  wireLearnInput(handleFeynmanTurn);
+}
+
+async function handleFeynmanTurn(text){
+  const isTr = currentLang === 'tr';
+  lmAddMsg('user', text);
+  _feynmanState.turns++;
+  _feynmanState.history.push({ role:'user', content:text });
+  const thinking = lmAddMsg('ai', '…');
+
+  // 5 turdan sonra skor teklif et
+  const wantScore = _feynmanState.turns >= 4;
+  try {
+    const sys = window._feynmanSys + (wantScore ? (isTr
+      ? '\n\nBu yeterince açıklama oldu. Bu turda karakterinden çıkıp, kullanıcının anlatımını değerlendir. Yanıtının EN SONUNA şu formatı ekle: [SKOR:XX] (0-100 arası, ne kadar iyi öğrettiğine göre). Kısa bir geri bildirim de ver.'
+      : '\n\nEnough explanation. This turn, step out of character and evaluate their teaching. Add this at the very END: [SKOR:XX] (0-100). Give short feedback.') : '');
+    const reply = await lmCallAI(sys, _feynmanState.history, 700);
+    _feynmanState.history.push({ role:'assistant', content:reply });
+
+    // Skor var mı?
+    const scoreMatch = reply.match(/\[SKOR:(\d+)\]/);
+    const cleanReply = reply.replace(/\[SKOR:\d+\]/,'').trim();
+    thinking.parentElement.querySelector('.lm-chat-bubble').innerHTML = escapeHtml(cleanReply).replace(/\n/g,'<br>');
+
+    if(scoreMatch){
+      const score = scoreMatch[1];
+      setTimeout(() => showFeynmanScore(score), 600);
+    }
+  } catch(e){
+    thinking.textContent = isTr?'Bağlantı hatası, tekrar dene.':'Connection error, try again.';
+  }
+}
+
+function showFeynmanScore(score){
+  const isTr = currentLang === 'tr';
+  const body = document.getElementById('lmBody');
+  if(!body) return;
+  const s = parseInt(score);
+  const verdict = s >= 80 ? (isTr?'🏆 Muhteşem öğrettin!':'🏆 You taught it brilliantly!')
+    : s >= 60 ? (isTr?'👏 İyi iş, biraz daha netleştir':'👏 Good job, refine a bit')
+    : (isTr?'💪 Daha basit anlatmayı dene':'💪 Try explaining more simply');
+  const card = document.createElement('div');
+  card.className = 'feynman-score';
+  card.style.cssText = 'margin-top:16px;padding:20px;border-radius:16px;background:linear-gradient(160deg,rgba(77,255,176,.08),rgba(110,231,255,.05));border:1.5px solid rgba(77,255,176,.25);text-align:center';
+  card.innerHTML = `
+    <div style="font-size:.7rem;font-family:'Space Mono',monospace;color:rgba(77,255,176,.7);letter-spacing:.1em;text-transform:uppercase;margin-bottom:6px">${isTr?'Anlama Skoru':'Understanding Score'}</div>
+    <div class="fs-num">${s}</div>
+    <div style="font-size:.85rem;color:#eaf0ff;margin-top:8px;font-weight:600">${verdict}</div>`;
+  body.appendChild(card);
+  body.scrollTop = body.scrollHeight;
+}
+
+// ──────────────────────────────────────────
+// 🎭 TARİHİ KİŞİYLE SOHBET
+// ──────────────────────────────────────────
+const PERSONAS = [
+  { emoji:'🇹🇷', name:'Atatürk', field:{tr:'Kurtuluş & Devrimler',en:'Independence & Reforms'}, sys:{tr:'Sen Mustafa Kemal Atatürk\'sün. Türkiye Cumhuriyeti\'nin kurucusu olarak, kararlı, vizyoner ve eğitime tutkuyla bağlı bir üslupla konuş. Devrimlerini, Kurtuluş Savaşı\'nı, cumhuriyet ilkelerini birinci ağızdan anlat. Dönemin ruhunu yansıt ama anlaşılır ol.',en:'You are Mustafa Kemal Atatürk, founder of the Turkish Republic. Speak with determination and vision.'} },
+  { emoji:'⚛️', name:'Einstein', field:{tr:'Görelilik & Fizik',en:'Relativity & Physics'}, sys:{tr:'Sen Albert Einstein\'sın. Görelilik teorisini, fiziği, evreni merakla ve düşünce deneyleriyle anlat. Bilgece, esprili ve alçakgönüllü ol. Karmaşık şeyleri günlük örneklerle basitleştir.',en:'You are Albert Einstein. Explain relativity and physics with curiosity and thought experiments, witty and humble.'} },
+  { emoji:'🕌', name:'Mimar Sinan', field:{tr:'Mimari & Sanat',en:'Architecture & Art'}, sys:{tr:'Sen Mimar Sinan\'sın. Osmanlı baş mimarı olarak Süleymaniye, Selimiye gibi eserlerini, mimari sırlarını, mühendislik dehanı anlat. Zanaatına tutkulu, mütevazı bir usta gibi konuş.',en:'You are Mimar Sinan, chief Ottoman architect. Speak about your masterpieces and engineering genius as a humble master.'} },
+  { emoji:'📜', name:'Mevlana', field:{tr:'Tasavvuf & Şiir',en:'Sufism & Poetry'}, sys:{tr:'Sen Mevlana Celaleddin Rumi\'sin. Sevgi, hoşgörü, insanlık ve tasavvuf üzerine derin ama sıcak bir dille konuş. Ara sıra Mesnevi\'den ilham veren benzetmeler kullan.',en:'You are Rumi. Speak of love, tolerance and Sufism with warmth and poetic metaphors.'} },
+  { emoji:'🔬', name:'Marie Curie', field:{tr:'Radyoaktivite & Kimya',en:'Radioactivity & Chemistry'}, sys:{tr:'Sen Marie Curie\'sin. Radyoaktivite araştırmalarını, bilimdeki azmini, iki Nobel\'ini anlat. Kararlı, tutkulu ve azimli bir bilim insanı gibi konuş.',en:'You are Marie Curie. Speak about radioactivity and your perseverance in science.'} },
+  { emoji:'🎨', name:'Leonardo', field:{tr:'Sanat & İcat',en:'Art & Invention'}, sys:{tr:'Sen Leonardo da Vinci\'sin. Ressamlığını, icatlarını, anatomi ve doğaya olan sonsuz merakını anlat. Rönesans dehası, çok yönlü bir usta gibi konuş.',en:'You are Leonardo da Vinci. Speak of your art, inventions and endless curiosity.'} }
+];
+
+function openPersonaMode(){
+  if(!window.currentUser){ showAuthModal?.(()=>openPersonaMode()); return; }
+  const isTr = currentLang === 'tr';
+  const grid = PERSONAS.map((p, i) => `
+    <button class="persona-pick" onclick="startPersona(${i})">
+      <span class="pp-emoji">${p.emoji}</span>
+      <span class="pp-name">${p.name}</span>
+      <span class="pp-field">${isTr?p.field.tr:p.field.en}</span>
+    </button>`).join('');
+  const html = `
+    <div style="font-size:.85rem;color:rgba(200,190,235,.75);line-height:1.6;margin-bottom:16px">
+      ${isTr?'Bir tarihi kişi seç ve onunla sohbet et. Sorularını birinci ağızdan cevaplayacak!':'Pick a historical figure and chat. They\'ll answer in first person!'}
+    </div>
+    <div class="persona-grid">${grid}</div>`;
+  lmBuildModal('🎭', isTr?'Tarihi Kişiyle Sohbet':'Chat with History', isTr?'Kiminle konuşmak istersin?':'Who would you like to talk to?', html, false);
+}
+
+let _personaState = null;
+function startPersona(idx){
+  const isTr = currentLang === 'tr';
+  const p = PERSONAS[idx];
+  window._lmAvatar = p.emoji;
+  _personaState = { persona: p, history: [] };
+  window._personaSys = (isTr?p.sys.tr:p.sys.en) + (isTr
+    ? ' Kısa ve sohbet havasında cevap ver (3-5 cümle). Modern bir öğrenciyle konuşuyorsun, ona değer ver.'
+    : ' Keep answers short and conversational (3-5 sentences).');
+
+  const greetHTML = `<div style="text-align:center;padding:10px 0 4px">
+    <div style="font-size:2.5rem;margin-bottom:8px">${p.emoji}</div>
+    <div style="font-size:.9rem;color:#eaf0ff;font-weight:600;margin-bottom:4px">${p.name}</div>
+    <div style="font-size:.8rem;color:rgba(200,190,235,.7);line-height:1.5">${isTr?'Merhaba! Bana istediğini sorabilirsin.':'Hello! Ask me anything.'}</div>
+  </div>`;
+  lmBuildModal(p.emoji, p.name, isTr?p.field.tr:p.field.en, greetHTML, true);
+  wireLearnInput(handlePersonaTurn);
+}
+
+async function handlePersonaTurn(text){
+  const isTr = currentLang === 'tr';
+  lmAddMsg('user', text);
+  _personaState.history.push({ role:'user', content:text });
+  const thinking = lmAddMsg('ai', '…');
+  try {
+    const reply = await lmCallAI(window._personaSys, _personaState.history, 600);
+    _personaState.history.push({ role:'assistant', content:reply });
+    thinking.innerHTML = escapeHtml(reply).replace(/\n/g,'<br>');
+  } catch(e){
+    thinking.textContent = isTr?'Bağlantı hatası.':'Connection error.';
+  }
+}
+
+// ──────────────────────────────────────────
+// ⚔️ DOSYANDAN YARIŞMA (Kendi desteğinle)
+// ──────────────────────────────────────────
+function openOwnDeckBattle(){
+  if(!window.currentUser){ showAuthModal?.(()=>openOwnDeckBattle()); return; }
+  const isTr = currentLang === 'tr';
+  // Deck yüklü mü kontrol et
+  const hasDeck = window.deck?.slides?.length > 0 || window.lastSourceText;
+  if(hasDeck){
+    // Deck var — direkt battle sorularına çevir
+    const html = `
+      <div style="text-align:center;padding:14px 0">
+        <div style="font-size:2.5rem;margin-bottom:10px">⚔️</div>
+        <div style="font-size:.9rem;color:#eaf0ff;font-weight:600;margin-bottom:6px">${window.deck?.title || (isTr?'Yüklü dosyan':'Your file')}</div>
+        <div style="font-size:.82rem;color:rgba(200,190,235,.7);line-height:1.6;margin-bottom:18px">${isTr?'Bu dosyadan yarışma soruları üretip oda kuralım. Arkadaşlarını davet et, kendi dersinizden yarışın!':'Let\'s generate battle questions from this file and create a room. Invite friends!'}</div>
+        <button class="lm-send" style="width:100%;height:48px;font-size:.9rem" onclick="generateOwnDeckBattle()">${isTr?'🎯 Soruları Üret & Oda Kur':'🎯 Generate & Create Room'}</button>
+      </div>`;
+    lmBuildModal('⚔️', isTr?'Dosyandan Yarışma':'Battle from File', isTr?'Kendi dersinden yarış':'Battle from your notes', html, false);
+  } else {
+    // Deck yok — önce yükle
+    const html = `
+      <div style="text-align:center;padding:20px 10px">
+        <div style="font-size:2.5rem;margin-bottom:12px">📄</div>
+        <div style="font-size:.88rem;color:#eaf0ff;font-weight:600;margin-bottom:8px">${isTr?'Önce bir dosya yükle':'Upload a file first'}</div>
+        <div style="font-size:.82rem;color:rgba(200,190,235,.7);line-height:1.6;margin-bottom:20px">${isTr?'Kendi dersinden yarışma yapmak için önce bir PDF, Word veya metin dosyası yükle. Sonra o dosyadan otomatik yarışma soruları üretelim!':'To battle from your own notes, upload a PDF, Word or text file. Then we\'ll auto-generate battle questions!'}</div>
+        <button class="lm-send" style="width:100%;height:48px;font-size:.9rem" onclick="closeLearnMode();document.querySelector('.dropzone')?.scrollIntoView({behavior:'smooth',block:'center'});document.querySelector('.dropzone')?.click()">${isTr?'📎 Dosya Yükle':'📎 Upload File'}</button>
+      </div>`;
+    lmBuildModal('⚔️', isTr?'Dosyandan Yarışma':'Battle from File', isTr?'Dosya gerekli':'File needed', html, false);
+  }
+}
+
+async function generateOwnDeckBattle(){
+  const isTr = currentLang === 'tr';
+  const body = document.getElementById('lmBody');
+  if(!body) return;
+  body.innerHTML = `<div style="text-align:center;padding:30px 10px">
+    <div style="width:44px;height:44px;border:3px solid rgba(180,107,255,.2);border-top-color:#b46bff;border-radius:50%;animation:spin .8s linear infinite;margin:0 auto 16px"></div>
+    <div style="font-size:.85rem;color:rgba(200,190,235,.75)">${isTr?'Dosyandan yarışma soruları üretiliyor…':'Generating battle questions from your file…'}</div>
+  </div>`;
+
+  try {
+    const source = window.lastSourceText || (window.deck?.slides||[]).map(s=>s.title+' '+(s.bullets||[]).join(' ')).join('\n').slice(0, 8000);
+    const sys = isTr
+      ? 'Verilen ders içeriğinden 8 adet çoktan seçmeli yarışma sorusu üret. SADECE şu JSON formatında dön, başka HİÇBİR şey yazma: {"questions":[{"question":"...","options":["A","B","C","D"],"answerIndex":0}]}. Sorular içerikle ilgili, net ve tek doğru cevaplı olsun.'
+      : 'Generate 8 multiple-choice battle questions from the given content. Return ONLY this JSON, nothing else: {"questions":[{"question":"...","options":["A","B","C","D"],"answerIndex":0}]}.';
+    const raw = await lmCallAI(sys, [{role:'user', content:source}], 3000);
+    const clean = raw.replace(/```json|```/g,'').trim();
+    const parsed = JSON.parse(clean);
+    if(!parsed.questions?.length) throw new Error('no questions');
+
+    closeLearnMode();
+    // Battle modalını aç ve soruları enjekte et
+    if(typeof createBattleWithQuestions === 'function'){
+      createBattleWithQuestions(parsed.questions, window.deck?.title || (isTr?'Dosyam':'My File'));
+    } else if(typeof showBattleModal === 'function'){
+      window._pendingOwnDeckQuestions = parsed.questions;
+      showBattleModal();
+      showToast?.(isTr?'✅ Sorular hazır! Oda kur ve arkadaşını davet et':'✅ Questions ready! Create a room');
+    }
+  } catch(e){
+    body.innerHTML = `<div style="text-align:center;padding:24px 10px">
+      <div style="font-size:2rem;margin-bottom:10px">😕</div>
+      <div style="font-size:.85rem;color:rgba(255,150,150,.8)">${isTr?'Soru üretilemedi, tekrar dene.':'Couldn\'t generate, try again.'}</div>
+      <button class="lm-send" style="margin-top:16px;padding:0 20px;height:42px" onclick="generateOwnDeckBattle()">${isTr?'↺ Tekrar Dene':'↺ Retry'}</button>
+    </div>`;
+  }
+}
+
+// Ortak input bağlama
+function wireLearnInput(handler){
+  const input = document.getElementById('lmInput');
+  const send = document.getElementById('lmSend');
+  if(!input || !send) return;
+  const fire = () => {
+    const t = input.value.trim();
+    if(!t) return;
+    input.value = '';
+    handler(t);
+  };
+  send.addEventListener('click', fire);
+  input.addEventListener('keydown', e => {
+    if(e.key === 'Enter' && !e.shiftKey){ e.preventDefault(); fire(); }
+  });
+  setTimeout(()=>input.focus(), 350);
+}
+
 function closeBigAiPanel(){
   const fp = document.getElementById('aiFloatPanel');
   const backdrop = document.getElementById('aiFloatBackdrop');
