@@ -2081,11 +2081,31 @@
   @keyframes spin{ to{ transform:rotate(360deg); } }
   /* Sor & Öğren bilgi şeridi kayması */
   @keyframes ticker-scroll{
-    from{ transform:translateX(0); }
-    to{ transform:translateX(-50%); }
+    0%{ transform:translateX(0); }
+    100%{ transform:translateX(-50%); }
   }
-  #aiTickerTrack span{ padding:0 24px; display:inline-flex; align-items:center; gap:6px; }
+  #aiTicker{
+    flex-shrink:0 !important;
+    overflow:hidden !important;
+    height:28px !important;
+    min-height:28px !important;
+    display:flex !important;
+    align-items:center !important;
+  }
+  #aiTickerTrack{
+    display:flex !important;
+    align-items:center;
+    white-space:nowrap;
+    animation:ticker-scroll 28s linear infinite;
+    will-change:transform;
+  }
+  #aiTickerTrack span{ padding:0 22px; display:inline-flex; align-items:center; gap:6px; flex-shrink:0; }
   #aiTickerTrack .tk-dot{ color:rgba(180,107,255,.5); }
+  /* Mobilde de ticker görünsün — animasyon garantisi */
+  @media (max-width:860px){
+    #aiTicker{ height:26px !important; min-height:26px !important; }
+    #aiTickerTrack{ animation:ticker-scroll 24s linear infinite !important; font-size:.6rem; }
+  }
   /* PC panel açılış animasyonu — parçalı giriş */
   @media (min-width:861px){
     .ai-float-panel.open{
@@ -11582,7 +11602,7 @@ function openBigAiPanel(){
 function populateAiTicker(){
   const track = document.getElementById('aiTickerTrack');
   if(!track) return;
-  const isTr = currentLang === 'tr';
+  const isTr = (typeof currentLang !== 'undefined' ? currentLang : 'tr') === 'tr';
   const facts = isTr ? [
     '💡 Dosya yükleyip "özetle" diyebilirsin',
     '⚡ Fotoğraf çekip soru sorabilirsin',
@@ -11612,6 +11632,10 @@ function populateAiTicker(){
   ];
   const items = facts.map(f => `<span>${f}<span class="tk-dot"> ◆ </span></span>`).join('');
   track.innerHTML = items + items; // seamless loop için 2x
+  // Animasyonu zorla yeniden başlat (mobil tarayıcı garantisi)
+  track.style.animation = 'none';
+  void track.offsetWidth; // reflow tetikle
+  track.style.animation = '';
 }
 function closeBigAiPanel(){
   const fp = document.getElementById('aiFloatPanel');
