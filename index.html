@@ -2071,6 +2071,23 @@
   }
   @keyframes cp-ring-spin{ to{ transform:rotate(360deg); } }
   @keyframes spin{ to{ transform:rotate(360deg); } }
+  /* Sor & Öğren tetikleyici — nabız gibi parlama */
+  .ai-trigger-glow::after{
+    content:''; position:absolute; inset:0; border-radius:16px; pointer-events:none;
+    background:linear-gradient(135deg, transparent, rgba(110,231,255,.15), transparent);
+    background-size:200% 200%;
+    animation:trigger-shine 4s ease-in-out infinite;
+  }
+  @keyframes trigger-shine{
+    0%,100%{ background-position:0% 0%; opacity:.5; }
+    50%{ background-position:100% 100%; opacity:1; }
+  }
+  .ai-trigger-glow:hover{
+    border-color:rgba(110,231,255,.5) !important;
+    box-shadow:0 0 28px -2px rgba(110,231,255,.45) !important;
+    transform:translateY(-1px);
+    transition:all .2s ease;
+  }
   .cp-orbit-dot{
     position:absolute; width:5px; height:5px; border-radius:50%;
     top:-2.5px; left:50%; margin-left:-2.5px;
@@ -2207,8 +2224,20 @@
   .ws-card:hover .ws-arrow{transform:translateX(4px);color:#fff;}
 
   /* Atla butonu */
+  .ws-main-menu{
+    margin-top:28px; padding:15px 40px; border-radius:16px;
+    background:linear-gradient(135deg, var(--accent), var(--accent2));
+    color:#04010e; border:none; cursor:pointer;
+    font-family:'Space Grotesk',sans-serif; font-size:.95rem; font-weight:700;
+    letter-spacing:.01em; box-shadow:0 8px 30px -6px rgba(110,231,255,.5);
+    transition:all .2s cubic-bezier(.34,1.56,.64,1);
+    animation:fade-up .4s .35s ease both;
+    touch-action:manipulation; -webkit-tap-highlight-color:transparent;
+  }
+  .ws-main-menu:hover{ transform:translateY(-2px); box-shadow:0 12px 40px -6px rgba(110,231,255,.6); }
+  .ws-main-menu:active{ transform:translateY(0) scale(.97); }
   .ws-skip{
-    margin-top:24px;font-size:.68rem;color:rgba(180,160,255,.3);
+    margin-top:14px;font-size:.68rem;color:rgba(180,160,255,.3);
     background:none;border:none;cursor:pointer;font-family:'Space Mono',monospace;
     letter-spacing:.06em;text-transform:uppercase;
     transition:color .2s;animation:fade-up .4s .4s ease both;
@@ -3294,12 +3323,20 @@
     .ai-panel{ display:none !important; }
 
     .main{ flex:1; display:flex; flex-direction:column; overflow:visible; min-height:0; height:auto; position:relative; z-index:5; }
-    /* Mobilde içerik alanı kaydırılabilir olmalı */
+    /* Mobilde içerik alanı kaydırılabilir olmalı — doğal body scroll */
     .content{
-      overflow-y:auto !important; -webkit-overflow-scrolling:touch !important;
-      overscroll-behavior:contain; flex:1; min-height:0;
-      max-height:none;
+      overflow-y:visible !important;
+      flex:none; min-height:0; max-height:none;
+      display:block !important; padding:12px;
     }
+    /* Ana kapsayıcı — dikey büyüsün, sabit yükseklik yok */
+    body{
+      overflow-y:auto !important; -webkit-overflow-scrolling:touch !important;
+      height:auto !important; min-height:100vh;
+      display:block !important;
+    }
+    html{ overflow-y:auto !important; height:auto !important; }
+    .app-wrap, .app-container, #app{ min-height:auto !important; height:auto !important; overflow:visible !important; }
 
     /* Eski .topbar tamamen gizli — #mobileHeader onu değiştirdi */
     .topbar{ display:none !important; }
@@ -3332,8 +3369,9 @@
     }
 
     .content{ flex:1; overflow-y:auto; overflow-x:hidden;
-      -webkit-overflow-scrolling:touch; padding:12px; min-height:0; }
-    .content-inner{ min-height:100%; padding-bottom:140px; }
+      -webkit-overflow-scrolling:touch; overscroll-behavior-y:contain;
+      padding:12px; min-height:0; height:auto; }
+    .content-inner{ min-height:auto; padding-bottom:180px; }
 
     .upload-screen{ padding-top:30px; margin:0 auto; }
     .upload-screen h1{ font-size:1.4rem; }
@@ -3442,7 +3480,27 @@
     transform:translateY(0);
     pointer-events:auto;
   }
-  /* ============ INTRO ============ */
+  /* ===== MOBİL PANEL — tam sığsın, klavye ile uyumlu ===== */
+  @media (max-width:860px){
+    .ai-float-panel{
+      height:88vh !important;
+      height:88dvh !important;
+      max-height:88dvh !important;
+      bottom:0 !important; left:0 !important; right:0 !important; top:auto !important;
+      width:100% !important;
+      border-radius:22px 22px 0 0 !important;
+      transform:translateY(100%) !important;
+      transition:transform .35s cubic-bezier(.16,1,.3,1) !important;
+    }
+    .ai-float-panel.open{
+      transform:translateY(0) !important;
+    }
+    /* Mobilde sürükleme kapalı — panel zaten tam ekran */
+    #aiPanelDragHeader{ cursor:default !important; }
+    #aiPanelDragHeader > div:nth-child(2) > div:first-child > span{ display:none; }
+    /* Mobilde chat alanı düzgün scroll */
+    #aiChatMobile{ -webkit-overflow-scrolling:touch; overscroll-behavior:contain; }
+  }
   #intro{
     position:fixed; inset:0; z-index:9000;
     background:#06040f;
@@ -3945,7 +4003,7 @@
     .footer-acc.open .footer-acc-body{ padding:12px 14px 16px; }
     .footer-acc-body p{ font-size:.8rem; line-height:1.7; }
     .footer-terms p{ font-size:.78rem; }
-    #siteFooter{ margin-top:50px; }
+    #siteFooter{ margin-top:50px; margin-bottom:90px; }
   }
   .footer-orb{
     position:relative; overflow:visible;
@@ -4685,9 +4743,13 @@
       </button>
 
     </div>
+    <button class="ws-main-menu" id="wsMainMenu">
+      <span class="tr-text">🏠 Ana Menüye Git</span>
+      <span class="en-text">🏠 Go to Main Menu</span>
+    </button>
     <button class="ws-skip" id="wsSkip">
-      <span class="tr-text">ana ekrana git</span>
-      <span class="en-text">go to main screen</span>
+      <span class="tr-text">veya bir özellik seç</span>
+      <span class="en-text">or pick a feature above</span>
     </button>
   </div>
 </div>
@@ -4720,19 +4782,19 @@
   <!-- Yüklenen dosya önizlemesi -->
   <div id="aiFilePreview" style="display:none;padding:0 16px;flex-shrink:0"></div>
   <div id="aiQuickPromptsBig" style="display:flex;flex-wrap:wrap;gap:6px;padding:8px 16px 0;flex-shrink:0">
-    <button class="ai-chip tr-text" data-prompt="Bu konuyu kısaca özetle">Özet ver</button>
-    <button class="ai-chip tr-text" data-prompt="Bu konuyla ilgili bana 3 soru sor, ben cevap vereyim">Soru sor</button>
-    <button class="ai-chip tr-text" data-prompt="Gerçek hayattan bir örnekle anlat">Örnekle anlat</button>
-    <button class="ai-chip tr-text" data-prompt="Bu konuyu başka derslerle ya da günlük hayatla bağlantılandır">Bağlantı kur</button>
-    <button class="ai-chip en-text" data-prompt="Give me a brief summary of this topic">Summarize</button>
-    <button class="ai-chip en-text" data-prompt="Ask me 3 questions about this topic so I can practice">Quiz me</button>
-    <button class="ai-chip en-text" data-prompt="Explain with a real-world example">Example</button>
-    <button class="ai-chip en-text" data-prompt="Connect this topic to everyday life or other subjects">Connect</button>
+    <button type="button" class="ai-chip tr-text" data-prompt="Bu konuyu kısaca özetle">Özet ver</button>
+    <button type="button" class="ai-chip tr-text" data-prompt="Bu konuyla ilgili bana 3 soru sor, ben cevap vereyim">Soru sor</button>
+    <button type="button" class="ai-chip tr-text" data-prompt="Gerçek hayattan bir örnekle anlat">Örnekle anlat</button>
+    <button type="button" class="ai-chip tr-text" data-prompt="Bu konuyu başka derslerle ya da günlük hayatla bağlantılandır">Bağlantı kur</button>
+    <button type="button" class="ai-chip en-text" data-prompt="Give me a brief summary of this topic">Summarize</button>
+    <button type="button" class="ai-chip en-text" data-prompt="Ask me 3 questions about this topic so I can practice">Quiz me</button>
+    <button type="button" class="ai-chip en-text" data-prompt="Explain with a real-world example">Example</button>
+    <button type="button" class="ai-chip en-text" data-prompt="Connect this topic to everyday life or other subjects">Connect</button>
   </div>
   <div class="ai-input-row" style="padding:12px 16px;border-top:1px solid rgba(110,231,255,.1);display:flex;gap:8px;align-items:flex-end">
-    <button id="aiAttachBtn" onclick="document.getElementById('aiFileInput').click()" title="Dosya/Fotoğraf ekle" style="flex-shrink:0;width:44px;height:44px;border-radius:12px;border:1.5px solid rgba(110,231,255,.2);background:rgba(110,231,255,.05);color:#6ee7ff;cursor:pointer;font-size:1.2rem;display:flex;align-items:center;justify-content:center;transition:all .15s" onmouseover="this.style.background='rgba(110,231,255,.12)'" onmouseout="this.style.background='rgba(110,231,255,.05)'">📎</button>
+    <button type="button" id="aiAttachBtn" onclick="document.getElementById('aiFileInput').click()" title="Dosya/Fotoğraf ekle" style="flex-shrink:0;width:44px;height:44px;border-radius:12px;border:1.5px solid rgba(110,231,255,.2);background:rgba(110,231,255,.05);color:#6ee7ff;cursor:pointer;font-size:1.2rem;display:flex;align-items:center;justify-content:center;transition:all .15s" onmouseover="this.style.background='rgba(110,231,255,.12)'" onmouseout="this.style.background='rgba(110,231,255,.05)'">📎</button>
     <textarea id="aiInputMobile" placeholder="Bir şey sor…" style="flex:1;resize:none;min-height:44px;max-height:120px;padding:11px 14px;border:1.5px solid rgba(180,107,255,.18);border-radius:12px;font-family:'Space Grotesk',sans-serif;font-size:.88rem;background:rgba(255,255,255,.03);color:var(--ink);-webkit-user-select:text;user-select:text;outline:none"></textarea>
-    <button class="ai-send-btn" id="aiSendBtnMobile" style="padding:0 16px;font-size:1.1rem">→</button>
+    <button type="button" class="ai-send-btn" id="aiSendBtnMobile" style="padding:0 16px;font-size:1.1rem">→</button>
   </div>
   <input type="file" id="aiFileInput" accept="image/*,.pdf,.docx,.txt,.xlsx,.csv" style="display:none">
 </div>
@@ -5001,19 +5063,19 @@
   </div>
 
   <div class="ai-panel ai-panel-trigger" id="aiPanel">
-    <div class="ai-panel-header" style="cursor:pointer;padding:12px 14px;border-top:1px solid rgba(110,231,255,.1)" onclick="openBigAiPanel()">
-      <div class="mark" style="width:30px;height:30px;border-radius:9px;flex-shrink:0;overflow:hidden;background:#05030c;box-shadow:0 0 14px rgba(110,231,255,.3)">
+    <div class="ai-panel-header ai-trigger-glow" style="cursor:pointer;padding:14px 16px;margin:8px;border-radius:16px;border:1.5px solid rgba(110,231,255,.25);background:linear-gradient(135deg, rgba(110,231,255,.1), rgba(180,107,255,.08));box-shadow:0 0 20px -4px rgba(110,231,255,.25);position:relative;overflow:hidden" onclick="openBigAiPanel()">
+      <div class="mark" style="width:34px;height:34px;border-radius:10px;flex-shrink:0;overflow:hidden;background:#05030c;box-shadow:0 0 16px rgba(110,231,255,.4)">
         <div class="mini-disk"></div><div class="mini-core"></div>
       </div>
       <div style="flex:1">
-        <h3 data-i18n="aiPanelTitle" style="font-size:.85rem">Sor & Öğren</h3>
-        <span class="util" style="font-size:.58rem" data-i18n="aiPanelTagline">dosyasız da sorabilirsin</span>
+        <h3 data-i18n="aiPanelTitle" style="font-size:.92rem;background:linear-gradient(135deg,#6ee7ff,#b46bff);-webkit-background-clip:text;background-clip:text;color:transparent;font-weight:700">Sor & Öğren</h3>
+        <span class="util" style="font-size:.6rem;color:rgba(110,231,255,.6)" data-i18n="aiPanelTagline">dosyasız da sorabilirsin</span>
       </div>
       <div id="chatLimitBadge" style="font-family:'Space Mono',monospace;font-size:.58rem;color:rgba(110,231,255,.7);text-align:right;line-height:1.5;display:none">
         <div id="chatLimitText">— / 30</div>
         <div style="color:rgba(180,160,255,.5)">mesaj</div>
       </div>
-      <span style="color:rgba(110,231,255,.5);font-size:.85rem;margin-left:6px">↗</span>
+      <span style="color:#6ee7ff;font-size:1rem;margin-left:6px;filter:drop-shadow(0 0 6px rgba(110,231,255,.6))">↗</span>
     </div>
     <!-- Sol paneldeki chat/input gizli — büyük panel kullanılıyor -->
     <div class="ai-chat" id="aiChat" style="display:none">
@@ -11339,52 +11401,54 @@ function closeWelcomeScreen(callback){
   // --- Dosyadan Öğren ---
   document.getElementById('wsUpload')?.addEventListener('click', () => {
     closeWelcomeScreen(() => {
-      // Ana ekrana git, upload screen zaten orada
       const us = document.getElementById('uploadScreen');
       if(us){ us.classList.remove('hidden'); us.style.display=''; }
       document.getElementById('deckScreen')?.classList.add('hidden');
-      // Dropzone'a odaklan
-      setTimeout(() => document.querySelector('.dropzone')?.scrollIntoView({behavior:'smooth',block:'center'}), 200);
+      setTimeout(() => document.querySelector('.dropzone')?.scrollIntoView({behavior:'smooth',block:'center'}), 250);
     });
   });
 
   // --- Yarışma Modu ---
   document.getElementById('wsBattle')?.addEventListener('click', () => {
     closeWelcomeScreen(() => {
-      // Ana ekranı göster, sonra battle modal'ı aç
       setTimeout(() => {
         if(typeof showBattleModal === 'function') showBattleModal();
-        else document.querySelector('.battle-sidebar-btn')?.click();
-      }, 150);
+      }, 250);
     });
   });
 
-  // --- Sor & Öğren ---
+  // --- Sor & Öğren → büyük paneli aç ---
   document.getElementById('wsAsk')?.addEventListener('click', () => {
     closeWelcomeScreen(() => {
-      // AI input'a odaklan
       setTimeout(() => {
-        const inp = document.getElementById('aiInput') || document.getElementById('aiInputMobile');
-        if(inp){ inp.focus(); inp.scrollIntoView({behavior:'smooth',block:'center'}); }
-      }, 200);
+        if(typeof openBigAiPanel === 'function') openBigAiPanel();
+      }, 300);
     });
   });
 
   // --- Flashcard ---
   document.getElementById('wsFlash')?.addEventListener('click', () => {
     closeWelcomeScreen(() => {
-      // Deck varsa flashcard aç, yoksa upload screen'e yönlendir
       if(window.deck?.slides?.length && typeof renderFlashcards === 'function'){
-        renderFlashcards();
+        setTimeout(() => renderFlashcards(), 250);
       } else {
         const us = document.getElementById('uploadScreen');
         if(us){ us.classList.remove('hidden'); us.style.display=''; }
-        setTimeout(() => document.querySelector('.dropzone')?.scrollIntoView({behavior:'smooth',block:'center'}), 200);
+        setTimeout(() => document.querySelector('.dropzone')?.scrollIntoView({behavior:'smooth',block:'center'}), 250);
       }
     });
   });
 
-  // --- Ana Ekrana Git (atla) ---
+  // --- Ana Menüye Git — kart seçmeden direkt ana ekran ---
+  document.getElementById('wsMainMenu')?.addEventListener('click', () => {
+    closeWelcomeScreen(() => {
+      const us = document.getElementById('uploadScreen');
+      if(us){ us.classList.remove('hidden'); us.style.display=''; }
+      document.getElementById('deckScreen')?.classList.add('hidden');
+    });
+  });
+
+  // --- Alt link (atla) ---
   document.getElementById('wsSkip')?.addEventListener('click', () => {
     closeWelcomeScreen();
   });
@@ -11403,9 +11467,14 @@ function openBigAiPanel(){
   const backdrop = document.getElementById('aiFloatBackdrop');
   const btn = document.getElementById('aiFloatBtn');
   if(fp){
+    // Sürükleme konumunu sıfırla — hep ortada açılsın
+    fp._dragX = 0; fp._dragY = 0;
+    fp.style.removeProperty('transform');
+    fp.style.removeProperty('transition');
     fp.classList.add('open');
     if(backdrop) backdrop.classList.add('open');
     if(btn) btn.style.display = 'none';
+    if(typeof syncMobileNav === 'function') setTimeout(syncMobileNav, 50);
     setTimeout(() => {
       const inp = document.getElementById('aiInputMobile');
       if(inp) inp.focus();
@@ -11572,7 +11641,9 @@ function syncMobileNav(){
     const newY = offsetY + dy;
     panel._dragX = newX;
     panel._dragY = newY;
-    panel.style.transform = `translate(calc(-50% + ${newX}px), calc(-50% + ${newY}px)) scale(1)`;
+    // CSS'te !important transform var — onu ezmek için setProperty priority kullan
+    panel.style.setProperty('transform', `translate(calc(-50% + ${newX}px), calc(-50% + ${newY}px)) scale(1)`, 'important');
+    panel.style.setProperty('transition', 'none', 'important');
   }
   function onUp(){
     if(!dragging) return;
@@ -12227,6 +12298,9 @@ function updateFooter(){
 }
 const contentScrollEl = document.querySelector('.content');
 if(contentScrollEl) contentScrollEl.addEventListener('scroll', updateFooter, {passive:true});
+// Mobilde body/window scroll edilir — onu da dinle
+window.addEventListener('scroll', updateFooter, {passive:true});
+document.addEventListener('scroll', updateFooter, {passive:true});
 setTimeout(updateFooter, 600);
 // Footer güneş göz takibi
 (function(){
