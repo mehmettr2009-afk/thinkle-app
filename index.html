@@ -553,7 +553,7 @@
         hostName: username || uid.slice(0,8),
         category,
         questions, // [{question, options, answerIndex}]
-        players: { [uid]: { name: username || uid.slice(0,8), ready: false, score: 0, answers: {}, finishedAt: null } },
+        players: { [uid]: { name: username || uid.slice(0,8), ready: false, score: 0, answers: {}, finishedAt: null, avatar: window.currentAvatar || null } },
         status: 'waiting', // waiting | countdown | playing | finished
         createdAt: new Date().toISOString(),
         startedAt: null,
@@ -574,7 +574,7 @@
       const playerCount = Object.keys(data.players || {}).length;
       if(playerCount >= data.maxPlayers) return { ok: false, reason: 'full' };
       await updateDoc(ref, {
-        [`players.${uid}`]: { name: username || uid.slice(0,8), ready: false, score: 0, answers: {}, finishedAt: null, isBot: isBot || false }
+        [`players.${uid}`]: { name: username || uid.slice(0,8), ready: false, score: 0, answers: {}, finishedAt: null, isBot: isBot || false, avatar: isBot ? null : (window.currentAvatar || null) }
       });
       return { ok: true, data };
     } catch(e){ return { ok: false, reason: 'error' }; }
@@ -808,13 +808,21 @@
   };
 
   window.fbWatchEmojis = (code, callback) => {
-    const q = query(collection(db, `battleRooms/${code}/emojis`), orderBy('ts','desc'), limit(1));
+    // orderBy KALDIRILDI — index gerektirmesin. Tüm yeni eklenenleri dinle.
+    const q = query(collection(db, `battleRooms/${code}/emojis`));
+    let _seen = new Set();
     return onSnapshot(q, (snap) => {
-      if(!snap.empty && !snap.metadata.hasPendingWrites){
-        const d = snap.docs[0].data();
-        // Sadece son 5 saniyeye ait emojileri işle
-        if(Date.now() - d.ts < 5000) callback(d);
-      }
+      snap.docChanges().forEach(change => {
+        if(change.type === 'added'){
+          const d = change.doc.data();
+          const id = change.doc.id;
+          // Sadece son 6 saniyeye ait ve daha önce görülmemiş emojileri işle
+          if(!_seen.has(id) && Date.now() - (d.ts||0) < 6000){
+            _seen.add(id);
+            callback(d);
+          }
+        }
+      });
     }, ()=>{});
   };
 
@@ -2071,6 +2079,30 @@
   }
   @keyframes cp-ring-spin{ to{ transform:rotate(360deg); } }
   @keyframes spin{ to{ transform:rotate(360deg); } }
+  /* Sor & Öğren bilgi şeridi kayması */
+  @keyframes ticker-scroll{
+    from{ transform:translateX(0); }
+    to{ transform:translateX(-50%); }
+  }
+  #aiTickerTrack span{ padding:0 24px; display:inline-flex; align-items:center; gap:6px; }
+  #aiTickerTrack .tk-dot{ color:rgba(180,107,255,.5); }
+  /* PC panel açılış animasyonu — parçalı giriş */
+  @media (min-width:861px){
+    .ai-float-panel.open{
+      animation:ai-panel-in .5s cubic-bezier(.16,1,.3,1);
+    }
+    @keyframes ai-panel-in{
+      0%{ opacity:0; transform:translate(-50%,-50%) scale(.88) rotateX(8deg); }
+      60%{ opacity:1; }
+      100%{ opacity:1; transform:translate(-50%,-50%) scale(1) rotateX(0); }
+    }
+    /* Panel açılınca içerik parçalı belirsin */
+    .ai-float-panel.open #aiTicker{ animation:ai-slide-down .5s .1s both; }
+    .ai-float-panel.open .ai-chat{ animation:ai-fade-up .5s .2s both; }
+    .ai-float-panel.open .ai-input-row{ animation:ai-fade-up .5s .3s both; }
+    @keyframes ai-slide-down{ from{ opacity:0; transform:translateY(-8px); } to{ opacity:1; transform:translateY(0); } }
+    @keyframes ai-fade-up{ from{ opacity:0; transform:translateY(10px); } to{ opacity:1; transform:translateY(0); } }
+  }
   /* Sor & Öğren tetikleyici — nabız gibi parlama */
   .ai-trigger-glow::after{
     content:''; position:absolute; inset:0; border-radius:16px; pointer-events:none;
@@ -4800,6 +4832,10 @@
     </div>
     <button onclick="closeBigAiPanel()" style="background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);border-radius:10px;width:30px;height:30px;cursor:pointer;color:rgba(255,255,255,.6);font-size:.8rem;touch-action:manipulation;display:flex;align-items:center;justify-content:center;flex-shrink:0" onmouseover="this.style.background='rgba(255,255,255,.12)'" onmouseout="this.style.background='rgba(255,255,255,.06)'">✕</button>
   </div>
+  <!-- Hareketli bilgi şeridi -->
+  <div id="aiTicker" style="flex-shrink:0;overflow:hidden;background:linear-gradient(90deg,rgba(110,231,255,.08),rgba(180,107,255,.08));border-bottom:1px solid rgba(110,231,255,.1);height:26px;display:flex;align-items:center;position:relative">
+    <div id="aiTickerTrack" style="display:flex;align-items:center;white-space:nowrap;animation:ticker-scroll 30s linear infinite;font-family:'Space Mono',monospace;font-size:.62rem;color:rgba(110,231,255,.6);letter-spacing:.03em"></div>
+  </div>
   <div class="ai-chat" id="aiChatMobile" style="flex:1;overflow-y:auto;padding:14px 16px;min-height:0">
     <div class="ai-panel-empty" style="text-align:center;color:rgba(180,160,255,.5);font-size:.82rem;padding:30px 20px;line-height:1.6" data-i18n="aiEmptyMsg">Bir konu, fikir veya soru yaz — Thinkle sana anlatmaya başlasın. PDF yüklemen gerekmiyor.</div>
   </div>
@@ -7221,9 +7257,27 @@ function lockQuestion(qi, myOi, correctOi, explanation){
   }
 }
 
+// Yarışma oyuncularının profil fotoğrafı önbelleği (users koleksiyonundan)
+window._battlePhotoCache = window._battlePhotoCache || {};
+async function ensureBattlePhoto(uid){
+  if(uid in window._battlePhotoCache) return; // zaten denendi
+  window._battlePhotoCache[uid] = null; // tekrar denemeyi engelle
+  try {
+    if(window.fbGetAvatar){
+      const photo = await window.fbGetAvatar(uid);
+      if(photo){
+        window._battlePhotoCache[uid] = photo;
+        // Fotoğraf geldi — scoreboard'ı yenile
+        if(window._lastRoomDataForBoard) updateBattleScoreboard(window._lastRoomDataForBoard);
+      }
+    }
+  } catch(e){}
+}
+
 function updateBattleScoreboard(roomData){
   const sb = document.getElementById('battleScoreboard');
   if(!sb) return;
+  window._lastRoomDataForBoard = roomData;
   const players = roomData.players || {};
 
   // Önceki player listesiyle karşılaştır — biri ayrıldı mı?
@@ -7250,9 +7304,26 @@ function updateBattleScoreboard(roomData){
   sb.innerHTML = sorted.map(([uid, p], i) => {
     const isMe = uid === battleMyUid;
     const isLeading = i === 0 && p.score > 0;
+    const isBot = p.isBot;
+    // Avatar: foto (cache) > emoji > isim baş harfi
+    let avatarHtml;
+    const photo = isMe ? (window.currentAvatarBase64 || window._battlePhotoCache[uid]) : window._battlePhotoCache[uid];
+    const emoji = isMe ? (window.currentAvatar || p.avatar) : p.avatar;
+    if(photo){
+      avatarHtml = `<img src="${photo}" style="width:26px;height:26px;border-radius:50%;object-fit:cover;border:1.5px solid rgba(110,231,255,.3)">`;
+    } else if(emoji){
+      avatarHtml = `<span style="font-size:1rem">${emoji}</span>`;
+    } else if(isBot){
+      avatarHtml = `<span style="font-size:1rem">🤖</span>`;
+    } else {
+      const initial = (p.name||'?').trim().charAt(0).toUpperCase() || '?';
+      avatarHtml = `<div style="width:26px;height:26px;border-radius:50%;background:linear-gradient(135deg,var(--accent),var(--accent2));display:flex;align-items:center;justify-content:center;font-size:.75rem;font-weight:700;color:#04010e;font-family:'Space Grotesk'">${initial}</div>`;
+      // Fotoğrafı arka planda çek (kendisi değilse ve bot değilse)
+      if(!isMe && !isBot) ensureBattlePhoto(uid);
+    }
     return `
       <div class="battle-player-card ${isMe?'me':''} ${isLeading&&!isMe?'leading':''}">
-        <div style="font-size:1rem;margin-bottom:2px">${isMe?(window.currentAvatar||'🚀'):'👤'}</div>
+        <div style="margin-bottom:3px;display:flex;justify-content:center">${avatarHtml}</div>
         <div class="battle-player-score" style="color:${isLeading?'#ffd700':isMe?'#6ee7ff':'#fff'}">${p.score||0}</div>
         <div class="battle-player-nick">${escapeHtml((p.name||'').slice(0,10))}</div>
         ${p.finishedAt ? `<div style="font-size:.55rem;color:rgba(77,255,176,.6);margin-top:2px">${currentLang==='tr'?'✓ Bitti':'✓ Done'}</div>` : ''}
@@ -11499,11 +11570,48 @@ function openBigAiPanel(){
     if(backdrop) backdrop.classList.add('open');
     if(btn) btn.style.display = 'none';
     if(typeof syncMobileNav === 'function') setTimeout(syncMobileNav, 50);
+    populateAiTicker();
     setTimeout(() => {
       const inp = document.getElementById('aiInputMobile');
       if(inp) inp.focus();
     }, 350);
   }
+}
+
+// Bilgi şeridi — dönen ipuçları ve bilgiler
+function populateAiTicker(){
+  const track = document.getElementById('aiTickerTrack');
+  if(!track) return;
+  const isTr = currentLang === 'tr';
+  const facts = isTr ? [
+    '💡 Dosya yükleyip "özetle" diyebilirsin',
+    '⚡ Fotoğraf çekip soru sorabilirsin',
+    '🎯 Quiz istersen "beni test et" yaz',
+    '📚 PDF, Word, Excel destekleniyor',
+    '🧠 Gemini 2.5 Pro ile güçlendirildi',
+    '🔥 Örnek: "fotosentezi 5 yaşında birine anlat"',
+    '✨ Konular arası bağlantı kurabilir',
+    '🚀 Sınırsız soru sorabilirsin',
+    '📎 Belge yükle, içeriğini konuşalım',
+    '🎓 Her ders için hazırım',
+    '💬 "adım adım açıkla" diyebilirsin',
+    '🌌 Thinkle daima öğrenmeye hazır'
+  ] : [
+    '💡 Upload a file and say "summarize"',
+    '⚡ Snap a photo and ask about it',
+    '🎯 Type "quiz me" to practice',
+    '📚 PDF, Word, Excel supported',
+    '🧠 Powered by Gemini 2.5 Pro',
+    '🔥 Try: "explain photosynthesis simply"',
+    '✨ I can connect topics together',
+    '🚀 Ask unlimited questions',
+    '📎 Upload docs, let\'s discuss them',
+    '🎓 Ready for every subject',
+    '💬 Say "explain step by step"',
+    '🌌 Thinkle always ready to learn'
+  ];
+  const items = facts.map(f => `<span>${f}<span class="tk-dot"> ◆ </span></span>`).join('');
+  track.innerHTML = items + items; // seamless loop için 2x
 }
 function closeBigAiPanel(){
   const fp = document.getElementById('aiFloatPanel');
