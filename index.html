@@ -1684,32 +1684,75 @@
   }
   .battle-emoji-bar::-webkit-scrollbar{display:none;}
   .emoji-btn{
-    font-size:1.3rem;background:rgba(255,255,255,.04);
-    border:1.5px solid rgba(255,255,255,.07);border-radius:12px;
-    width:40px;height:40px;cursor:pointer;flex-shrink:0;
+    font-size:1.4rem;background:linear-gradient(160deg, rgba(180,107,255,.1), rgba(110,231,255,.06));
+    border:1.5px solid rgba(180,107,255,.2);border-radius:14px;
+    width:44px;height:44px;cursor:pointer;flex-shrink:0;
     display:flex;align-items:center;justify-content:center;
-    transition:all .15s;touch-action:manipulation;
+    transition:all .15s cubic-bezier(.34,1.56,.64,1);touch-action:manipulation;
+    -webkit-tap-highlight-color:transparent;
   }
-  .emoji-btn:hover{background:rgba(180,107,255,.12);border-color:rgba(180,107,255,.4);transform:scale(1.12);}
-  .emoji-float{
-    position:fixed;font-size:1.8rem;pointer-events:none;
-    animation:emoji-rise 2.2s cubic-bezier(.25,.46,.45,.94) forwards;
-    z-index:99999;user-select:none;
+  .emoji-btn:hover{background:linear-gradient(160deg, rgba(180,107,255,.2), rgba(110,231,255,.12));border-color:rgba(180,107,255,.5);transform:scale(1.15) translateY(-2px);box-shadow:0 4px 14px -2px rgba(180,107,255,.4);}
+  .emoji-btn:active{transform:scale(.85);}
+  /* ===== CLASH ROYALE TARZI EMOJI SİSTEMİ ===== */
+  .cr-emoji-bubble{
+    position:fixed; z-index:99999; pointer-events:none; user-select:none;
+    bottom:calc(100px + var(--stack, 0) * 4px);
+    display:flex; flex-direction:column; align-items:center;
+    animation:cr-emoji-in .5s cubic-bezier(.34,1.8,.5,1) both, cr-emoji-bob 1.2s .5s ease-in-out infinite;
   }
-  @keyframes emoji-rise{
-    0%{transform:translateY(0) scale(.5);opacity:1;}
-    60%{transform:translateY(-120px) scale(1.2);opacity:1;}
-    100%{transform:translateY(-220px) scale(1);opacity:0;}
+  .cr-emoji-bubble.mine{ right:24px; }
+  .cr-emoji-bubble.theirs{ left:24px; }
+  .cr-emoji-inner{
+    display:flex; flex-direction:column; align-items:center; gap:2px;
+    padding:12px 14px 10px;
+    background:linear-gradient(160deg, rgba(24,18,52,.97), rgba(14,10,32,.97));
+    border:2px solid rgba(180,107,255,.45);
+    border-radius:20px;
+    box-shadow:0 8px 30px rgba(0,0,0,.5), 0 0 24px -6px rgba(180,107,255,.5), inset 0 1px 0 rgba(255,255,255,.08);
+    position:relative;
   }
-  .emoji-incoming{
-    position:fixed;bottom:80px;right:20px;
-    font-size:2rem;padding:10px 14px;border-radius:16px;
-    background:rgba(14,12,38,.9);border:1.5px solid rgba(180,107,255,.3);
-    z-index:99998;pointer-events:none;
-    animation:emoji-incoming-pop .4s cubic-bezier(.16,1,.3,1) both, emoji-fade-out 2s 1.5s ease forwards;
+  .cr-emoji-bubble.mine .cr-emoji-inner{ border-color:rgba(110,231,255,.5); box-shadow:0 8px 30px rgba(0,0,0,.5), 0 0 24px -6px rgba(110,231,255,.5), inset 0 1px 0 rgba(255,255,255,.08); }
+  .cr-emoji-char{
+    font-size:3.2rem; line-height:1;
+    filter:drop-shadow(0 3px 8px rgba(0,0,0,.4));
+    animation:cr-emoji-pop .5s cubic-bezier(.34,2,.5,1) both;
   }
-  @keyframes emoji-incoming-pop{from{transform:scale(.3);opacity:0;}to{transform:scale(1);opacity:1;}}
-  @keyframes emoji-fade-out{to{opacity:0;transform:translateY(-20px);}}
+  .cr-emoji-name{
+    font-size:.62rem; font-family:'Space Mono',monospace;
+    color:rgba(200,190,255,.75); white-space:nowrap; margin-top:2px;
+    max-width:100px; overflow:hidden; text-overflow:ellipsis;
+  }
+  .cr-emoji-tail{
+    width:14px; height:14px; margin-top:-8px;
+    background:linear-gradient(160deg, rgba(24,18,52,.97), rgba(14,10,32,.97));
+    border-right:2px solid rgba(180,107,255,.45);
+    border-bottom:2px solid rgba(180,107,255,.45);
+    transform:rotate(45deg);
+  }
+  .cr-emoji-bubble.mine .cr-emoji-tail{ border-color:rgba(110,231,255,.5); align-self:flex-end; margin-right:20px; }
+  .cr-emoji-bubble.theirs .cr-emoji-tail{ align-self:flex-start; margin-left:20px; }
+  @keyframes cr-emoji-in{
+    0%{ transform:translateY(40px) scale(.3); opacity:0; }
+    100%{ transform:translateY(0) scale(1); opacity:1; }
+  }
+  @keyframes cr-emoji-pop{
+    0%{ transform:scale(0) rotate(-15deg); }
+    60%{ transform:scale(1.25) rotate(8deg); }
+    100%{ transform:scale(1) rotate(0); }
+  }
+  @keyframes cr-emoji-bob{
+    0%,100%{ transform:translateY(0); }
+    50%{ transform:translateY(-6px); }
+  }
+  @keyframes cr-emoji-out{
+    0%{ transform:scale(1); opacity:1; }
+    100%{ transform:scale(.6) translateY(20px); opacity:0; }
+  }
+  @media (max-width:860px){
+    .cr-emoji-char{ font-size:2.6rem; }
+    .cr-emoji-bubble.mine{ right:14px; }
+    .cr-emoji-bubble.theirs{ left:14px; }
+  }
 
   /* ===== ARKADAŞ CHAT ===== */
   .friend-chat-modal{
@@ -2371,6 +2414,7 @@
     border:2px solid rgba(180,107,255,.5);
     display:flex; align-items:center; justify-content:center;
     font-size:1.4rem; box-shadow:0 0 20px rgba(180,107,255,.3);
+    overflow:hidden;
   }
   .bi-pname{
     font-size:.68rem; font-family:'Space Mono',monospace;
@@ -6988,15 +7032,33 @@ function startCountdown(roomData){
   const catLabel = cat ? (isTr ? cat.label : cat.labelEn) : '';
   const catIcon  = cat?.icon || '⚔️';
 
-  // Oyuncuları derle
-  const players = Object.values(roomData.players || {}).slice(0, 6);
-  const playerHTML = players.map((p, i) => `
-    <div class="bi-player" style="animation-delay:${i * 0.1}s">
-      <div class="bi-avatar">${p.name?.charAt(0)?.toUpperCase() || '?'}</div>
+  // Oyuncuları derle (uid ile birlikte)
+  const playerEntries = Object.entries(roomData.players || {}).slice(0, 6);
+  const playerHTML = playerEntries.map(([uid, p], i) => {
+    const isMe = uid === battleMyUid;
+    const isBot = p.isBot;
+    const photo = isMe ? (window.currentAvatarBase64 || window._battlePhotoCache?.[uid]) : window._battlePhotoCache?.[uid];
+    const emoji = isMe ? (window.currentAvatar || p.avatar) : p.avatar;
+    let inner;
+    if(photo){
+      inner = `<img src="${photo}" style="width:100%;height:100%;object-fit:cover;border-radius:50%">`;
+    } else if(emoji){
+      inner = `<span style="font-size:1.6rem">${emoji}</span>`;
+    } else if(isBot){
+      inner = `<span style="font-size:1.5rem">🤖</span>`;
+    } else {
+      inner = p.name?.charAt(0)?.toUpperCase() || '?';
+      // Fotoğrafı arka planda çek
+      if(!isMe && !isBot && typeof ensureBattlePhoto === 'function') ensureBattlePhoto(uid);
+    }
+    return `
+    <div class="bi-player" style="animation-delay:${i * 0.1}s" data-uid="${uid}">
+      <div class="bi-avatar">${inner}</div>
       <div class="bi-pname">@${p.name || '?'}</div>
     </div>
-    ${i < players.length - 1 ? '<div class="bi-vs-sep">VS</div>' : ''}
-  `).join('');
+    ${i < playerEntries.length - 1 ? '<div class="bi-vs-sep">VS</div>' : ''}
+  `;
+  }).join('');
 
   // Intro overlay
   const intro = document.createElement('div');
@@ -7068,7 +7130,7 @@ function startBattleGame(roomData){
     </div>
     <div class="battle-scoreboard" id="battleScoreboard"></div>
     <div class="battle-emoji-bar" id="battleEmojiBar">
-      ${['🔥','💀','😂','🤔','👏','⚡','🎯','😤','🏆','🤖','🥲','🫡'].map(e =>
+      ${['😂','😎','😭','😡','🤝','👑','🔥','💀','🤔','👏','🎯','🫡'].map(e =>
         `<button class="emoji-btn" onclick="sendBattleEmoji('${e}')" title="${e}">${e}</button>`
       ).join('')}
     </div>
@@ -11915,23 +11977,32 @@ async function sendBattleEmoji(emoji){
 }
 
 function showEmojiFloat(emoji, isMine = false){
+  // Clash Royale tarzı — kendi emojin de büyük balonla çıksın
+  showEmojiBubble(emoji, isMine ? (window.currentUsername || 'Sen') : '?', isMine);
+}
+
+function showEmojiBubble(emoji, senderName, isMine = false){
   const el = document.createElement('div');
-  el.className = 'emoji-float';
-  el.textContent = emoji;
-  // Rastgele yatay konum
-  const x = 20 + Math.random() * 60;
-  const startY = window.innerHeight - 100;
-  el.style.cssText = `left:${x}vw;top:${startY}px;`;
+  el.className = 'cr-emoji-bubble ' + (isMine ? 'mine' : 'theirs');
+  el.innerHTML = `
+    <div class="cr-emoji-inner">
+      <div class="cr-emoji-char">${emoji}</div>
+      <div class="cr-emoji-name">${isMine ? '' : '@'}${escapeHtml(String(senderName).slice(0,12))}</div>
+    </div>
+    <div class="cr-emoji-tail"></div>
+  `;
   document.body.appendChild(el);
-  setTimeout(() => el.remove(), 2300);
+  // Aynı anda çok emoji gelirse üst üste binmesin — hafif dikey ofset
+  const existing = document.querySelectorAll('.cr-emoji-bubble.' + (isMine?'mine':'theirs')).length;
+  el.style.setProperty('--stack', (existing - 1));
+  setTimeout(() => {
+    el.style.animation = 'cr-emoji-out .35s ease forwards';
+    setTimeout(() => el.remove(), 360);
+  }, 2400);
 }
 
 function showIncomingEmoji(emoji, senderName){
-  const el = document.createElement('div');
-  el.className = 'emoji-incoming';
-  el.innerHTML = `${emoji}<div style="font-size:.65rem;font-family:'Space Grotesk';color:rgba(200,190,230,.65);margin-top:4px">@${senderName}</div>`;
-  document.body.appendChild(el);
-  setTimeout(() => el.remove(), 3200);
+  // showEmojiBubble ile birleşti — çift gösterimi engelle
 }
 
 // Firebase emoji dinleyicisi — battle başlayınca aktifleşir
@@ -11942,8 +12013,7 @@ function startEmojiListener(code){
   _emojiUnsub = window.fbWatchEmojis(code, (emojiData) => {
     // Benden gelen emojileri atla, başkasından gelenleri göster
     if(emojiData.uid === battleMyUid) return;
-    showEmojiFloat(emojiData.emoji, false);
-    showIncomingEmoji(emojiData.emoji, emojiData.name || '?');
+    showEmojiBubble(emojiData.emoji, emojiData.name || '?', false);
   });
 }
 
