@@ -3504,6 +3504,27 @@
     }
     .mms-item:active{ transform:scale(.96); background:rgba(180,107,255,.12); }
     .mms-item-ico{ font-size:1.5rem; line-height:1; }
+    /* Mobil menü öğrenme modu kartları */
+    .mms-learn-item{
+      display:flex; align-items:center; gap:11px; width:100%;
+      padding:12px 13px; border-radius:14px; cursor:pointer;
+      border:1.5px solid rgba(180,107,255,.2);
+      background:linear-gradient(135deg, rgba(180,107,255,.08), rgba(110,231,255,.04));
+      text-align:left; position:relative; overflow:hidden;
+      -webkit-tap-highlight-color:transparent; touch-action:manipulation;
+      transition:transform .15s;
+    }
+    .mms-learn-item:active{ transform:scale(.97); }
+    .mms-learn-item::before{ content:''; position:absolute; left:0; top:0; bottom:0; width:3px; opacity:.8; }
+    .mms-learn-item.askllm::before{ background:linear-gradient(180deg,#6ee7ff,#b46bff); }
+    .mms-learn-item.feynman::before{ background:linear-gradient(180deg,#4dffb0,#6ee7ff); }
+    .mms-learn-item.persona::before{ background:linear-gradient(180deg,#ffd700,#ff9a3c); }
+    .mms-learn-item.owndeck::before{ background:linear-gradient(180deg,#ff6ec7,#b46bff); }
+    .mms-li-ico{ font-size:1.5rem; flex-shrink:0; width:38px; height:38px; display:flex; align-items:center; justify-content:center; background:rgba(255,255,255,.04); border-radius:11px; }
+    .mms-li-txt{ flex:1; min-width:0; }
+    .mms-li-title{ font-family:'Space Grotesk',sans-serif; font-size:.85rem; font-weight:700; color:#eaf0ff; }
+    .mms-li-desc{ font-size:.64rem; color:rgba(180,160,255,.55); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .mms-li-arrow{ color:rgba(110,231,255,.5); font-size:.9rem; flex-shrink:0; }
     .mms-signout, .mms-signin{
       width:100%; padding:14px; border-radius:14px; cursor:pointer;
       font-family:'Space Grotesk',sans-serif; font-size:.85rem; font-weight:600;
@@ -12503,6 +12524,32 @@ function toggleMobileMenuSheet(){
         </div>
         <span style="color:rgba(110,231,255,.4)">›</span>
       </div>
+
+      <!-- ✦ Öğrenme Modları (mobil) -->
+      <div style="font-size:.6rem;font-family:'Space Mono',monospace;color:rgba(180,160,255,.45);letter-spacing:.08em;text-transform:uppercase;margin:2px 2px 8px">✦ ${isTr?'Öğrenme Modları':'Learning Modes'}</div>
+      <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:16px">
+        <button class="mms-learn-item askllm" onclick="toggleMobileMenuSheet();setTimeout(()=>openBigAiPanel(),300)">
+          <span class="mms-li-ico">💬</span>
+          <div class="mms-li-txt"><div class="mms-li-title">${isTr?'Sor & Öğren':'Ask & Learn'}</div><div class="mms-li-desc">${isTr?'Her şeyi sor, dosya yükle':'Ask anything, upload files'}</div></div>
+          <span class="mms-li-arrow">→</span>
+        </button>
+        <button class="mms-learn-item feynman" onclick="toggleMobileMenuSheet();setTimeout(()=>openFeynmanMode(),300)">
+          <span class="mms-li-ico">🎙️</span>
+          <div class="mms-li-txt"><div class="mms-li-title">${isTr?'Bana Anlat':'Teach Me'}</div><div class="mms-li-desc">${isTr?'Sen anlat, ben öğrenci olayım':'You teach, I learn'}</div></div>
+          <span class="mms-li-arrow">→</span>
+        </button>
+        <button class="mms-learn-item persona" onclick="toggleMobileMenuSheet();setTimeout(()=>openPersonaMode(),300)">
+          <span class="mms-li-ico">🎭</span>
+          <div class="mms-li-txt"><div class="mms-li-title">${isTr?'Tarihi Kişiyle Sohbet':'Chat with History'}</div><div class="mms-li-desc">${isTr?'Atatürk, Einstein, Mevlana…':'Atatürk, Einstein, Rumi…'}</div></div>
+          <span class="mms-li-arrow">→</span>
+        </button>
+        <button class="mms-learn-item owndeck" onclick="toggleMobileMenuSheet();setTimeout(()=>openOwnDeckBattle(),300)">
+          <span class="mms-li-ico">⚔️</span>
+          <div class="mms-li-txt"><div class="mms-li-title">${isTr?'Dosyandan Yarışma':'Battle from File'}</div><div class="mms-li-desc">${isTr?'Kendi dersinden oda kur':'Room from your notes'}</div></div>
+          <span class="mms-li-arrow">→</span>
+        </button>
+      </div>
+
       <div class="mms-grid">
         <button class="mms-item" onclick="var t=document.getElementById('tabs');if(t&&t.children.length>0)t.classList.add('open');toggleMobileMenuSheet()">
           <span class="mms-item-ico">📑</span><span>${isTr?'Slaytlar':'Slides'}</span>
