@@ -14,6 +14,15 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js"></script>
 <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
 <script src="https://cdn.jsdelivr.net/gh/gitbrent/pptxgenjs@3.12.0/dist/pptxgen.bundle.js"></script>
+<!-- Three.js — sadece PC'de 3D güneş için (mobilde yüklenmez) -->
+<script>
+  if(window.innerWidth > 860){
+    var _threeScript = document.createElement('script');
+    _threeScript.src = 'https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js';
+    _threeScript.onload = function(){ window._threeReady = true; if(window._initSun3D) window._initSun3D(); };
+    document.head.appendChild(_threeScript);
+  }
+</script>
 <!-- Firebase -->
 <script type="module">
   import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
@@ -9004,6 +9013,101 @@ if(_spaceForSol){
   document.body.appendChild(solEl);
 }
 
+// ============================================================
+// 🌟 3D GÜNEŞ (Three.js — sadece PC, shader tabanlı lav küresi)
+// ============================================================
+window._initSun3D = function(){
+  if(IS_MOBILE || !window.THREE || window._sun3DActive) return;
+  const THREE = window.THREE;
+  window._sun3DActive = true;
+
+  // Canvas'ı sol div'inin içine koy (yüzün arkasına)
+  const canvas = document.createElement('canvas');
+  canvas.id = 'sun3dCanvas';
+  canvas.style.cssText = 'position:absolute;inset:-40%;width:180%;height:180%;pointer-events:none;z-index:0;';
+  solEl.insertBefore(canvas, solEl.firstChild);
+  // CSS güneş gradyanını kaldır — 3D devralıyor (glow kalsın)
+  solEl.style.background = 'transparent';
+
+  const renderer = new THREE.WebGLRenderer({ canvas, alpha:true, antialias:true });
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+  const size = 160;
+  renderer.setSize(size, size, false);
+
+  const scene = new THREE.Scene();
+  const camera = new THREE.PerspectiveCamera(45, 1, 0.1, 100);
+  camera.position.z = 3.2;
+
+  // Lav/plazma shader — akan gürültü (simplex-benzeri)
+  const sunMat = new THREE.ShaderMaterial({
+    uniforms: { uTime:{value:0}, uColorHot:{value:new THREE.Color('#fff2c0')}, uColorMid:{value:new THREE.Color('#ff7b00')}, uColorCold:{value:new THREE.Color('#c81e00')} },
+    vertexShader: `
+      varying vec3 vP; varying vec3 vN;
+      void main(){ vP = position; vN = normal; gl_Position = projectionMatrix * modelViewMatrix * vec4(position,1.0); }
+    `,
+    fragmentShader: `
+      precision highp float;
+      uniform float uTime; uniform vec3 uColorHot; uniform vec3 uColorMid; uniform vec3 uColorCold;
+      varying vec3 vP; varying vec3 vN;
+      // Basit 3D gürültü
+      vec3 hash3(vec3 p){ p=vec3(dot(p,vec3(127.1,311.7,74.7)),dot(p,vec3(269.5,183.3,246.1)),dot(p,vec3(113.5,271.9,124.6))); return -1.0+2.0*fract(sin(p)*43758.5453123); }
+      float noise(vec3 p){ vec3 i=floor(p); vec3 f=fract(p); vec3 u=f*f*(3.0-2.0*f);
+        return mix(mix(mix(dot(hash3(i+vec3(0,0,0)),f-vec3(0,0,0)),dot(hash3(i+vec3(1,0,0)),f-vec3(1,0,0)),u.x),
+                   mix(dot(hash3(i+vec3(0,1,0)),f-vec3(0,1,0)),dot(hash3(i+vec3(1,1,0)),f-vec3(1,1,0)),u.x),u.y),
+                   mix(mix(dot(hash3(i+vec3(0,0,1)),f-vec3(0,0,1)),dot(hash3(i+vec3(1,0,1)),f-vec3(1,0,1)),u.x),
+                   mix(dot(hash3(i+vec3(0,1,1)),f-vec3(0,1,1)),dot(hash3(i+vec3(1,1,1)),f-vec3(1,1,1)),u.x),u.y),u.z); }
+      float fbm(vec3 p){ float v=0.0; float a=0.5; for(int i=0;i<5;i++){ v+=a*noise(p); p*=2.0; a*=0.5; } return v; }
+      void main(){
+        vec3 p = normalize(vP);
+        float t = uTime*0.25;
+        float n = fbm(p*2.5 + vec3(t*0.6, t*0.3, -t*0.5));
+        float n2 = fbm(p*5.0 - vec3(t*0.4, -t*0.6, t*0.3));
+        float heat = n*0.6 + n2*0.4 + 0.5;
+        vec3 col = mix(uColorCold, uColorMid, smoothstep(0.25,0.55,heat));
+        col = mix(col, uColorHot, smoothstep(0.55,0.85,heat));
+        // Kenar parlaması (fresnel)
+        float fres = pow(1.0 - max(dot(vN, vec3(0.0,0.0,1.0)), 0.0), 2.0);
+        col += vec3(1.0,0.5,0.1) * fres * 0.6;
+        gl_FragColor = vec4(col, 1.0);
+      }
+    `
+  });
+  const sun = new THREE.Mesh(new THREE.SphereGeometry(1, 64, 64), sunMat);
+  scene.add(sun);
+
+  // Korona/glow halkası (arka katman)
+  const glowMat = new THREE.ShaderMaterial({
+    uniforms:{ uTime:{value:0} },
+    transparent:true, blending:THREE.AdditiveBlending, side:THREE.BackSide,
+    vertexShader:`varying vec3 vN; void main(){ vN=normal; gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0); }`,
+    fragmentShader:`varying vec3 vN; void main(){ float i=pow(1.0-abs(vN.z),2.5); gl_FragColor=vec4(1.0,0.55,0.15,i*0.6); }`
+  });
+  const glow = new THREE.Mesh(new THREE.SphereGeometry(1.35, 32, 32), glowMat);
+  scene.add(glow);
+
+  let raf, t0 = performance.now();
+  function animate(){
+    raf = requestAnimationFrame(animate);
+    const el = (performance.now() - t0) / 1000;
+    sunMat.uniforms.uTime.value = el;
+    sun.rotation.y = el * 0.15;
+    sun.rotation.x = Math.sin(el*0.1) * 0.1;
+    renderer.render(scene, camera);
+  }
+  animate();
+
+  // Sekme gizliyken durdur (performans)
+  document.addEventListener('visibilitychange', () => {
+    if(document.hidden){ cancelAnimationFrame(raf); }
+    else { t0 = performance.now() - (sunMat.uniforms.uTime.value*1000); animate(); }
+  });
+
+  window._sun3D = { sun, sunMat, renderer };
+};
+// Three.js zaten yüklendiyse hemen başlat
+if(window._threeReady) window._initSun3D();
+
+
 function positionSolarSystem(){
   if(!orbitContainer || !solEl) return;
   const uploadScreen = document.getElementById('uploadScreen');
@@ -12823,8 +12927,23 @@ function setSolColor(color){
   const dark = color.replace(/^#/,'').match(/../g).map(h=>Math.max(0,parseInt(h,16)-60).toString(16).padStart(2,'0')).join('');
   const bg = `radial-gradient(circle at 38% 35%, #fff8e0, ${color} 40%, #${dark} 70%, #cc1100)`;
   const shadow = `0 0 22px 8px ${color}77, 0 0 55px 22px ${color}44`;
-  if(s){ s.style.background = bg; s.style.boxShadow = shadow; }
+  // 3D güneş aktifse arka planı transparan tut (canvas devralıyor), sadece glow uygula
+  if(s){
+    if(window._sun3DActive){ s.style.background = 'transparent'; s.style.boxShadow = shadow; }
+    else { s.style.background = bg; s.style.boxShadow = shadow; }
+  }
   if(preview){ preview.style.background = bg; preview.style.boxShadow = `0 0 18px ${color}88`; }
+  // 3D shader renklerini güncelle
+  if(window._sun3D?.sunMat && window.THREE){
+    try {
+      const c = new window.THREE.Color(color);
+      const hot = c.clone().lerp(new window.THREE.Color('#ffffff'), 0.55);
+      const cold = c.clone().lerp(new window.THREE.Color('#000000'), 0.5);
+      window._sun3D.sunMat.uniforms.uColorMid.value = c;
+      window._sun3D.sunMat.uniforms.uColorHot.value = hot;
+      window._sun3D.sunMat.uniforms.uColorCold.value = cold;
+    } catch(e){}
+  }
   try { localStorage.setItem('tc-sol', color); } catch(e){}
 }
 
