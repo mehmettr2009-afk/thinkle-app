@@ -1284,7 +1284,31 @@
   @keyframes orbit-ccw{ from{transform:rotate(0deg);} to{transform:rotate(-360deg);} }
   .planet .body{
     width:100%; height:100%; border-radius:50%; display:block;
-    box-shadow: inset -5px -5px 14px rgba(0,0,0,.6), inset 2px 3px 8px rgba(255,255,255,.1);
+    position:relative; overflow:hidden;
+    box-shadow:
+      inset -6px -6px 16px rgba(0,0,0,.7),
+      inset 3px 3px 10px rgba(255,255,255,.15),
+      0 0 8px rgba(0,0,0,.3);
+  }
+  /* 3D dönen yüzey dokusu illüzyonu */
+  .planet .body::before{
+    content:''; position:absolute; inset:0; border-radius:50%;
+    background-image:
+      radial-gradient(circle at 30% 25%, rgba(255,255,255,.25), transparent 40%),
+      repeating-linear-gradient(75deg, rgba(0,0,0,.12) 0px, transparent 4px, transparent 8px, rgba(0,0,0,.08) 12px);
+    background-size: 200% 100%, 100% 100%;
+    animation: planet-surface-rot var(--surf-dur, 8s) linear infinite;
+    mix-blend-mode: overlay;
+  }
+  /* Küresel parlama (highlight) — sabit ışık kaynağı */
+  .planet .body::after{
+    content:''; position:absolute; inset:0; border-radius:50%;
+    background: radial-gradient(circle at 32% 28%, rgba(255,255,255,.45), rgba(255,255,255,.1) 22%, transparent 45%);
+    pointer-events:none;
+  }
+  @keyframes planet-surface-rot{
+    0%{ background-position: 0% 0%, 0 0; }
+    100%{ background-position: 200% 0%, 0 0; }
   }
   .planet .ring{
     position:absolute; left:50%; top:50%;
@@ -9374,6 +9398,8 @@ activeDefs.forEach((def, i) => {
   planet.style.setProperty('--orbit-delay', delay+'s');
   const body = document.createElement('div');
   body.className = 'body'; body.style.background = def.color;
+  // 3D dönen yüzey hızı — her gezegen farklı (6-14sn)
+  body.style.setProperty('--surf-dur', (6 + Math.random() * 8).toFixed(1) + 's');
   planet.appendChild(body);
   if(def.atmo){
     const atmo = document.createElement('div');
