@@ -1756,8 +1756,8 @@
 
   /* ===== YENİ ÖĞRENME MODLARI KARTLARI ===== */
   .learn-mode-card{
-    display:flex; align-items:center; gap:11px; width:100%;
-    padding:11px 12px; border-radius:14px; cursor:pointer;
+    display:flex; align-items:center; gap:10px; width:100%;
+    padding:9px 11px; border-radius:13px; cursor:pointer;
     border:1.5px solid rgba(180,107,255,.18);
     background:linear-gradient(135deg, rgba(180,107,255,.06), rgba(110,231,255,.03));
     transition:all .2s cubic-bezier(.34,1.56,.64,1);
@@ -1769,6 +1769,7 @@
     opacity:.75;
   }
   .learn-mode-card.feynman::before{ background:linear-gradient(180deg,#4dffb0,#6ee7ff); }
+  .learn-mode-card.askllm::before{ background:linear-gradient(180deg,#6ee7ff,#b46bff); }
   .learn-mode-card.persona::before{ background:linear-gradient(180deg,#ffd700,#ff9a3c); }
   .learn-mode-card.owndeck::before{ background:linear-gradient(180deg,#ff6ec7,#b46bff); }
   .learn-mode-card:hover{
@@ -1778,13 +1779,13 @@
   }
   .learn-mode-card:active{ transform:translateX(3px) scale(.98); }
   .lmc-icon{
-    font-size:1.5rem; flex-shrink:0; width:38px; height:38px;
+    font-size:1.35rem; flex-shrink:0; width:34px; height:34px;
     display:flex; align-items:center; justify-content:center;
-    background:rgba(255,255,255,.04); border-radius:11px;
+    background:rgba(255,255,255,.04); border-radius:10px;
   }
   .lmc-text{ flex:1; min-width:0; }
-  .lmc-title{ font-family:'Space Grotesk',sans-serif; font-size:.82rem; font-weight:700; color:#eaf0ff; margin-bottom:1px; }
-  .lmc-desc{ font-size:.62rem; color:rgba(180,160,255,.55); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .lmc-title{ font-family:'Space Grotesk',sans-serif; font-size:.8rem; font-weight:700; color:#eaf0ff; margin-bottom:0; }
+  .lmc-desc{ font-size:.6rem; color:rgba(180,160,255,.55); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
   .lmc-arrow{ color:rgba(110,231,255,.5); font-size:.9rem; flex-shrink:0; transition:transform .2s; }
   .learn-mode-card:hover .lmc-arrow{ transform:translateX(3px); color:#6ee7ff; }
 
@@ -4122,6 +4123,45 @@
   /* Sadece upload ekranında görünsün */
   #siteFooter.hidden-footer{ display:none; }
 
+  /* ===== KATLANABİLİR FOOTER ===== */
+  .footer-collapse-bar{
+    display:flex; align-items:center; gap:12px;
+    max-width:860px; margin:0 auto; padding:14px 22px;
+    background:rgba(8,6,20,.9); backdrop-filter:blur(18px);
+    border:1px solid rgba(180,107,255,.18); border-radius:20px;
+    cursor:pointer; transition:all .2s ease;
+    box-shadow:0 0 40px rgba(100,50,200,.1);
+  }
+  .footer-collapse-bar:hover{ border-color:rgba(180,107,255,.35); background:rgba(12,8,28,.95); }
+  .footer-cb-orb{
+    width:34px; height:34px; border-radius:50%; flex-shrink:0; position:relative;
+    background:radial-gradient(circle at 38% 35%, #fff8e0, #ffaa00 45%, #ff5500 75%, #cc1100);
+    box-shadow:0 0 16px rgba(255,180,0,.4);
+  }
+  .footer-cb-orb .footer-face{ position:absolute; inset:0; }
+  .footer-cb-name{
+    font-family:'Space Grotesk',sans-serif; font-weight:700; font-size:1rem;
+    background:linear-gradient(135deg,#6ee7ff,#b46bff); -webkit-background-clip:text; background-clip:text; color:transparent;
+    flex:1;
+  }
+  .footer-cb-more{
+    font-size:.72rem; color:rgba(180,160,255,.6); font-family:'Space Mono',monospace;
+    display:flex; align-items:center; gap:5px;
+  }
+  .footer-cb-chev{ transition:transform .3s ease; display:inline-block; }
+  /* Kapalıyken: inner gizli, sadece bar görünür */
+  #siteFooter.footer-collapsed .footer-inner{
+    max-height:0; opacity:0; overflow:hidden; padding-top:0; padding-bottom:0;
+    margin-top:0; pointer-events:none; border-width:0;
+    transition:all .4s cubic-bezier(.16,1,.3,1);
+  }
+  #siteFooter:not(.footer-collapsed) .footer-inner{
+    max-height:2000px; opacity:1; margin-top:12px;
+    transition:all .5s cubic-bezier(.16,1,.3,1);
+  }
+  #siteFooter:not(.footer-collapsed) .footer-cb-chev{ transform:rotate(180deg); }
+  #siteFooter.footer-collapsed .footer-collapse-bar{ margin-bottom:0; }
+
   .footer-inner{
     background: rgba(8,6,20,.88);
     backdrop-filter: blur(18px);
@@ -5311,6 +5351,18 @@
   <div class="learn-modes" style="padding:0 8px 12px;display:flex;flex-direction:column;gap:8px">
     <div style="font-size:.58rem;font-family:'Space Mono',monospace;color:rgba(180,160,255,.4);letter-spacing:.08em;text-transform:uppercase;padding:4px 8px 2px">✦ <span class="tr-text">Öğrenme Modları</span><span class="en-text">Learning Modes</span></div>
 
+    <!-- Sor & Öğren (ana AI paneli) -->
+    <button class="learn-mode-card askllm" onclick="openBigAiPanel()">
+      <div class="lmc-icon">💬</div>
+      <div class="lmc-text">
+        <div class="lmc-title tr-text">Sor & Öğren</div>
+        <div class="lmc-title en-text">Ask & Learn</div>
+        <div class="lmc-desc tr-text">Her şeyi sor, dosya da yükle</div>
+        <div class="lmc-desc en-text">Ask anything, upload files too</div>
+      </div>
+      <span class="lmc-arrow">→</span>
+    </button>
+
     <!-- Bana Anlat (Feynman) -->
     <button class="learn-mode-card feynman" onclick="openFeynmanMode()">
       <div class="lmc-icon">🎙️</div>
@@ -5515,7 +5567,20 @@
       <div id="deckScreen" class="hidden"></div>
 
       <!-- FOOTER — scroll edince slayt gibi gelir -->
-      <footer id="siteFooter">
+      <footer id="siteFooter" class="footer-collapsed">
+        <!-- Katlanabilir footer başlığı — kapalıyken sadece bu görünür -->
+        <div class="footer-collapse-bar" onclick="toggleFooterExpand()">
+          <div class="footer-cb-orb">
+            <div class="footer-face">
+              <div class="footer-brow left"></div><div class="footer-brow right"></div>
+              <div class="footer-eye left"><div class="footer-pupil"></div></div>
+              <div class="footer-eye right"><div class="footer-pupil"></div></div>
+              <div class="footer-mouth"></div>
+            </div>
+          </div>
+          <span class="footer-cb-name">Thinkle</span>
+          <span class="footer-cb-more"><span class="tr-text">dahası</span><span class="en-text">more</span> <span class="footer-cb-chev">▾</span></span>
+        </div>
         <div class="footer-inner">
 
           <!-- Üst bölüm: logo + nav -->
@@ -6784,7 +6849,7 @@ async function doCreateRoom(){
   battleIsHost = true;
 
   const result = await window.fbCreateRoom(user.uid, battleMyName, battleSelectedCategory, questions);
-  if(!result.ok){ showToast('Oda oluşturulamadı, tekrar dene.'); return; }
+  if(!result.ok){ showToast(currentLang==='tr'?'Oda oluşturulamadı, tekrar dene.':'Could not create room, try again.'); return; }
 
   battleRoomCode = result.code;
   showWaitingRoom(result.code);
@@ -6817,7 +6882,7 @@ async function generateBattleQuestions(category, categoryId, count = 10){
     const resp = await fetch(PROXY_URL, {
       method:'POST', headers:{'Content-Type':'application/json'},
       body: JSON.stringify({
-        model:'google/gemini-2.5-flash', max_tokens: count > 15 ? 4000 : 2500,
+        model:'google/gemini-3.5-flash', max_tokens: count > 15 ? 4000 : 2500,
         uid: window.currentUser?.uid||'', sig: getRequestSignature(),
         isDeck: true,
         messages:[{role:'user', content:
@@ -6990,7 +7055,7 @@ function updateWaitingRoom(roomData){
 
 function copyRoomCode(code){
   navigator.clipboard.writeText(code).then(()=>{
-    showToast('✓ Oda kodu kopyalandı: ' + code);
+    showToast((currentLang==='tr'?'✓ Oda kodu kopyalandı: ':'✓ Room code copied: ') + code);
   }).catch(()=>{
     showToast('Kod: ' + code);
   });
@@ -7032,7 +7097,7 @@ async function removeBotFromRoom(botUid){
   try {
     await window.fbRemovePlayer(battleRoomCode, botUid);
     if(botCount > 0) botCount--;
-  } catch(e){ showToast('Bot kaldırılamadı'); }
+  } catch(e){ showToast(currentLang==='tr'?'Bot kaldırılamadı':'Could not remove bot'); }
 }
 // Bot cevap takibi — duplicate önleme
 const _botAnswered = {}; // { botUid: { 0: true, 1: true, ... } }
@@ -8036,7 +8101,7 @@ async function acceptBattleInvite(roomCode){
   battleMyName = window.currentUsername?'@'+window.currentUsername:(user.displayName||user.uid.slice(0,8));
   battleIsHost = false;
   const result = await window.fbJoinRoom(roomCode, user.uid, battleMyName);
-  if(!result.ok){ showToast('Odaya katılınamadı: '+(result.reason||'hata')); return; }
+  if(!result.ok){ showToast((currentLang==='tr'?'Odaya katılınamadı: ':'Could not join room: ')+(result.reason||'error')); return; }
   battleRoomCode = roomCode;
   battleQuestions = result.data.questions||[];
   battleSelectedCategory = result.data.category;
@@ -8693,7 +8758,7 @@ function showFounderWelcome(){
         const uid = btn.dataset.setExpiry;
         const dateInput = contentEl.querySelector(`[data-expiry-uid="${uid}"]`);
         const dateVal = dateInput?.value;
-        if(!dateVal){ showToast('Tarih seç'); return; }
+        if(!dateVal){ showToast(currentLang==='tr'?'Tarih seç':'Pick a date'); return; }
         btn.disabled = true; btn.textContent = '⏳';
         const expiresAt = new Date(dateVal + 'T23:59:59').toISOString();
         if(window.fbSetGalaxyExpiry) await window.fbSetGalaxyExpiry(uid, expiresAt);
@@ -9835,7 +9900,7 @@ async function extractTextFromImage(file){
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
-      model: 'google/gemini-2.5-flash',
+      model: 'google/gemini-3.5-flash',
       max_tokens: 3000,
       uid: window.currentUser?.uid || '',
       sig: getRequestSignature(),
@@ -10010,7 +10075,7 @@ ${langInstruction}`;
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          model: "google/gemini-2.5-flash",
+          model: "google/gemini-3.5-flash",
           max_tokens: 8000,
           system: systemPrompt,
           expectJson: true,
@@ -10156,7 +10221,7 @@ ${langInstruction}`;
     const resp = await fetch(PROXY_URL, {
       method:'POST', headers:{'Content-Type':'application/json'},
       body: JSON.stringify({
-        model:'google/gemini-2.5-flash', max_tokens:8000,
+        model:'google/gemini-3.5-flash', max_tokens:8000,
         uid: window.currentUser?.uid||'', sig: getRequestSignature(),
         system: prompt,
         messages:[{role:'user', content:'Generate the deep dive analysis now with detailed bullets and rich explanations.'}]
@@ -10555,7 +10620,7 @@ CRITICAL REQUIREMENTS:
     const resp = await fetch(PROXY_URL, {
       method:'POST', headers:{'Content-Type':'application/json'},
       body: JSON.stringify({
-        model:'google/gemini-2.5-flash', max_tokens:6000,
+        model:'google/gemini-3.5-flash', max_tokens:6000,
         uid: window.currentUser?.uid||'', sig: getRequestSignature(),
         system: prompt,
         messages:[{role:'user', content:`Generate the detailed remedial slides now. Each bullet must be a full sentence with at least 15 words.`}]
@@ -10892,7 +10957,7 @@ KULLANICI: ${uname || '(anonim)'} ${isGalaxyMember ? '✦ GALAXY ÜYESİ' : ''}`
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          model: "google/gemini-2.5-pro",
+          model: "google/gemini-3.1-pro",
           max_tokens: 1200,
           uid: window.currentUser?.uid || '',
           sig: getRequestSignature(),
@@ -11070,7 +11135,7 @@ async function generateAndLaunchQuiz(userRequest, topic, statusEl){
     const resp = await fetch(PROXY_URL, {
       method:'POST', headers:{'Content-Type':'application/json'},
       body: JSON.stringify({
-        model:'google/gemini-2.5-flash', max_tokens:3000,
+        model:'google/gemini-3.5-flash', max_tokens:3000,
         uid: window.currentUser?.uid||'', sig: getRequestSignature(),
         isDeck: true,
         messages:[
@@ -11280,7 +11345,7 @@ async function startAiLearnMode(userRequest, thinkingEl){
     const resp = await fetch(PROXY_URL, {
       method:'POST', headers:{'Content-Type':'application/json'},
       body: JSON.stringify({
-        model:'google/gemini-2.5-pro', max_tokens:2500,
+        model:'google/gemini-3.1-pro', max_tokens:2500,
         uid: window.currentUser?.uid||'', sig: getRequestSignature(),
         messages:[{ role:'user', content:
           `Konu: "${userRequest}"
@@ -11834,6 +11899,102 @@ function populateAiTicker(){
 }
 
 // ============================================================
+// 🔊 SESLİ ANLATIM (Text-to-Speech)
+// ============================================================
+window._ttsSettings = { enabled: false, gender: 'female', rate: 1, pitch: 1, voice: null };
+
+function lmSpeak(text){
+  if(!window._ttsSettings.enabled || !window.speechSynthesis) return;
+  try {
+    window.speechSynthesis.cancel(); // önceki konuşmayı durdur
+    const clean = text.replace(/[*_#`>]/g,'').replace(/\n+/g,'. ');
+    const utter = new SpeechSynthesisUtterance(clean);
+    utter.lang = currentLang === 'tr' ? 'tr-TR' : 'en-US';
+    utter.rate = window._ttsSettings.rate;
+    utter.pitch = window._ttsSettings.pitch;
+    // Uygun sesi seç (dil + cinsiyet)
+    const voices = window.speechSynthesis.getVoices();
+    const langCode = currentLang === 'tr' ? 'tr' : 'en';
+    const langVoices = voices.filter(v => v.lang.toLowerCase().startsWith(langCode));
+    if(langVoices.length){
+      // Cinsiyet tahmini — isimde female/male ipucu ara
+      const g = window._ttsSettings.gender;
+      const genderMatch = langVoices.find(v => {
+        const n = v.name.toLowerCase();
+        return g === 'female'
+          ? /female|kadın|woman|zira|google.*türkçe|yelda|filiz/.test(n)
+          : /male|erkek|man|david|google.*erkek|tolga/.test(n);
+      });
+      utter.voice = genderMatch || langVoices[0];
+    }
+    window.speechSynthesis.speak(utter);
+    window._ttsCurrentUtter = utter;
+  } catch(e){}
+}
+function lmStopSpeak(){ try { window.speechSynthesis?.cancel(); } catch(e){} }
+
+// Ses ayarları modalı
+function openVoiceSettings(){
+  const isTr = currentLang === 'tr';
+  const s = window._ttsSettings;
+  const html = `
+    <div style="padding:4px 0">
+      <div style="font-size:.82rem;color:rgba(200,190,235,.75);line-height:1.6;margin-bottom:18px">
+        ${isTr?'Öğrenme modlarında AI cevaplarını sesli dinle. Sesi kişiselleştir:':'Listen to AI answers aloud in learning modes. Customize the voice:'}
+      </div>
+      <!-- Açık/Kapalı -->
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 14px;border-radius:12px;background:rgba(110,231,255,.05);border:1px solid rgba(110,231,255,.12);margin-bottom:14px">
+        <span style="font-size:.85rem;color:#eaf0ff;font-weight:600">🔊 ${isTr?'Sesli Anlatım':'Voice Narration'}</span>
+        <button id="vsToggle" onclick="toggleTTS()" style="width:52px;height:28px;border-radius:14px;border:none;cursor:pointer;position:relative;transition:all .2s;background:${s.enabled?'linear-gradient(135deg,#4dffb0,#6ee7ff)':'rgba(255,255,255,.1)'}">
+          <span style="position:absolute;top:3px;left:${s.enabled?'27px':'3px'};width:22px;height:22px;border-radius:50%;background:#fff;transition:all .2s"></span>
+        </button>
+      </div>
+      <!-- Cinsiyet -->
+      <div style="font-size:.7rem;color:rgba(180,160,255,.6);font-family:'Space Mono',monospace;margin-bottom:8px;text-transform:uppercase;letter-spacing:.05em">${isTr?'Ses Tipi':'Voice Type'}</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px">
+        <button class="vs-gender ${s.gender==='female'?'active':''}" onclick="setTTSGender('female')" style="padding:14px;border-radius:14px;border:1.5px solid ${s.gender==='female'?'rgba(255,110,199,.5)':'rgba(255,255,255,.1)'};background:${s.gender==='female'?'rgba(255,110,199,.1)':'rgba(255,255,255,.03)'};cursor:pointer;color:#eaf0ff;font-family:'Space Grotesk';font-size:.85rem;font-weight:600">👩 ${isTr?'Kadın':'Female'}</button>
+        <button class="vs-gender ${s.gender==='male'?'active':''}" onclick="setTTSGender('male')" style="padding:14px;border-radius:14px;border:1.5px solid ${s.gender==='male'?'rgba(110,231,255,.5)':'rgba(255,255,255,.1)'};background:${s.gender==='male'?'rgba(110,231,255,.1)':'rgba(255,255,255,.03)'};cursor:pointer;color:#eaf0ff;font-family:'Space Grotesk';font-size:.85rem;font-weight:600">👨 ${isTr?'Erkek':'Male'}</button>
+      </div>
+      <!-- Hız -->
+      <div style="font-size:.7rem;color:rgba(180,160,255,.6);font-family:'Space Mono',monospace;margin-bottom:8px;text-transform:uppercase;letter-spacing:.05em">${isTr?'Konuşma Hızı':'Speed'}: <span id="vsRateVal">${s.rate.toFixed(1)}x</span></div>
+      <input type="range" id="vsRate" min="0.5" max="1.5" step="0.1" value="${s.rate}" oninput="setTTSRate(this.value)" style="width:100%;margin-bottom:16px;accent-color:#b46bff">
+      <!-- Tarz (ninni/normal/enerjik) -->
+      <div style="font-size:.7rem;color:rgba(180,160,255,.6);font-family:'Space Mono',monospace;margin-bottom:8px;text-transform:uppercase;letter-spacing:.05em">${isTr?'Anlatım Tarzı':'Style'}</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:16px">
+        <button onclick="setTTSStyle('lullaby')" style="padding:12px 6px;border-radius:12px;border:1.5px solid rgba(180,107,255,.2);background:rgba(180,107,255,.05);cursor:pointer;color:#eaf0ff;font-family:'Space Grotesk';font-size:.72rem;font-weight:600">🌙 ${isTr?'Ninni':'Lullaby'}</button>
+        <button onclick="setTTSStyle('normal')" style="padding:12px 6px;border-radius:12px;border:1.5px solid rgba(180,107,255,.2);background:rgba(180,107,255,.05);cursor:pointer;color:#eaf0ff;font-family:'Space Grotesk';font-size:.72rem;font-weight:600">💬 ${isTr?'Normal':'Normal'}</button>
+        <button onclick="setTTSStyle('energetic')" style="padding:12px 6px;border-radius:12px;border:1.5px solid rgba(180,107,255,.2);background:rgba(180,107,255,.05);cursor:pointer;color:#eaf0ff;font-family:'Space Grotesk';font-size:.72rem;font-weight:600">⚡ ${isTr?'Enerjik':'Energetic'}</button>
+      </div>
+      <!-- Test -->
+      <button class="lm-send" style="width:100%;height:44px" onclick="lmSpeak('${isTr?'Merhaba! Ben Thinkle sesli anlatım motoruyum. Böyle konuşacağım.':'Hello! I am the Thinkle voice narrator. This is how I will sound.'}')">🔊 ${isTr?'Sesi Dinle':'Test Voice'}</button>
+    </div>`;
+  lmBuildModal('🔊', isTr?'Ses Ayarları':'Voice Settings', isTr?'Sesli anlatımı kişiselleştir':'Customize narration', html, false);
+}
+function toggleTTS(){
+  window._ttsSettings.enabled = !window._ttsSettings.enabled;
+  if(!window._ttsSettings.enabled) lmStopSpeak();
+  try { localStorage.setItem('thinkle_tts', JSON.stringify(window._ttsSettings)); } catch(e){}
+  openVoiceSettings(); // yenile
+}
+function setTTSGender(g){ window._ttsSettings.gender = g; try{localStorage.setItem('thinkle_tts',JSON.stringify(window._ttsSettings));}catch(e){} openVoiceSettings(); }
+function setTTSRate(r){ window._ttsSettings.rate = parseFloat(r); const el=document.getElementById('vsRateVal'); if(el) el.textContent=parseFloat(r).toFixed(1)+'x'; try{localStorage.setItem('thinkle_tts',JSON.stringify(window._ttsSettings));}catch(e){} }
+function setTTSStyle(style){
+  const s = window._ttsSettings;
+  if(style==='lullaby'){ s.rate=0.75; s.pitch=0.9; }
+  else if(style==='energetic'){ s.rate=1.2; s.pitch=1.15; }
+  else { s.rate=1; s.pitch=1; }
+  s.enabled = true;
+  try{localStorage.setItem('thinkle_tts',JSON.stringify(s));}catch(e){}
+  openVoiceSettings();
+}
+// Kayıtlı ayarları yükle
+(function loadTTS(){
+  try { const saved = JSON.parse(localStorage.getItem('thinkle_tts')||'null'); if(saved) window._ttsSettings = {...window._ttsSettings, ...saved}; } catch(e){}
+  // Sesleri önceden yükle (Chrome gecikmeli yükler)
+  if(window.speechSynthesis){ window.speechSynthesis.getVoices(); window.speechSynthesis.onvoiceschanged = () => window.speechSynthesis.getVoices(); }
+})();
+
+// ============================================================
 // ✦ YENİ ÖĞRENME MODLARI — Feynman, Persona, Dosyadan Yarışma
 // ============================================================
 
@@ -11843,7 +12004,7 @@ async function lmCallAI(systemPrompt, messages, maxTokens = 900){
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
-      model: "google/gemini-2.5-pro",
+      model: "google/gemini-3.1-pro",
       max_tokens: maxTokens,
       uid: window.currentUser?.uid || '',
       sig: getRequestSignature(),
@@ -11869,6 +12030,7 @@ function lmBuildModal(icon, title, sub, bodyHTML, hasInput){
           <div class="lm-h-title">${title}</div>
           <div class="lm-h-sub">${sub}</div>
         </div>
+        <button class="lm-close" onclick="openVoiceSettings()" title="Ses" style="margin-right:6px">${window._ttsSettings?.enabled?'🔊':'🔇'}</button>
         <button class="lm-close" onclick="closeLearnMode()">✕</button>
       </div>
       <div class="lm-body" id="lmBody">${bodyHTML}</div>
@@ -11884,6 +12046,7 @@ function lmBuildModal(icon, title, sub, bodyHTML, hasInput){
   return ov;
 }
 function closeLearnMode(){
+  lmStopSpeak();
   const ov = document.getElementById('lmOverlay');
   if(ov){ ov.classList.remove('open'); setTimeout(()=>ov.remove(), 300); }
 }
@@ -11983,6 +12146,7 @@ async function handleFeynmanTurn(text){
     const scoreMatch = reply.match(/\[SKOR:(\d+)\]/);
     const cleanReply = reply.replace(/\[SKOR:\d+\]/,'').trim();
     thinking.parentElement.querySelector('.lm-chat-bubble').innerHTML = escapeHtml(cleanReply).replace(/\n/g,'<br>');
+    lmSpeak(cleanReply);
 
     if(scoreMatch){
       const score = scoreMatch[1];
@@ -12069,6 +12233,7 @@ async function handlePersonaTurn(text){
     const reply = await lmCallAI(window._personaSys, _personaState.history, 600);
     _personaState.history.push({ role:'assistant', content:reply });
     thinking.innerHTML = escapeHtml(reply).replace(/\n/g,'<br>');
+    lmSpeak(reply);
   } catch(e){
     thinking.textContent = isTr?'Bağlantı hatası.':'Connection error.';
   }
@@ -12080,20 +12245,18 @@ async function handlePersonaTurn(text){
 function openOwnDeckBattle(){
   if(!window.currentUser){ showAuthModal?.(()=>openOwnDeckBattle()); return; }
   const isTr = currentLang === 'tr';
-  // Deck yüklü mü kontrol et
-  const hasDeck = window.deck?.slides?.length > 0 || window.lastSourceText;
+  // Deck yüklü mü kontrol et (yerel değişkenler)
+  const hasDeck = (deck?.slides?.length > 0) || !!lastSourceText;
   if(hasDeck){
-    // Deck var — direkt battle sorularına çevir
     const html = `
       <div style="text-align:center;padding:14px 0">
         <div style="font-size:2.5rem;margin-bottom:10px">⚔️</div>
-        <div style="font-size:.9rem;color:#eaf0ff;font-weight:600;margin-bottom:6px">${window.deck?.title || (isTr?'Yüklü dosyan':'Your file')}</div>
+        <div style="font-size:.9rem;color:#eaf0ff;font-weight:600;margin-bottom:6px">${deck?.title || (isTr?'Yüklü dosyan':'Your file')}</div>
         <div style="font-size:.82rem;color:rgba(200,190,235,.7);line-height:1.6;margin-bottom:18px">${isTr?'Bu dosyadan yarışma soruları üretip oda kuralım. Arkadaşlarını davet et, kendi dersinizden yarışın!':'Let\'s generate battle questions from this file and create a room. Invite friends!'}</div>
         <button class="lm-send" style="width:100%;height:48px;font-size:.9rem" onclick="generateOwnDeckBattle()">${isTr?'🎯 Soruları Üret & Oda Kur':'🎯 Generate & Create Room'}</button>
       </div>`;
     lmBuildModal('⚔️', isTr?'Dosyandan Yarışma':'Battle from File', isTr?'Kendi dersinden yarış':'Battle from your notes', html, false);
   } else {
-    // Deck yok — önce yükle
     const html = `
       <div style="text-align:center;padding:20px 10px">
         <div style="font-size:2.5rem;margin-bottom:12px">📄</div>
@@ -12115,23 +12278,23 @@ async function generateOwnDeckBattle(){
   </div>`;
 
   try {
-    const source = window.lastSourceText || (window.deck?.slides||[]).map(s=>s.title+' '+(s.bullets||[]).join(' ')).join('\n').slice(0, 8000);
+    const source = lastSourceText || (deck?.slides||[]).map(s=>s.title+' '+(s.bullets||[]).join(' ')).join('\n');
+    const src = (source||'').slice(0, 8000);
+    if(!src.trim()) throw new Error('empty source');
     const sys = isTr
       ? 'Verilen ders içeriğinden 8 adet çoktan seçmeli yarışma sorusu üret. SADECE şu JSON formatında dön, başka HİÇBİR şey yazma: {"questions":[{"question":"...","options":["A","B","C","D"],"answerIndex":0}]}. Sorular içerikle ilgili, net ve tek doğru cevaplı olsun.'
       : 'Generate 8 multiple-choice battle questions from the given content. Return ONLY this JSON, nothing else: {"questions":[{"question":"...","options":["A","B","C","D"],"answerIndex":0}]}.';
-    const raw = await lmCallAI(sys, [{role:'user', content:source}], 3000);
-    const clean = raw.replace(/```json|```/g,'').trim();
+    const raw = await lmCallAI(sys, [{role:'user', content:src}], 3000);
+    const clean = raw.replace(/```json|```/g,'').replace(/^[^{]*/,'').replace(/[^}]*$/,'').trim();
     const parsed = JSON.parse(clean);
     if(!parsed.questions?.length) throw new Error('no questions');
 
+    // Soruları hazırla, battle modalını aç
+    window._pendingOwnDeckQuestions = parsed.questions;
     closeLearnMode();
-    // Battle modalını aç ve soruları enjekte et
-    if(typeof createBattleWithQuestions === 'function'){
-      createBattleWithQuestions(parsed.questions, window.deck?.title || (isTr?'Dosyam':'My File'));
-    } else if(typeof showBattleModal === 'function'){
-      window._pendingOwnDeckQuestions = parsed.questions;
+    if(typeof showBattleModal === 'function'){
       showBattleModal();
-      showToast?.(isTr?'✅ Sorular hazır! Oda kur ve arkadaşını davet et':'✅ Questions ready! Create a room');
+      showToast?.(isTr?'✅ Sorular hazır! Kategori seçip oda kur':'✅ Questions ready! Pick a category & create a room');
     }
   } catch(e){
     body.innerHTML = `<div style="text-align:center;padding:24px 10px">
@@ -12585,7 +12748,7 @@ async function sendChatMessage(){
   const text = inp?.value.trim();
   if(!text || !activeChatFriendUid) return;
   const myUid = window.currentUser?.uid;
-  if(!myUid){ showToast('Giriş yapman gerekiyor'); return; }
+  if(!myUid){ showToast(currentLang==='tr'?'Giriş yapman gerekiyor':'You need to sign in'); return; }
   inp.value = '';
   const sendBtn = document.getElementById('fchSendBtn');
   if(sendBtn) sendBtn.disabled = true;
@@ -12594,7 +12757,7 @@ async function sendChatMessage(){
     if(!ok){ throw new Error('send failed'); }
   } catch(e){
     inp.value = text; // geri koy
-    showToast('⚠️ Mesaj gönderilemedi — Firestore kurallarını kontrol et');
+    showToast(currentLang==='tr'?'⚠️ Mesaj gönderilemedi — Firestore kurallarını kontrol et':'⚠️ Message failed — check Firestore rules');
     console.error('Chat send error:', e);
   } finally {
     if(sendBtn) sendBtn.disabled = false;
@@ -12963,6 +13126,10 @@ document.addEventListener('activeUsersUpdated', (e) => {
 
 const siteFooter = document.getElementById('siteFooter');
 let footerOpened = false;
+function toggleFooterExpand(){
+  const f = document.getElementById('siteFooter');
+  if(f) f.classList.toggle('footer-collapsed');
+}
 function updateFooter(){
   if(!siteFooter) return;
   const uploadVisible = uploadScreen && !uploadScreen.classList.contains('hidden');
