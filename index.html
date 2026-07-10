@@ -9042,22 +9042,25 @@ window._initSun3D = function(){
   const THREE = window.THREE;
   window._sun3DActive = true;
 
-  // Canvas'ı sol div'inin içine koy (yüzün arkasına)
+  // sol div'i taşmayı gizlesin, yuvarlak kalsın
+  solEl.style.overflow = 'visible';
+
+  // Canvas tam güneş boyutunda (taşma yok), yüzün arkasında
   const canvas = document.createElement('canvas');
   canvas.id = 'sun3dCanvas';
-  canvas.style.cssText = 'position:absolute;inset:-40%;width:180%;height:180%;pointer-events:none;z-index:0;';
+  canvas.style.cssText = 'position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:100%;height:100%;pointer-events:none;z-index:1;border-radius:50%;';
   solEl.insertBefore(canvas, solEl.firstChild);
-  // CSS güneş gradyanını kaldır — 3D devralıyor (glow kalsın)
+  // CSS güneş gradyanını kaldır — 3D devralıyor ama glow (box-shadow) kalsın
   solEl.style.background = 'transparent';
 
   const renderer = new THREE.WebGLRenderer({ canvas, alpha:true, antialias:true });
   renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-  const size = 160;
+  const size = 128;
   renderer.setSize(size, size, false);
 
   const scene = new THREE.Scene();
-  const camera = new THREE.PerspectiveCamera(45, 1, 0.1, 100);
-  camera.position.z = 3.2;
+  const camera = new THREE.PerspectiveCamera(38, 1, 0.1, 100);
+  camera.position.z = 3.4;
 
   // Lav/plazma shader — akan gürültü (simplex-benzeri)
   const sunMat = new THREE.ShaderMaterial({
@@ -9095,16 +9098,7 @@ window._initSun3D = function(){
   });
   const sun = new THREE.Mesh(new THREE.SphereGeometry(1, 64, 64), sunMat);
   scene.add(sun);
-
-  // Korona/glow halkası (arka katman)
-  const glowMat = new THREE.ShaderMaterial({
-    uniforms:{ uTime:{value:0} },
-    transparent:true, blending:THREE.AdditiveBlending, side:THREE.BackSide,
-    vertexShader:`varying vec3 vN; void main(){ vN=normal; gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0); }`,
-    fragmentShader:`varying vec3 vN; void main(){ float i=pow(1.0-abs(vN.z),2.5); gl_FragColor=vec4(1.0,0.55,0.15,i*0.6); }`
-  });
-  const glow = new THREE.Mesh(new THREE.SphereGeometry(1.35, 32, 32), glowMat);
-  scene.add(glow);
+  // Glow küresi KALDIRILDI — box-shadow zaten glow veriyor, 3D glow taşıyordu
 
   let raf, t0 = performance.now();
   function animate(){
