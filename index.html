@@ -5486,14 +5486,26 @@
       <span class="lmc-arrow">→</span>
     </button>
 
+    <!-- Dosyandan Yarışma -->
+    <button class="learn-mode-card owndeck" onclick="openOwnDeckBattle()">
+      <div class="lmc-icon">⚔️</div>
+      <div class="lmc-text">
+        <div class="lmc-title tr-text">Dosyandan Yarışma</div>
+        <div class="lmc-title en-text">Battle from File</div>
+        <div class="lmc-desc tr-text">Kendi dersinden oda kur</div>
+        <div class="lmc-desc en-text">Create a room from your notes</div>
+      </div>
+      <span class="lmc-arrow">→</span>
+    </button>
+
     <!-- Hızlı Quiz -->
     <button class="learn-mode-card" style="--lmc-color:#ffd700" onclick="openFlashQuizMode()">
       <div class="lmc-icon">🃏</div>
       <div class="lmc-text">
         <div class="lmc-title tr-text">Hızlı Quiz</div>
         <div class="lmc-title en-text">Flash Quiz</div>
-        <div class="lmc-desc tr-text">5 soruda kendinizi test edin</div>
-        <div class="lmc-desc en-text">Test yourself in 5 questions</div>
+        <div class="lmc-desc tr-text">5 soruda kendini test et</div>
+        <div class="lmc-desc en-text">5-question instant test</div>
       </div>
       <span class="lmc-arrow">→</span>
     </button>
@@ -5504,8 +5516,20 @@
       <div class="lmc-text">
         <div class="lmc-title tr-text">Konu Özeti</div>
         <div class="lmc-title en-text">Topic Summary</div>
-        <div class="lmc-desc tr-text">Konuyu yapılandır, özetle</div>
-        <div class="lmc-desc en-text">Structure & summarize a topic</div>
+        <div class="lmc-desc tr-text">Yapılandırılmış özet al</div>
+        <div class="lmc-desc en-text">Structured summary</div>
+      </div>
+      <span class="lmc-arrow">→</span>
+    </button>
+
+    <!-- Münazara -->
+    <button class="learn-mode-card" style="--lmc-color:#ff9a3c" onclick="openDebateMode()">
+      <div class="lmc-icon">🗣️</div>
+      <div class="lmc-text">
+        <div class="lmc-title tr-text">Münazara</div>
+        <div class="lmc-title en-text">Debate</div>
+        <div class="lmc-desc tr-text">AI karşı tarafı savunur</div>
+        <div class="lmc-desc en-text">AI argues the other side</div>
       </div>
       <span class="lmc-arrow">→</span>
     </button>
@@ -6946,7 +6970,10 @@ function selectQuestionCount(n, btn){
 
 async function doCreateRoom(){
   const user = window.currentUser;
-  if(!user || !battleSelectedCategory) return;
+  if(!user) return;
+  // Pending sorular varsa kategori gerekmez, yoksa gerekir
+  if(!battleSelectedCategory && !window._pendingOwnDeckQuestions?.length) return;
+  if(!battleSelectedCategory) battleSelectedCategory = 'general';
   const btn = document.getElementById('createRoomBtn');
   if(btn){ btn.disabled = true; btn.textContent = currentLang==='tr' ? '⏳ Sorular hazırlanıyor...' : '⏳ Generating questions...'; btn.style.opacity = '.7'; }
 
@@ -12469,12 +12496,20 @@ function showFeynmanScore(score){
 // 🎭 TARİHİ KİŞİYLE SOHBET
 // ──────────────────────────────────────────
 const PERSONAS = [
-  { emoji:'🇹🇷', name:'Atatürk', field:{tr:'Kurtuluş & Devrimler',en:'Independence & Reforms'}, sys:{tr:'Sen Mustafa Kemal Atatürk\'sün. Türkiye Cumhuriyeti\'nin kurucusu olarak, kararlı, vizyoner ve eğitime tutkuyla bağlı bir üslupla konuş. Devrimlerini, Kurtuluş Savaşı\'nı, cumhuriyet ilkelerini birinci ağızdan anlat. Dönemin ruhunu yansıt ama anlaşılır ol.',en:'You are Mustafa Kemal Atatürk, founder of the Turkish Republic. Speak with determination and vision.'} },
-  { emoji:'⚛️', name:'Einstein', field:{tr:'Görelilik & Fizik',en:'Relativity & Physics'}, sys:{tr:'Sen Albert Einstein\'sın. Görelilik teorisini, fiziği, evreni merakla ve düşünce deneyleriyle anlat. Bilgece, esprili ve alçakgönüllü ol. Karmaşık şeyleri günlük örneklerle basitleştir.',en:'You are Albert Einstein. Explain relativity and physics with curiosity and thought experiments, witty and humble.'} },
-  { emoji:'🕌', name:'Mimar Sinan', field:{tr:'Mimari & Sanat',en:'Architecture & Art'}, sys:{tr:'Sen Mimar Sinan\'sın. Osmanlı baş mimarı olarak Süleymaniye, Selimiye gibi eserlerini, mimari sırlarını, mühendislik dehanı anlat. Zanaatına tutkulu, mütevazı bir usta gibi konuş.',en:'You are Mimar Sinan, chief Ottoman architect. Speak about your masterpieces and engineering genius as a humble master.'} },
-  { emoji:'📜', name:'Mevlana', field:{tr:'Tasavvuf & Şiir',en:'Sufism & Poetry'}, sys:{tr:'Sen Mevlana Celaleddin Rumi\'sin. Sevgi, hoşgörü, insanlık ve tasavvuf üzerine derin ama sıcak bir dille konuş. Ara sıra Mesnevi\'den ilham veren benzetmeler kullan.',en:'You are Rumi. Speak of love, tolerance and Sufism with warmth and poetic metaphors.'} },
-  { emoji:'🔬', name:'Marie Curie', field:{tr:'Radyoaktivite & Kimya',en:'Radioactivity & Chemistry'}, sys:{tr:'Sen Marie Curie\'sin. Radyoaktivite araştırmalarını, bilimdeki azmini, iki Nobel\'ini anlat. Kararlı, tutkulu ve azimli bir bilim insanı gibi konuş.',en:'You are Marie Curie. Speak about radioactivity and your perseverance in science.'} },
-  { emoji:'🎨', name:'Leonardo', field:{tr:'Sanat & İcat',en:'Art & Invention'}, sys:{tr:'Sen Leonardo da Vinci\'sin. Ressamlığını, icatlarını, anatomi ve doğaya olan sonsuz merakını anlat. Rönesans dehası, çok yönlü bir usta gibi konuş.',en:'You are Leonardo da Vinci. Speak of your art, inventions and endless curiosity.'} }
+  { emoji:'🇹🇷', name:'Atatürk',      field:{tr:'Kurtuluş & Devrimler',en:'Independence & Reforms'},  sys:{tr:'Sen Mustafa Kemal Atatürk\'sün. Kararlı, vizyoner, eğitime tutkuyla bağlı bir üslupla konuş. Devrimleri, Kurtuluş Savaşı\'nı ve cumhuriyet ilkelerini birinci ağızdan anlat.',en:'You are Atatürk. Speak with determination about Turkish independence, reforms and the republic.'} },
+  { emoji:'⚛️', name:'Einstein',      field:{tr:'Fizik & Görelilik',en:'Physics & Relativity'},       sys:{tr:'Sen Albert Einstein\'sın. Görelilik, fiziği evreni düşünce deneyleriyle anlat. Bilgece, esprili ve alçakgönüllü ol.',en:'You are Einstein. Explain physics and relativity with thought experiments, witty and humble.'} },
+  { emoji:'📜', name:'Mevlana',       field:{tr:'Tasavvuf & Şiir',en:'Sufism & Poetry'},              sys:{tr:'Sen Mevlana\'sın. Sevgi, hoşgörü ve tasavvuf üzerine derin ama sıcak konuş. Mesnevi\'den benzetmeler kullan.',en:'You are Rumi. Speak of love and Sufism with warmth and poetic metaphors.'} },
+  { emoji:'🔬', name:'Marie Curie',   field:{tr:'Kimya & Nobel',en:'Chemistry & Nobel'},              sys:{tr:'Sen Marie Curie\'sin. Radyoaktivite araştırmalarını ve bilimdeki azmini anlat. İki Nobel kazanmış kararlı bir bilim insanısın.',en:'You are Marie Curie. Talk about radioactivity and your perseverance in science.'} },
+  { emoji:'🎨', name:'Da Vinci',      field:{tr:'Sanat & İcat',en:'Art & Invention'},                 sys:{tr:'Sen Leonardo da Vinci\'sin. Ressamlığını, icatlarını, anatomi ve doğaya sonsuz merakını anlat. Rönesans dehası olarak konuş.',en:'You are Leonardo da Vinci. Speak of your art, inventions and endless curiosity.'} },
+  { emoji:'🕌', name:'Mimar Sinan',   field:{tr:'Mimari & Osmanlı',en:'Architecture & Ottoman'},      sys:{tr:'Sen Mimar Sinan\'sın. Süleymaniye, Selimiye gibi eserlerini ve mimari sırlarını anlat. Mütevazı bir usta gibi konuş.',en:'You are Mimar Sinan. Speak about your masterpieces and engineering genius.'} },
+  { emoji:'🍎', name:'Newton',        field:{tr:'Yer Çekimi & Optik',en:'Gravity & Optics'},          sys:{tr:'Sen Isaac Newton\'sın. Yerçekimini, hareket yasalarını ve optik araştırmalarını anlat. Ciddi, analitik ve titiz bir bilim insanısın.',en:'You are Isaac Newton. Explain gravity, laws of motion and optics analytically.'} },
+  { emoji:'🎭', name:'Shakespeare',   field:{tr:'Tiyatro & Şiir',en:'Theatre & Poetry'},              sys:{tr:'Sen William Shakespeare\'sin. Oyunlarını, karakterlerini, Elisabet dönemi tiyatrosunu anlat. Şiirsel ve dramatik konuş.',en:'You are Shakespeare. Speak poetically about your plays, characters and Elizabethan theatre.'} },
+  { emoji:'🌍', name:'Kopernik',      field:{tr:'Astronomi',en:'Astronomy'},                          sys:{tr:'Sen Nicolaus Copernicus\'sun. Güneş merkezli evreni ve dönemi için ne kadar devrimci bir fikir olduğunu anlat. Temkinli ama kararlı konuş.',en:'You are Copernicus. Explain the heliocentric model and how revolutionary it was.'} },
+  { emoji:'🎵', name:'Beethoven',     field:{tr:'Müzik & Senfoni',en:'Music & Symphony'},             sys:{tr:'Sen Ludwig van Beethoven\'sın. Sağırlığına rağmen besteler yaratmanı, 9. Senfoni\'yi ve müziğe tutkunu anlat. Dramatik ve duygusal konuş.',en:'You are Beethoven. Talk about composing despite deafness and your passion for music.'} },
+  { emoji:'📐', name:'Arşimet',       field:{tr:'Matematik & Fizik',en:'Math & Physics'},             sys:{tr:'Sen Arşimet\'sin. Kaldıraç, pi sayısı ve "Eureka!" anını anlat. Antik Yunan\'ın en büyük matematikçisi olarak konuş.',en:'You are Archimedes. Explain the lever, pi and your famous "Eureka!" moment.'} },
+  { emoji:'🦋', name:'Nikola Tesla',  field:{tr:'Elektrik & İcat',en:'Electricity & Invention'},     sys:{tr:'Sen Nikola Tesla\'sın. Alternatif akım, telsiz iletişim ve hayalindeki icatları anlat. Vizyoner, tutkulu ve hafifçe melankolik konuş.',en:'You are Tesla. Speak about AC power, wireless transmission and your visionary inventions.'} },
+  { emoji:'🌺', name:'Fatih Sultan',  field:{tr:'İstanbul\'un Fethi',en:'Conquest of Constantinople'}, sys:{tr:'Sen Fatih Sultan Mehmet\'sin. İstanbul\'un fethini, stratejini, ilme verdiğin önemi anlat. Güçlü, stratejik ve kültürlü bir hükümdar olarak konuş.',en:'You are Mehmed II the Conqueror. Speak about the conquest of Constantinople and your love of learning.'} },
+  { emoji:'🔭', name:'Galileo',       field:{tr:'Astronomi & Bilim',en:'Astronomy & Science'},        sys:{tr:'Sen Galileo Galilei\'sin. Teleskopla gözlemlerini, engizisyon yargılamasını ve "Yine de dönüyor!" ruhunu anlat. Cesur ve meraklı konuş.',en:'You are Galileo. Talk about your telescope observations, trial and defiant spirit of science.'} }
 ];
 
 function openPersonaMode(){
@@ -12487,11 +12522,11 @@ function openPersonaMode(){
       <span class="pp-field">${isTr?p.field.tr:p.field.en}</span>
     </button>`).join('');
   const html = `
-    <div style="font-size:.85rem;color:rgba(200,190,235,.75);line-height:1.6;margin-bottom:16px">
+    <div style="font-size:.82rem;color:rgba(200,190,235,.75);line-height:1.6;margin-bottom:12px">
       ${isTr?'Bir tarihi kişi seç ve onunla sohbet et. Sorularını birinci ağızdan cevaplayacak!':'Pick a historical figure and chat. They\'ll answer in first person!'}
     </div>
-    <div class="persona-grid">${grid}</div>`;
-  lmBuildModal('🎭', isTr?'Tarihi Kişiyle Sohbet':'Chat with History', isTr?'Kiminle konuşmak istersin?':'Who would you like to talk to?', html, false);
+    <div class="persona-grid" style="grid-template-columns:repeat(3,1fr)">${grid}</div>`;
+  lmBuildModal('🎭', isTr?'Tarihi Kişiyle Sohbet':'Chat with History', isTr?'14 tarihi figür':'14 historical figures', html, false);
 }
 
 let _personaState = null;
@@ -12590,12 +12625,34 @@ async function generateOwnDeckBattle(){
     }
     if(!parsed?.questions?.length) throw new Error('parse failed');
 
-    // Soruları hazırla, battle modalını aç
+    // Soruları hazırla — direkt oda kurma ekranına git (kategori seçimi atla)
     window._pendingOwnDeckQuestions = parsed.questions;
     closeLearnMode();
+
+    // Battle modalını aç ve direkt "Dosyandan Oda Kur" ekranını göster
+    const isTrLocal = isTr;
     if(typeof showBattleModal === 'function'){
       showBattleModal();
-      showToast?.(isTr?'✅ Sorular hazır! Kategori seçip oda kur':'✅ Questions ready! Pick a category & create a room');
+      // Modal açılınca direkt dosyadan oda kurma ekranını göster
+      await new Promise(r => setTimeout(r, 100));
+      const content = document.getElementById('battleModalContent');
+      if(content){
+        battleSelectedCategory = 'general'; // varsayılan kategori
+        battleQuestionCount = parsed.questions.length;
+        content.innerHTML = `
+          <div style="text-align:center;padding:10px 0 4px">
+            <div style="font-size:1.8rem;margin-bottom:8px">⚔️</div>
+            <div style="font-size:.9rem;color:#eaf0ff;font-weight:700;margin-bottom:4px">${deck?.title || (isTrLocal?'Dosyandan Yarışma':'Battle from File')}</div>
+            <div style="font-size:.75rem;color:rgba(77,255,176,.7);margin-bottom:4px">✅ ${parsed.questions.length} ${isTrLocal?'soru hazır':'questions ready'}</div>
+            <div style="font-size:.75rem;color:rgba(200,190,235,.6);line-height:1.5;margin-bottom:18px">${isTrLocal?'Kendi dersinden sorular üretildi. Odayı kur, arkadaşlarını davet et!':'Questions generated from your file. Create a room and invite friends!'}</div>
+            <button id="createRoomBtn" onclick="doCreateRoom()" style="
+              width:100%;padding:14px;border-radius:14px;border:none;
+              background:linear-gradient(135deg,#ff6ec7,#b46bff);
+              color:#070a18;font-weight:800;font-size:.9rem;cursor:pointer;
+              font-family:'Space Grotesk',sans-serif;letter-spacing:.03em;
+            ">🚀 ${isTrLocal?'Odayı Oluştur':'Create Room'}</button>
+          </div>`;
+      }
     }
   } catch(e){
     console.error('generateOwnDeckBattle error:', e);
@@ -12845,6 +12902,63 @@ Be student-friendly, clear and concise.`;
 }
 
 // ──────────────────────────────────────────
+// ──────────────────────────────────────────
+// 🗣️ MÜNAZARA MODU
+// ──────────────────────────────────────────
+let _debateState = null;
+function openDebateMode(){
+  if(!window.currentUser){ showAuthModal?.(()=>openDebateMode()); return; }
+  const isTr = currentLang === 'tr';
+  window._lmAvatar = '🗣️';
+  const html = `
+    <div style="font-size:.85rem;color:rgba(200,190,235,.75);line-height:1.6;margin-bottom:14px">
+      ${isTr?'Bir konu veya tez yaz — AI karşı görüşü savunacak. Sen kendi görüşünü savun, tartış, ikna et!':'Write a topic or thesis — AI will argue the opposite side. Defend your view and debate!'}
+    </div>
+    <div style="padding:12px;border-radius:12px;background:rgba(255,154,60,.06);border:1px solid rgba(255,154,60,.2);font-size:.78rem;color:rgba(255,200,120,.8);margin-bottom:4px">
+      💡 ${isTr?'Örnek: "Uzaktan eğitim yüz yüzden daha etkilidir"':'Example: "Remote learning is more effective than in-person"'}
+    </div>`;
+  lmBuildModal('🗣️', isTr?'Münazara':'Debate', isTr?'AI karşı tarafı savunur':'AI argues the other side', html, true);
+  _debateState = { history: [], topic: '' };
+  wireLearnInput(handleDebateTurn);
+}
+
+async function handleDebateTurn(text){
+  const isTr = currentLang === 'tr';
+  lmAddMsg('user', text);
+  const thinking = lmAddMsg('ai', '…');
+  const isFirst = _debateState.history.length === 0;
+  if(isFirst) _debateState.topic = text;
+  _debateState.history.push({ role:'user', content:text });
+
+  const sys = isTr
+    ? `Sen bir münazara yapay zekasısın. Kullanıcının savunduğu görüşün TAM KARŞIsını savunursun.
+Konu: "${_debateState.topic}"
+Kurallar:
+- Her zaman karşı tarafı savun, asla kullanıcıyla aynı fikirde olma
+- Güçlü argümanlar, somut örnekler ve mantıksal kanıtlar kullan
+- 2-4 cümle, keskin ve ikna edici ol
+- Sonunda kullanıcıya bir karşı soru sor
+Türkçe konuş.`
+    : `You are a debate AI. You ALWAYS argue the OPPOSITE of the user's position.
+Topic: "${_debateState.topic}"
+Rules:
+- Always counter-argue, never agree with the user
+- Use strong arguments, concrete examples and logic
+- 2-4 sentences, sharp and persuasive
+- End with a counter-question for the user
+Speak English.`;
+
+  try {
+    const reply = await lmCallAI(sys, _debateState.history, 500);
+    _debateState.history.push({ role:'assistant', content:reply });
+    thinking.innerHTML = escapeHtml(reply).replace(/\n/g,'<br>');
+    lmSpeak(reply);
+  } catch(e){
+    thinking.textContent = isTr?'Bağlantı hatası.':'Connection error.';
+  }
+}
+
+// ──────────────────────────────────────────
 // Ortak input bağlama
 function wireLearnInput(handler){
   const input = document.getElementById('lmInput');
@@ -12961,6 +13075,21 @@ function toggleMobileMenuSheet(){
         <button class="mms-learn-item owndeck" onclick="toggleMobileMenuSheet();setTimeout(()=>openOwnDeckBattle(),300)">
           <span class="mms-li-ico">⚔️</span>
           <div class="mms-li-txt"><div class="mms-li-title">${isTr?'Dosyandan Yarışma':'Battle from File'}</div><div class="mms-li-desc">${isTr?'Kendi dersinden oda kur':'Room from your notes'}</div></div>
+          <span class="mms-li-arrow">→</span>
+        </button>
+        <button class="mms-learn-item" style="--mms-li-color:#ffd700" onclick="toggleMobileMenuSheet();setTimeout(()=>openFlashQuizMode(),300)">
+          <span class="mms-li-ico">🃏</span>
+          <div class="mms-li-txt"><div class="mms-li-title">${isTr?'Hızlı Quiz':'Flash Quiz'}</div><div class="mms-li-desc">${isTr?'5 soruda kendini test et':'5-question instant test'}</div></div>
+          <span class="mms-li-arrow">→</span>
+        </button>
+        <button class="mms-learn-item" style="--mms-li-color:#4dffb0" onclick="toggleMobileMenuSheet();setTimeout(()=>openSummaryMode(),300)">
+          <span class="mms-li-ico">🧠</span>
+          <div class="mms-li-txt"><div class="mms-li-title">${isTr?'Konu Özeti':'Topic Summary'}</div><div class="mms-li-desc">${isTr?'Yapılandırılmış özet':'Structured summary'}</div></div>
+          <span class="mms-li-arrow">→</span>
+        </button>
+        <button class="mms-learn-item" style="--mms-li-color:#ff9a3c" onclick="toggleMobileMenuSheet();setTimeout(()=>openDebateMode(),300)">
+          <span class="mms-li-ico">🗣️</span>
+          <div class="mms-li-txt"><div class="mms-li-title">${isTr?'Münazara':'Debate'}</div><div class="mms-li-desc">${isTr?'AI karşı tarafı savunur':'AI argues the opposite'}</div></div>
           <span class="mms-li-arrow">→</span>
         </button>
       </div>
