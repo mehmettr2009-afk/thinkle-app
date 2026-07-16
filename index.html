@@ -5478,19 +5478,7 @@
     <button class="learn-mode-card owndeck" onclick="openOwnDeckBattle()">
       <div class="lmc-icon">⚔️</div>
       <div class="lmc-text">
-        <div class="lmc-title tr-text">Dosyandan Yarışma</div>
-        <div class="lmc-title en-text">Battle from File</div>
-        <div class="lmc-desc tr-text">Kendi dersinden oda kur</div>
-        <div class="lmc-desc en-text">Create a room from your notes</div>
-      </div>
-      <span class="lmc-arrow">→</span>
-    </button>
-
-    <!-- Dosyandan Yarışma -->
-    <button class="learn-mode-card owndeck" onclick="openOwnDeckBattle()">
-      <div class="lmc-icon">⚔️</div>
-      <div class="lmc-text">
-        <div class="lmc-title tr-text">Dosyandan Yarışma</div>
+        <div class="lmc-title tr-text">Dosyadan Yarışma</div>
         <div class="lmc-title en-text">Battle from File</div>
         <div class="lmc-desc tr-text">Kendi dersinden oda kur</div>
         <div class="lmc-desc en-text">Create a room from your notes</div>
@@ -12569,42 +12557,72 @@ async function handlePersonaTurn(text){
 function openOwnDeckBattle(){
   if(!window.currentUser){ showAuthModal?.(()=>openOwnDeckBattle()); return; }
   const isTr = currentLang === 'tr';
-  // Deck yüklü mü kontrol et (yerel değişkenler)
   const hasDeck = (deck?.slides?.length > 0) || !!lastSourceText;
-  if(hasDeck){
-    const html = `
-      <div style="text-align:center;padding:14px 0">
-        <div style="font-size:2.5rem;margin-bottom:10px">⚔️</div>
-        <div style="font-size:.9rem;color:#eaf0ff;font-weight:600;margin-bottom:6px">${deck?.title || (isTr?'Yüklü dosyan':'Your file')}</div>
-        <div style="font-size:.82rem;color:rgba(200,190,235,.7);line-height:1.6;margin-bottom:18px">${isTr?'Bu dosyadan yarışma soruları üretip oda kuralım. Arkadaşlarını davet et, kendi dersinizden yarışın!':'Let\'s generate battle questions from this file and create a room. Invite friends!'}</div>
-        <button class="lm-send" style="width:100%;height:48px;font-size:.9rem" onclick="generateOwnDeckBattle()">${isTr?'🎯 Soruları Üret & Oda Kur':'🎯 Generate & Create Room'}</button>
-      </div>`;
-    lmBuildModal('⚔️', isTr?'Dosyandan Yarışma':'Battle from File', isTr?'Kendi dersinden yarış':'Battle from your notes', html, false);
-  } else {
-    const html = `
-      <div style="text-align:center;padding:20px 10px">
-        <div style="font-size:2.5rem;margin-bottom:12px">📄</div>
-        <div style="font-size:.88rem;color:#eaf0ff;font-weight:600;margin-bottom:8px">${isTr?'Önce bir dosya yükle':'Upload a file first'}</div>
-        <div style="font-size:.82rem;color:rgba(200,190,235,.7);line-height:1.6;margin-bottom:20px">${isTr?'Kendi dersinden yarışma yapmak için önce bir PDF, Word veya metin dosyası yükle. Sonra o dosyadan otomatik yarışma soruları üretelim!':'To battle from your own notes, upload a PDF, Word or text file. Then we\'ll auto-generate battle questions!'}</div>
-        <button class="lm-send" style="width:100%;height:48px;font-size:.9rem" onclick="closeLearnMode();document.querySelector('.dropzone')?.scrollIntoView({behavior:'smooth',block:'center'});document.querySelector('.dropzone')?.click()">${isTr?'📎 Dosya Yükle':'📎 Upload File'}</button>
-      </div>`;
-    lmBuildModal('⚔️', isTr?'Dosyandan Yarışma':'Battle from File', isTr?'Dosya gerekli':'File needed', html, false);
+  const deckName = deck?.title || (isTr?'Yüklü dosyan':'Your file');
+
+  const html = `
+    <div style="display:flex;flex-direction:column;gap:12px">
+      ${hasDeck ? `
+      <div style="padding:12px 14px;border-radius:12px;background:rgba(77,255,176,.07);border:1px solid rgba(77,255,176,.2)">
+        <div style="font-size:.7rem;color:rgba(77,255,176,.6);font-family:'Space Mono',monospace;margin-bottom:3px">✅ ${isTr?'Mevcut dosya':'Current file'}</div>
+        <div style="font-size:.85rem;color:#eaf0ff;font-weight:600">${escapeHtml(deckName)}</div>
+      </div>
+      <button class="lm-send" style="width:100%;height:48px;font-size:.9rem" onclick="generateOwnDeckBattle(null)">⚔️ ${isTr?'Bu dosyadan yarışma soruları üret':'Generate battle questions from this file'}</button>
+      <div style="text-align:center;font-size:.7rem;color:rgba(180,160,255,.4);font-family:'Space Mono',monospace">${isTr?'— veya farklı dosya seç —':'— or pick a different file —'}</div>
+      ` : ''}
+      <label id="lmDropzone" style="
+        display:flex;flex-direction:column;align-items:center;gap:10px;
+        padding:22px 16px;border-radius:16px;cursor:pointer;
+        border:2px dashed rgba(180,107,255,.3);background:rgba(180,107,255,.04);
+        transition:all .2s;
+      " onmouseover="this.style.borderColor='rgba(180,107,255,.6)';this.style.background='rgba(180,107,255,.08)'"
+         onmouseout="this.style.borderColor='rgba(180,107,255,.3)';this.style.background='rgba(180,107,255,.04)'">
+        <div style="font-size:2rem">📎</div>
+        <div style="font-size:.85rem;font-weight:600;color:#eaf0ff">${isTr?'Dosya seç':'Pick a file'}</div>
+        <div style="font-size:.7rem;color:rgba(180,160,255,.5)">${isTr?'PDF, Word, TXT, Excel':'PDF, Word, TXT, Excel'}</div>
+        <input type="file" id="lmFileInput" accept=".pdf,.docx,.txt,.xlsx,.csv" style="display:none" onchange="handleLmFileForBattle(this)">
+      </label>
+      <div id="lmFileStatus" style="display:none;font-size:.8rem;text-align:center;color:rgba(200,190,235,.7)"></div>
+    </div>`;
+
+  lmBuildModal('⚔️', isTr?'Dosyadan Yarışma':'Battle from File', isTr?'Kendi dersinden oda kur':'Create a room from your notes', html, false);
+  // Label'a click yönlendirmesi
+  setTimeout(() => {
+    const lbl = document.getElementById('lmDropzone');
+    const inp = document.getElementById('lmFileInput');
+    if(lbl && inp) lbl.onclick = () => inp.click();
+  }, 100);
+}
+
+async function handleLmFileForBattle(input){
+  const file = input.files?.[0];
+  if(!file) return;
+  const isTr = currentLang === 'tr';
+  const status = document.getElementById('lmFileStatus');
+  if(status){ status.style.display='block'; status.textContent = isTr?'Dosya okunuyor…':'Reading file…'; }
+  try {
+    const text = await extractText(file);
+    if(!text?.trim()) throw new Error(isTr?'Dosyada okunabilir metin yok':'No readable text in file');
+    if(status){ status.textContent = isTr?'Sorular üretiliyor…':'Generating questions…'; }
+    await generateOwnDeckBattle(text);
+  } catch(e){
+    if(status){ status.style.color='rgba(255,120,120,.8)'; status.textContent = e.message||'Hata'; }
   }
 }
 
-async function generateOwnDeckBattle(){
+async function generateOwnDeckBattle(externalText){
   const isTr = currentLang === 'tr';
   const body = document.getElementById('lmBody');
   if(!body) return;
   body.innerHTML = `<div style="text-align:center;padding:30px 10px">
     <div style="width:44px;height:44px;border:3px solid rgba(180,107,255,.2);border-top-color:#b46bff;border-radius:50%;animation:spin .8s linear infinite;margin:0 auto 16px"></div>
-    <div style="font-size:.85rem;color:rgba(200,190,235,.75)">${isTr?'Dosyandan yarışma soruları üretiliyor…':'Generating battle questions from your file…'}</div>
+    <div style="font-size:.85rem;color:rgba(200,190,235,.75)">${isTr?'Yarışma soruları üretiliyor…':'Generating battle questions…'}</div>
   </div>`;
 
   try {
-    const source = lastSourceText || (deck?.slides||[]).map(s=>s.title+' '+(s.bullets||[]).join(' ')).join('\n');
+    const source = externalText || lastSourceText || (deck?.slides||[]).map(s=>s.title+' '+(s.bullets||[]).join(' ')).join('\n');
     const src = (source||'').slice(0, 8000);
-    if(!src.trim()) throw new Error('empty source');
+    if(!src.trim()) throw new Error(isTr?'Kaynak metin bulunamadı':'No source text found');
 
     const sys = isTr
       ? 'Verilen ders içeriğinden 8 adet çoktan seçmeli yarışma sorusu üret. SADECE aşağıdaki JSON formatında yanıt ver, başka hiçbir şey yazma:\n{"questions":[{"question":"soru metni","options":["A seçeneği","B seçeneği","C seçeneği","D seçeneği"],"answerIndex":0}]}\nanswerIndex 0-3 arası doğru cevabın index\'i. Sorular içerikle ilgili, net ve tek doğru cevaplı olsun.'
@@ -12674,25 +12692,57 @@ function openFlashQuizMode(){
   if(!window.currentUser){ showAuthModal?.(()=>openFlashQuizMode()); return; }
   const isTr = currentLang === 'tr';
   const hasDeck = (deck?.slides?.length > 0) || !!lastSourceText;
+  const deckName = deck?.title || (isTr?'Yüklü dosyan':'Your file');
 
-  const html = hasDeck ? `
-    <div style="text-align:center;padding:10px 0 4px">
-      <div style="font-size:2.5rem;margin-bottom:10px">🃏</div>
-      <div style="font-size:.88rem;color:#eaf0ff;font-weight:600;margin-bottom:6px">${deck?.title || (isTr?'Yüklü dosyan':'Your file')}</div>
-      <div style="font-size:.8rem;color:rgba(200,190,235,.7);line-height:1.6;margin-bottom:20px">${isTr?'Dosyandan 5 soruluk anlık quiz oluşturalım. Sınav havasında, zamanlı!':'Let\'s create a 5-question instant quiz from your file. Timed!'}</div>
-      <button class="lm-send" style="width:100%;height:48px;font-size:.9rem" onclick="startFlashQuiz()">${isTr?'🚀 Quizi Başlat':'🚀 Start Quiz'}</button>
-    </div>` : `
-    <div style="text-align:center;padding:16px 10px">
-      <div style="font-size:2rem;margin-bottom:10px">📄</div>
-      <div style="font-size:.88rem;color:#eaf0ff;margin-bottom:6px">${isTr?'Önce dosya yükle':'Upload a file first'}</div>
-      <div style="font-size:.78rem;color:rgba(200,190,235,.6);margin-bottom:16px">${isTr?'Hızlı quiz için dosya yüklemen gerekiyor.':'You need to upload a file for flash quiz.'}</div>
-      <button class="lm-send" style="width:100%;height:44px" onclick="closeLearnMode();document.querySelector('.dropzone')?.scrollIntoView({behavior:'smooth'});document.querySelector('.dropzone')?.click()">${isTr?'📎 Dosya Yükle':'📎 Upload File'}</button>
+  const html = `
+    <div style="display:flex;flex-direction:column;gap:12px">
+      ${hasDeck ? `
+      <div style="padding:12px 14px;border-radius:12px;background:rgba(255,215,0,.07);border:1px solid rgba(255,215,0,.2)">
+        <div style="font-size:.7rem;color:rgba(255,215,0,.6);font-family:'Space Mono',monospace;margin-bottom:3px">✅ ${isTr?'Mevcut dosya':'Current file'}</div>
+        <div style="font-size:.85rem;color:#eaf0ff;font-weight:600">${escapeHtml(deckName)}</div>
+      </div>
+      <button class="lm-send" style="width:100%;height:48px;font-size:.9rem;background:linear-gradient(135deg,#ffd700,#ff9a3c);color:#04010e" onclick="startFlashQuiz(null)">🚀 ${isTr?'Bu dosyadan quiz başlat':'Start quiz from this file'}</button>
+      <div style="text-align:center;font-size:.7rem;color:rgba(180,160,255,.4);font-family:'Space Mono',monospace">${isTr?'— veya farklı dosya seç —':'— or pick a different file —'}</div>
+      ` : ''}
+      <label id="lmDropzoneQ" style="
+        display:flex;flex-direction:column;align-items:center;gap:10px;
+        padding:22px 16px;border-radius:16px;cursor:pointer;
+        border:2px dashed rgba(255,215,0,.3);background:rgba(255,215,0,.04);
+        transition:all .2s;
+      " onmouseover="this.style.borderColor='rgba(255,215,0,.6)';this.style.background='rgba(255,215,0,.08)'"
+         onmouseout="this.style.borderColor='rgba(255,215,0,.3)';this.style.background='rgba(255,215,0,.04)'">
+        <div style="font-size:2rem">📄</div>
+        <div style="font-size:.85rem;font-weight:600;color:#eaf0ff">${isTr?'Dosya seç':'Pick a file'}</div>
+        <div style="font-size:.7rem;color:rgba(255,215,0,.5)">PDF · Word · TXT · Excel</div>
+        <input type="file" id="lmFileInputQ" accept=".pdf,.docx,.txt,.xlsx,.csv" style="display:none" onchange="handleLmFileForQuiz(this)">
+      </label>
+      <div id="lmQuizFileStatus" style="display:none;font-size:.8rem;text-align:center;color:rgba(200,190,235,.7)"></div>
     </div>`;
 
   lmBuildModal('🃏', isTr?'Hızlı Quiz':'Flash Quiz', isTr?'5 soruda kendini test et':'Test yourself in 5 questions', html, false);
+  setTimeout(() => {
+    const lbl = document.getElementById('lmDropzoneQ');
+    const inp = document.getElementById('lmFileInputQ');
+    if(lbl && inp) lbl.onclick = () => inp.click();
+  }, 100);
 }
 
-async function startFlashQuiz(){
+async function handleLmFileForQuiz(input){
+  const file = input.files?.[0];
+  if(!file) return;
+  const isTr = currentLang === 'tr';
+  const status = document.getElementById('lmQuizFileStatus');
+  if(status){ status.style.display='block'; status.textContent = isTr?'Dosya okunuyor…':'Reading file…'; }
+  try {
+    const text = await extractText(file);
+    if(!text?.trim()) throw new Error(isTr?'Dosyada metin yok':'No text in file');
+    await startFlashQuiz(text);
+  } catch(e){
+    if(status){ status.style.color='rgba(255,120,120,.8)'; status.textContent = e.message||'Hata'; }
+  }
+}
+
+async function startFlashQuiz(externalText){
   const isTr = currentLang === 'tr';
   const body = document.getElementById('lmBody');
   if(!body) return;
@@ -12701,7 +12751,8 @@ async function startFlashQuiz(){
     <div style="font-size:.82rem;color:rgba(200,190,235,.75)">${isTr?'Sorular hazırlanıyor…':'Preparing questions…'}</div>
   </div>`;
   try {
-    const source = (lastSourceText || (deck?.slides||[]).map(s=>s.title+' '+(s.bullets||[]).join(' ')).join('\n')).slice(0, 6000);
+    const source = (externalText || lastSourceText || (deck?.slides||[]).map(s=>s.title+' '+(s.bullets||[]).join(' ')).join('\n')).slice(0, 6000);
+    if(!source?.trim()) throw new Error(isTr?'Kaynak metin bulunamadı':'No source text');
     const sys = isTr
       ? 'Verilen içerikten 5 çoktan seçmeli soru üret. SADECE JSON dön:\n{"questions":[{"question":"...","options":["A","B","C","D"],"answerIndex":0,"explanation":"kısa açıklama"}]}'
       : 'Generate 5 multiple-choice questions. Return ONLY JSON:\n{"questions":[{"question":"...","options":["A","B","C","D"],"answerIndex":0,"explanation":"brief explanation"}]}';
@@ -12816,12 +12867,56 @@ function openSummaryMode(){
   if(!window.currentUser){ showAuthModal?.(()=>openSummaryMode()); return; }
   const isTr = currentLang === 'tr';
   const html = `
-    <div style="font-size:.85rem;color:rgba(200,190,235,.75);line-height:1.6;margin-bottom:14px">
-      ${isTr?'Bir konu yaz — AI onu yapılandırılmış, anlaşılır bir özete dönüştürsün. Madde madde, bağlantılı.':'Write a topic — AI will turn it into a structured, clear summary with key points and connections.'}
+    <div style="font-size:.82rem;color:rgba(200,190,235,.75);line-height:1.6;margin-bottom:10px">
+      ${isTr?'Bir konu yaz veya dosya yükle — AI yapılandırılmış özet çıkarsın.':'Write a topic or upload a file — AI creates a structured summary.'}
     </div>
-    <div id="summaryResult" style="display:none"></div>`;
+    <div id="summaryResult" style="display:none"></div>
+    <!-- Dosya yükleme seçeneği -->
+    <div style="margin-bottom:10px">
+      <label id="lmDropzoneS" style="
+        display:flex;align-items:center;gap:10px;
+        padding:11px 13px;border-radius:12px;cursor:pointer;
+        border:1.5px dashed rgba(77,255,176,.25);background:rgba(77,255,176,.04);
+        transition:all .2s;
+      " onmouseover="this.style.borderColor='rgba(77,255,176,.5)'"
+         onmouseout="this.style.borderColor='rgba(77,255,176,.25)'">
+        <span style="font-size:1.2rem">📎</span>
+        <div style="flex:1">
+          <div style="font-size:.78rem;color:#eaf0ff;font-weight:600">${isTr?'Dosyadan özet al':'Summarize from file'}</div>
+          <div style="font-size:.62rem;color:rgba(77,255,176,.5)">PDF · Word · TXT</div>
+        </div>
+        <span style="font-size:.7rem;color:rgba(77,255,176,.5)">→</span>
+        <input type="file" id="lmFileInputS" accept=".pdf,.docx,.txt,.xlsx,.csv" style="display:none" onchange="handleLmFileForSummary(this)">
+      </label>
+      <div id="lmSummaryFileStatus" style="display:none;font-size:.75rem;color:rgba(200,190,235,.6);padding:4px 6px"></div>
+    </div>
+    <div style="font-size:.65rem;color:rgba(180,160,255,.35);text-align:center;font-family:'Space Mono',monospace;margin-bottom:4px">${isTr?'— veya konu yaz —':'— or type a topic below —'}</div>`;
+
   lmBuildModal('🧠', isTr?'Konu Özeti':'Topic Summary', isTr?'Yapılandırılmış öğrenme':'Structured learning', html, true);
+
+  setTimeout(() => {
+    const lbl = document.getElementById('lmDropzoneS');
+    const inp = document.getElementById('lmFileInputS');
+    if(lbl && inp) lbl.onclick = () => inp.click();
+  }, 100);
   wireLearnInput(handleSummaryMode);
+}
+
+async function handleLmFileForSummary(input){
+  const file = input.files?.[0];
+  if(!file) return;
+  const isTr = currentLang === 'tr';
+  const status = document.getElementById('lmSummaryFileStatus');
+  if(status){ status.style.display='block'; status.textContent = isTr?'Dosya okunuyor…':'Reading file…'; }
+  try {
+    const text = await extractText(file);
+    if(!text?.trim()) throw new Error(isTr?'Dosyada metin yok':'No text in file');
+    if(status) status.textContent = isTr?'Özet üretiliyor…':'Generating summary…';
+    await handleSummaryMode(isTr ? `Bu dosyayı özetle: ${file.name}\n\n${text.slice(0,8000)}` : `Summarize this file: ${file.name}\n\n${text.slice(0,8000)}`);
+    if(status) status.style.display='none';
+  } catch(e){
+    if(status){ status.style.color='rgba(255,120,120,.8)'; status.textContent = e.message||'Hata'; }
+  }
 }
 
 async function handleSummaryMode(text){
