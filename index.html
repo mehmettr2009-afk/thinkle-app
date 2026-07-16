@@ -14,14 +14,12 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js"></script>
 <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
 <script src="https://cdn.jsdelivr.net/gh/gitbrent/pptxgenjs@3.12.0/dist/pptxgen.bundle.js"></script>
-<!-- Three.js — sadece PC'de 3D güneş için (mobilde yüklenmez) -->
+<!-- Three.js — 3D güneş (PC tam kalite, mobilde hafif) -->
 <script>
-  if(window.innerWidth > 860){
-    var _threeScript = document.createElement('script');
-    _threeScript.src = 'https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js';
-    _threeScript.onload = function(){ window._threeReady = true; if(window._initSun3D) window._initSun3D(); };
-    document.head.appendChild(_threeScript);
-  }
+  var _threeScript = document.createElement('script');
+  _threeScript.src = 'https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js';
+  _threeScript.onload = function(){ window._threeReady = true; if(window._initSun3D) window._initSun3D(); };
+  document.head.appendChild(_threeScript);
 </script>
 <!-- Firebase -->
 <script type="module">
@@ -1805,6 +1803,9 @@
   }
   .learn-mode-card.feynman::before{ background:linear-gradient(180deg,#4dffb0,#6ee7ff); }
   .learn-mode-card.askllm::before{ background:linear-gradient(180deg,#6ee7ff,#b46bff); }
+  /* Yeni kartlar için custom property renk desteği */
+  .learn-mode-card[style*="--lmc-color:#ffd700"]::before{ background:linear-gradient(180deg,#ffd700,#ff9a3c); }
+  .learn-mode-card[style*="--lmc-color:#4dffb0"]::before{ background:linear-gradient(180deg,#4dffb0,#6ee7ff); }
   .learn-mode-card.persona::before{ background:linear-gradient(180deg,#ffd700,#ff9a3c); }
   .learn-mode-card.owndeck::before{ background:linear-gradient(180deg,#ff6ec7,#b46bff); }
   .learn-mode-card:hover{
@@ -3661,14 +3662,14 @@
     .quiz-result .score-num{ font-size:2rem; }
 
     #space{ z-index:0 !important; }
-    .sol{ width:30px !important; height:30px !important; }
+    .sol{ width:52px !important; height:52px !important; }
     .orbit-container{ z-index:6 !important; }
   }
 
   @media (max-width: 480px){
     .upload-screen h1{ font-size:1.05rem; }
     .logo-swim{ width:55px; height:55px; }
-    .sol{ width:24px !important; height:24px !important; }
+    .sol{ width:44px !important; height:44px !important; }
     .slide-card h2{ font-size:.92rem; }
   }
   /* Floating AI button — only shown on mobile via JS */
@@ -5429,6 +5430,30 @@
         <div class="lmc-title en-text">Battle from File</div>
         <div class="lmc-desc tr-text">Kendi dersinden oda kur</div>
         <div class="lmc-desc en-text">Create a room from your notes</div>
+      </div>
+      <span class="lmc-arrow">→</span>
+    </button>
+
+    <!-- Hızlı Quiz -->
+    <button class="learn-mode-card" style="--lmc-color:#ffd700" onclick="openFlashQuizMode()">
+      <div class="lmc-icon">🃏</div>
+      <div class="lmc-text">
+        <div class="lmc-title tr-text">Hızlı Quiz</div>
+        <div class="lmc-title en-text">Flash Quiz</div>
+        <div class="lmc-desc tr-text">5 soruda kendinizi test edin</div>
+        <div class="lmc-desc en-text">Test yourself in 5 questions</div>
+      </div>
+      <span class="lmc-arrow">→</span>
+    </button>
+
+    <!-- Konu Özeti -->
+    <button class="learn-mode-card" style="--lmc-color:#4dffb0" onclick="openSummaryMode()">
+      <div class="lmc-icon">🧠</div>
+      <div class="lmc-text">
+        <div class="lmc-title tr-text">Konu Özeti</div>
+        <div class="lmc-title en-text">Topic Summary</div>
+        <div class="lmc-desc tr-text">Konuyu yapılandır, özetle</div>
+        <div class="lmc-desc en-text">Structure & summarize a topic</div>
       </div>
       <span class="lmc-arrow">→</span>
     </button>
@@ -9042,24 +9067,21 @@ if(_spaceForSol){
 // 🌟 3D GÜNEŞ (Three.js — sadece PC, shader tabanlı lav küresi)
 // ============================================================
 window._initSun3D = function(){
-  if(IS_MOBILE || !window.THREE || window._sun3DActive) return;
+  if(!window.THREE || window._sun3DActive) return;
   const THREE = window.THREE;
   window._sun3DActive = true;
+  const isMob = window.innerWidth <= 860;
 
-  // sol div'i taşmayı gizlesin, yuvarlak kalsın
   solEl.style.overflow = 'visible';
-
-  // Canvas tam güneş boyutunda (taşma yok), yüzün arkasında
   const canvas = document.createElement('canvas');
   canvas.id = 'sun3dCanvas';
   canvas.style.cssText = 'position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:100%;height:100%;pointer-events:none;z-index:1;border-radius:50%;';
   solEl.insertBefore(canvas, solEl.firstChild);
-  // CSS güneş gradyanını kaldır — 3D devralıyor ama glow (box-shadow) kalsın
   solEl.style.background = 'transparent';
 
-  const renderer = new THREE.WebGLRenderer({ canvas, alpha:true, antialias:true });
-  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-  const size = 128;
+  const renderer = new THREE.WebGLRenderer({ canvas, alpha:true, antialias:!isMob });
+  renderer.setPixelRatio(isMob ? 1 : Math.min(window.devicePixelRatio, 2));
+  const size = isMob ? 88 : 128;
   renderer.setSize(size, size, false);
 
   const scene = new THREE.Scene();
@@ -9100,13 +9122,16 @@ window._initSun3D = function(){
       }
     `
   });
-  const sun = new THREE.Mesh(new THREE.SphereGeometry(1, 64, 64), sunMat);
+  const sphereSegs = isMob ? 32 : 64;
+  const sun = new THREE.Mesh(new THREE.SphereGeometry(1, sphereSegs, sphereSegs), sunMat);
   scene.add(sun);
-  // Glow küresi KALDIRILDI — box-shadow zaten glow veriyor, 3D glow taşıyordu
 
   let raf, t0 = performance.now();
+  // Mobilde daha yavaş animasyon döngüsü
+  let frameSkip = 0;
   function animate(){
     raf = requestAnimationFrame(animate);
+    if(isMob && frameSkip++ % 2 !== 0) return; // mobilde her 2 frame'de bir render
     const el = (performance.now() - t0) / 1000;
     sunMat.uniforms.uTime.value = el;
     sun.rotation.y = el * 0.15;
@@ -12032,65 +12057,73 @@ function lmSpeak(text){
   if(!window._ttsSettings.enabled || !window.speechSynthesis) return;
   try {
     window.speechSynthesis.cancel();
-    const clean = text.replace(/[*_#`[\]>]/g,'').replace(/\n+/g,'. ').trim();
+    const clean = text
+      .replace(/[*_#`[\]>]/g,'')
+      .replace(/\n\n+/g,'. ')
+      .replace(/\n/g,' ')
+      .replace(/\s+/g,' ')
+      .trim();
     if(!clean) return;
-    const utter = new SpeechSynthesisUtterance(clean);
-    utter.lang = currentLang === 'tr' ? 'tr-TR' : 'en-US';
-    utter.rate  = window._ttsSettings.rate  || 1;
-    utter.pitch = window._ttsSettings.pitch || 1;
 
-    const voices = window.speechSynthesis.getVoices();
-    const g = window._ttsSettings.gender || 'female';
     const isTr = currentLang === 'tr';
+    const g = window._ttsSettings.gender || 'female';
+    const voices = window.speechSynthesis.getVoices();
 
-    // Öncelik sırası: Google Online > Google > Microsoft Online > diğer
+    // Ses seçim skoru
     const scoreVoice = (v) => {
       const n = v.name.toLowerCase();
       let s = 0;
-      // Dil eşleşmesi
       if(isTr && v.lang.startsWith('tr')) s += 100;
       if(!isTr && v.lang.startsWith('en')) s += 100;
-      // Online (Wavenet/Premium) sesler çok daha kaliteli
-      if(v.localService === false) s += 50; // online/cloud
+      if(v.localService === false) s += 50;
       if(/google/.test(n)) s += 30;
       if(/premium|wavenet|neural|natural/.test(n)) s += 25;
-      if(/microsoft|zira|hazel|hedda|stefan|tolga|filiz/.test(n)) s += 15;
-      // Cinsiyet eşleşmesi
-      if(g === 'female') {
+      if(g === 'female'){
         if(/female|woman|zira|filiz|yelda|hazel|samantha|karen|moira|fiona|victoria/.test(n)) s += 40;
-        // Türkçe için Google Türkçe sesi genellikle kadın
-        if(isTr && /google.*tr|google.*türk|google.*turkish/.test(n)) s += 20;
+        if(isTr && /google.*tr|google.*türk/.test(n)) s += 20;
       } else {
-        if(/male|man|david|daniel|alex|thomas|stefan|tolga|erkek/.test(n)) s += 40;
-        if(!(/female|woman|zira|filiz/).test(n) && g === 'male') s += 10;
+        if(/^(male|man|david|daniel|alex|thomas|stefan|tolga|mark)/.test(n)) s += 40;
       }
       return s;
     };
 
-    const langVoices = voices.filter(v =>
-      isTr ? v.lang.toLowerCase().startsWith('tr') : v.lang.toLowerCase().startsWith('en')
-    );
+    const langVoices = voices.filter(v => isTr ? v.lang.startsWith('tr') : v.lang.startsWith('en'));
+    const bestVoice = langVoices.length
+      ? [...langVoices].sort((a,b) => scoreVoice(b)-scoreVoice(a))[0]
+      : null;
 
-    if(langVoices.length) {
-      const sorted = [...langVoices].sort((a,b) => scoreVoice(b) - scoreVoice(a));
-      utter.voice = sorted[0];
+    // Türkçede sadece Tolga varsa pitch/rate ile optimize et
+    const isMicrosoft = bestVoice && /microsoft/i.test(bestVoice.name);
+    let rate = window._ttsSettings.rate || 1;
+    let pitch = window._ttsSettings.pitch || 1;
+    if(isMicrosoft && isTr){
+      // Tolga için: biraz yavaşlat ve pitch'i hafif düşür, daha doğal çıkar
+      rate = Math.min(rate, 0.9);
+      pitch = g === 'female' ? Math.min(pitch + 0.15, 1.5) : Math.max(pitch - 0.05, 0.85);
     }
 
-    window.speechSynthesis.speak(utter);
-    window._ttsCurrentUtter = utter;
-
-    // Chrome bug: uzun metinlerde konuşma durabilir, interval ile canlı tut
-    const keepAlive = setInterval(() => {
-      if(!window.speechSynthesis.speaking) { clearInterval(keepAlive); return; }
-      window.speechSynthesis.pause();
-      window.speechSynthesis.resume();
-    }, 10000);
-    utter.onend = () => clearInterval(keepAlive);
-    utter.onerror = () => clearInterval(keepAlive);
+    // Cümle bazlı okuma — daha doğal duraklamalar
+    const sentences = clean.match(/[^.!?]+[.!?]*/g) || [clean];
+    let i = 0;
+    const speakNext = () => {
+      if(i >= sentences.length || !window._ttsSettings.enabled) return;
+      const s = sentences[i++].trim();
+      if(!s) { speakNext(); return; }
+      const utter = new SpeechSynthesisUtterance(s);
+      utter.lang = isTr ? 'tr-TR' : 'en-US';
+      utter.rate = rate;
+      utter.pitch = pitch;
+      if(bestVoice) utter.voice = bestVoice;
+      utter.onend = speakNext;
+      utter.onerror = () => {};
+      window.speechSynthesis.speak(utter);
+      window._ttsCurrentUtter = utter;
+    };
+    speakNext();
 
   } catch(e){ console.warn('TTS error:', e); }
 }
-function lmStopSpeak(){ try { window.speechSynthesis?.cancel(); } catch(e){} }
+function lmStopSpeak(){ try { window.speechSynthesis?.cancel(); window._ttsSettings._speaking = false; } catch(e){} }
 
 // Ses ayarları modalı
 function openVoiceSettings(){
@@ -12478,6 +12511,243 @@ async function generateOwnDeckBattle(){
   }
 }
 
+// ──────────────────────────────────────────
+// 🃏 HIZLI QUIZ MODU
+// ──────────────────────────────────────────
+let _flashQuiz = null;
+
+function openFlashQuizMode(){
+  if(!window.currentUser){ showAuthModal?.(()=>openFlashQuizMode()); return; }
+  const isTr = currentLang === 'tr';
+  const hasDeck = (deck?.slides?.length > 0) || !!lastSourceText;
+
+  const html = hasDeck ? `
+    <div style="text-align:center;padding:10px 0 4px">
+      <div style="font-size:2.5rem;margin-bottom:10px">🃏</div>
+      <div style="font-size:.88rem;color:#eaf0ff;font-weight:600;margin-bottom:6px">${deck?.title || (isTr?'Yüklü dosyan':'Your file')}</div>
+      <div style="font-size:.8rem;color:rgba(200,190,235,.7);line-height:1.6;margin-bottom:20px">${isTr?'Dosyandan 5 soruluk anlık quiz oluşturalım. Sınav havasında, zamanlı!':'Let\'s create a 5-question instant quiz from your file. Timed!'}</div>
+      <button class="lm-send" style="width:100%;height:48px;font-size:.9rem" onclick="startFlashQuiz()">${isTr?'🚀 Quizi Başlat':'🚀 Start Quiz'}</button>
+    </div>` : `
+    <div style="text-align:center;padding:16px 10px">
+      <div style="font-size:2rem;margin-bottom:10px">📄</div>
+      <div style="font-size:.88rem;color:#eaf0ff;margin-bottom:6px">${isTr?'Önce dosya yükle':'Upload a file first'}</div>
+      <div style="font-size:.78rem;color:rgba(200,190,235,.6);margin-bottom:16px">${isTr?'Hızlı quiz için dosya yüklemen gerekiyor.':'You need to upload a file for flash quiz.'}</div>
+      <button class="lm-send" style="width:100%;height:44px" onclick="closeLearnMode();document.querySelector('.dropzone')?.scrollIntoView({behavior:'smooth'});document.querySelector('.dropzone')?.click()">${isTr?'📎 Dosya Yükle':'📎 Upload File'}</button>
+    </div>`;
+
+  lmBuildModal('🃏', isTr?'Hızlı Quiz':'Flash Quiz', isTr?'5 soruda kendini test et':'Test yourself in 5 questions', html, false);
+}
+
+async function startFlashQuiz(){
+  const isTr = currentLang === 'tr';
+  const body = document.getElementById('lmBody');
+  if(!body) return;
+  body.innerHTML = `<div style="text-align:center;padding:30px 10px">
+    <div style="width:40px;height:40px;border:3px solid rgba(255,215,0,.2);border-top-color:#ffd700;border-radius:50%;animation:spin .8s linear infinite;margin:0 auto 12px"></div>
+    <div style="font-size:.82rem;color:rgba(200,190,235,.75)">${isTr?'Sorular hazırlanıyor…':'Preparing questions…'}</div>
+  </div>`;
+  try {
+    const source = (lastSourceText || (deck?.slides||[]).map(s=>s.title+' '+(s.bullets||[]).join(' ')).join('\n')).slice(0, 6000);
+    const sys = isTr
+      ? 'Verilen içerikten 5 çoktan seçmeli soru üret. SADECE JSON dön:\n{"questions":[{"question":"...","options":["A","B","C","D"],"answerIndex":0,"explanation":"kısa açıklama"}]}'
+      : 'Generate 5 multiple-choice questions. Return ONLY JSON:\n{"questions":[{"question":"...","options":["A","B","C","D"],"answerIndex":0,"explanation":"brief explanation"}]}';
+    const raw = await lmCallAI(sys, [{role:'user', content:source}], 2000);
+    let parsed = null;
+    for(const fn of [()=>JSON.parse(raw), ()=>JSON.parse(raw.replace(/```json|```/g,'')), ()=>JSON.parse((raw.match(/\{[\s\S]*\}/)||['{}'])[0])]){
+      try{ parsed = fn(); if(parsed?.questions?.length) break; }catch(e2){}
+    }
+    if(!parsed?.questions?.length) throw new Error('no questions');
+    _flashQuiz = { questions: parsed.questions, current: 0, score: 0, answered: false };
+    renderFlashQuestion();
+  } catch(e){
+    body.innerHTML = `<div style="text-align:center;padding:20px"><div style="font-size:1.5rem;margin-bottom:8px">😕</div><div style="font-size:.82rem;color:rgba(255,150,150,.8)">${isTr?'Soru üretilemedi.':'Couldn\'t generate questions.'}</div><button class="lm-send" style="margin-top:12px;padding:0 20px;height:40px" onclick="startFlashQuiz()">${isTr?'↺ Tekrar':'↺ Retry'}</button></div>`;
+  }
+}
+
+function renderFlashQuestion(){
+  const body = document.getElementById('lmBody');
+  if(!body || !_flashQuiz) return;
+  const isTr = currentLang === 'tr';
+  const { questions, current, score } = _flashQuiz;
+  const q = questions[current];
+  const progress = `${current+1}/${questions.length}`;
+
+  body.innerHTML = `
+    <div style="margin-bottom:12px">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+        <span style="font-size:.65rem;font-family:'Space Mono',monospace;color:rgba(255,215,0,.7)">${progress}</span>
+        <span style="font-size:.65rem;font-family:'Space Mono',monospace;color:rgba(77,255,176,.7)">⭐ ${score}</span>
+      </div>
+      <div style="height:4px;background:rgba(255,255,255,.08);border-radius:2px">
+        <div style="height:100%;width:${((current)/questions.length*100).toFixed(0)}%;background:linear-gradient(90deg,#ffd700,#ff9a3c);border-radius:2px;transition:width .3s"></div>
+      </div>
+    </div>
+    <div style="font-size:.9rem;color:#eaf0ff;font-weight:600;line-height:1.55;margin-bottom:14px">${escapeHtml(q.question)}</div>
+    <div style="display:flex;flex-direction:column;gap:8px" id="fqOptions">
+      ${q.options.map((opt,i)=>`
+        <button type="button" class="fq-opt" data-idx="${i}" onclick="answerFlashQuiz(${i})" style="
+          display:flex;align-items:center;gap:10px;padding:11px 13px;border-radius:12px;
+          border:1.5px solid rgba(255,215,0,.2);background:rgba(255,215,0,.04);
+          cursor:pointer;text-align:left;color:#eaf0ff;font-family:'Space Grotesk',sans-serif;font-size:.82rem;
+          transition:all .15s;-webkit-tap-highlight-color:transparent;
+        ">
+          <span style="width:22px;height:22px;border-radius:50%;border:1.5px solid rgba(255,215,0,.4);display:flex;align-items:center;justify-content:center;font-size:.65rem;font-family:'Space Mono',monospace;flex-shrink:0;color:rgba(255,215,0,.7)">${'ABCD'[i]}</span>
+          ${escapeHtml(opt)}
+        </button>`).join('')}
+    </div>`;
+}
+
+function answerFlashQuiz(chosenIdx){
+  if(!_flashQuiz || _flashQuiz.answered) return;
+  _flashQuiz.answered = true;
+  const isTr = currentLang === 'tr';
+  const q = _flashQuiz.questions[_flashQuiz.current];
+  const correct = q.answerIndex;
+  const isRight = chosenIdx === correct;
+  if(isRight) _flashQuiz.score++;
+
+  // Butonları renklendir
+  document.querySelectorAll('.fq-opt').forEach((btn, i) => {
+    btn.style.cursor = 'default';
+    if(i === correct) { btn.style.background='rgba(77,255,176,.15)'; btn.style.borderColor='rgba(77,255,176,.5)'; }
+    if(i === chosenIdx && !isRight) { btn.style.background='rgba(255,80,80,.12)'; btn.style.borderColor='rgba(255,80,80,.4)'; }
+    btn.onclick = null;
+  });
+
+  // Açıklama + Sonraki
+  const body = document.getElementById('lmBody');
+  const info = document.createElement('div');
+  info.style.cssText = 'margin-top:12px;padding:10px 12px;border-radius:11px;font-size:.78rem;line-height:1.5;';
+  info.style.background = isRight ? 'rgba(77,255,176,.08)' : 'rgba(255,80,80,.08)';
+  info.style.borderLeft = isRight ? '3px solid rgba(77,255,176,.5)' : '3px solid rgba(255,80,80,.4)';
+  info.style.color = '#eaf0ff';
+  info.innerHTML = `<strong>${isRight?'✅ '+(isTr?'Doğru!':'Correct!'):'❌ '+(isTr?'Yanlış.':'Wrong.')}</strong>${q.explanation?'<br><span style="color:rgba(200,190,235,.7)">'+escapeHtml(q.explanation)+'</span>':''}`;
+  body.appendChild(info);
+
+  const nextBtn = document.createElement('button');
+  nextBtn.className = 'lm-send';
+  nextBtn.type = 'button';
+  nextBtn.style.cssText = 'width:100%;height:42px;margin-top:10px;font-size:.85rem';
+  const isLast = _flashQuiz.current >= _flashQuiz.questions.length - 1;
+  nextBtn.textContent = isLast ? (isTr?'🏆 Sonucu Gör':'🏆 See Result') : (isTr?'Sonraki →':'Next →');
+  nextBtn.onclick = () => {
+    if(isLast){ showFlashQuizResult(); }
+    else { _flashQuiz.current++; _flashQuiz.answered = false; renderFlashQuestion(); }
+  };
+  body.appendChild(nextBtn);
+  if(isRight) lmSpeak(isTr?'Doğru!':'Correct!');
+}
+
+function showFlashQuizResult(){
+  const isTr = currentLang === 'tr';
+  const body = document.getElementById('lmBody');
+  if(!body) return;
+  const { score, questions } = _flashQuiz;
+  const pct = Math.round(score/questions.length*100);
+  const emoji = pct===100?'🏆':pct>=80?'🎉':pct>=60?'👍':'💪';
+  body.innerHTML = `<div style="text-align:center;padding:20px 10px">
+    <div style="font-size:3rem;margin-bottom:10px">${emoji}</div>
+    <div style="font-family:'Orbitron',sans-serif;font-size:2.5rem;font-weight:900;background:linear-gradient(135deg,#ffd700,#ff9a3c);-webkit-background-clip:text;background-clip:text;color:transparent">${score}/${questions.length}</div>
+    <div style="font-size:.82rem;color:rgba(200,190,235,.7);margin-top:6px">${pct}% ${isTr?'doğru':'correct'}</div>
+    <div style="margin-top:16px;font-size:.85rem;color:#eaf0ff">${pct===100?(isTr?'Mükemmel! Tüm soruları doğru yanıtladın 🎊':'Perfect! All correct 🎊'):pct>=80?(isTr?'Harika bir performans!':'Great performance!'):pct>=60?(isTr?'İyi, biraz daha çalış!':'Good, keep practicing!'):(isTr?'Daha fazla tekrar yapmayı dene.':'Try reviewing the material.')}</div>
+    <button class="lm-send" style="width:100%;height:44px;margin-top:18px" onclick="startFlashQuiz()">${isTr?'↺ Tekrar Dene':'↺ Try Again'}</button>
+  </div>`;
+  lmSpeak(isTr?`${score} doğru, ${pct} puan.`:`${score} correct, ${pct} percent.`);
+}
+
+// ──────────────────────────────────────────
+// 🧠 KONU ÖZETİ MODU
+// ──────────────────────────────────────────
+function openSummaryMode(){
+  if(!window.currentUser){ showAuthModal?.(()=>openSummaryMode()); return; }
+  const isTr = currentLang === 'tr';
+  const html = `
+    <div style="font-size:.85rem;color:rgba(200,190,235,.75);line-height:1.6;margin-bottom:14px">
+      ${isTr?'Bir konu yaz — AI onu yapılandırılmış, anlaşılır bir özete dönüştürsün. Madde madde, bağlantılı.':'Write a topic — AI will turn it into a structured, clear summary with key points and connections.'}
+    </div>
+    <div id="summaryResult" style="display:none"></div>`;
+  lmBuildModal('🧠', isTr?'Konu Özeti':'Topic Summary', isTr?'Yapılandırılmış öğrenme':'Structured learning', html, true);
+  wireLearnInput(handleSummaryMode);
+}
+
+async function handleSummaryMode(text){
+  const isTr = currentLang === 'tr';
+  const body = document.getElementById('lmBody');
+  const result = document.getElementById('summaryResult');
+  if(!body) return;
+
+  // Input'u gizle, loading göster
+  const existing = body.querySelector('[style*="loading"]');
+  if(result) { result.style.display='none'; result.innerHTML=''; }
+  body.querySelector('.lm-panel-empty')?.remove();
+
+  const loading = document.createElement('div');
+  loading.style.cssText = 'text-align:center;padding:20px 10px;loading:1';
+  loading.innerHTML = `<div style="width:36px;height:36px;border:3px solid rgba(77,255,176,.15);border-top-color:#4dffb0;border-radius:50%;animation:spin .8s linear infinite;margin:0 auto 10px"></div><div style="font-size:.8rem;color:rgba(200,190,235,.6)">${isTr?'Özet hazırlanıyor…':'Preparing summary…'}</div>`;
+  body.insertBefore(loading, body.querySelector('.lm-input-row') || null);
+
+  try {
+    const sys = isTr
+      ? `Kullanıcının verdiği konuyu yapılandırılmış bir öğrenme özetine dönüştür. Şu formatı kullan:
+
+**📌 Ana Kavram:** [tek cümle tanım]
+
+**🔑 Temel Noktalar:**
+• [madde 1]
+• [madde 2]
+• [madde 3-5 arası]
+
+**🔗 Önemli Bağlantılar:**
+[konunun diğer dersler/kavramlarla bağlantısı]
+
+**💡 Aklında Tut:**
+[1-2 kritik detay veya sık karıştırılan nokta]
+
+Türkçe yaz. Öğrenci dostu, net ve anlaşılır ol.`
+      : `Convert the user's topic into a structured learning summary. Use this format:
+
+**📌 Core Concept:** [single sentence definition]
+
+**🔑 Key Points:**
+• [point 1]
+• [point 2]
+• [3-5 points total]
+
+**🔗 Connections:**
+[how this topic connects to other concepts/subjects]
+
+**💡 Remember:**
+[1-2 critical details or common misconceptions]
+
+Be student-friendly, clear and concise.`;
+
+    const reply = await lmCallAI(sys, [{role:'user', content: text}], 1000);
+    loading.remove();
+
+    if(result){
+      result.style.display = 'block';
+      // Markdown'ı basit HTML'e çevir
+      const html = reply
+        .replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>')
+        .replace(/^• (.+)$/gm,'<li>$1</li>')
+        .replace(/(<li>.*<\/li>\n?)+/g,'<ul style="margin:6px 0 10px;padding-left:18px;color:rgba(200,190,235,.85);font-size:.82rem">$&</ul>')
+        .replace(/\n\n/g,'</p><p style="margin-bottom:8px">')
+        .replace(/^/,'<p style="margin-bottom:8px">')
+        .replace(/$/,'</p>');
+      result.style.cssText = 'display:block;padding:12px;background:rgba(77,255,176,.05);border:1px solid rgba(77,255,176,.15);border-radius:14px;font-size:.82rem;line-height:1.65;color:#eaf0ff;margin-bottom:8px';
+      result.innerHTML = html;
+      lmSpeak(reply.replace(/\*\*/g,'').replace(/^•/gm,''));
+    }
+  } catch(e){
+    loading.remove();
+    const err = document.createElement('div');
+    err.style.cssText = 'font-size:.8rem;color:rgba(255,150,150,.8);padding:8px;text-align:center';
+    err.textContent = isTr?'Hata oluştu, tekrar dene.':'Error occurred, try again.';
+    body.insertBefore(err, body.querySelector('.lm-input-row'));
+  }
+}
+
+// ──────────────────────────────────────────
 // Ortak input bağlama
 function wireLearnInput(handler){
   const input = document.getElementById('lmInput');
