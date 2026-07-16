@@ -1430,7 +1430,9 @@
     max-height:100vh; overflow-y:auto;
     -webkit-overflow-scrolling:touch;
     overscroll-behavior:contain;
+    scrollbar-width:none; /* Firefox */
   }
+  .left-column::-webkit-scrollbar{ display:none; } /* Chrome/Safari */
   /* Cyberpunk sol kenar çizgisi */
   .left-column::after{
     content:''; position:absolute; right:0; top:0; bottom:0; width:1px;
@@ -2701,16 +2703,16 @@
   }
   #shareModal .sm-close:hover{ background:rgba(255,255,255,.08); }
   .brand{
-    padding:14px 16px 12px; border-bottom:1px solid rgba(110,231,255,.08); margin-bottom:0;
-    display:flex; align-items:center; gap:12px;
+    padding:10px 14px 8px; border-bottom:1px solid rgba(110,231,255,.08); margin-bottom:0;
+    display:flex; align-items:center; gap:10px;
     position:relative; overflow:visible;
     background:linear-gradient(180deg,rgba(110,231,255,.04),transparent);
   }
   .brand-mark{
-    width:36px; height:36px; border-radius:11px; flex-shrink:0;
+    width:32px; height:32px; border-radius:10px; flex-shrink:0;
     position:relative; overflow:hidden;
     background:#05030c;
-    box-shadow:0 0 20px rgba(110,231,255,.3), 0 0 0 1px rgba(110,231,255,.15);
+    box-shadow:0 0 16px rgba(110,231,255,.3), 0 0 0 1px rgba(110,231,255,.15);
   }
   .brand-mark .mini-disk, .ai-panel-header .mark .mini-disk{
     position:absolute; inset:-30%; border-radius:50%;
@@ -4807,10 +4809,10 @@
   /* Battle butonu sidebar */
   /* ===== SIDEBAR ACTION BUTTONS ===== */
   .battle-sidebar-btn, .friends-sidebar-btn{
-    margin:0 10px 5px; padding:11px 14px; border-radius:14px;
+    margin:0 10px 2px; padding:8px 12px; border-radius:12px;
     border:1px solid rgba(180,107,255,.14);
     background:rgba(180,107,255,.05);
-    color:rgba(200,185,240,.7); cursor:pointer; font-size:.76rem;
+    color:rgba(200,185,240,.7); cursor:pointer; font-size:.74rem;
     font-family:'Space Grotesk',sans-serif; letter-spacing:.01em; font-weight:500;
     touch-action:manipulation; display:flex; align-items:center;
     justify-content:flex-start; gap:8px; transition:all .18s cubic-bezier(.16,1,.3,1);
@@ -5366,46 +5368,24 @@
     <div id="userArea"></div>
   </div>
 
-  <div class="ai-panel ai-panel-trigger" id="aiPanel">
-    <div class="ai-panel-header ai-trigger-glow" style="cursor:pointer;padding:14px 16px;margin:8px;border-radius:16px;border:1.5px solid rgba(110,231,255,.25);background:linear-gradient(135deg, rgba(110,231,255,.1), rgba(180,107,255,.08));box-shadow:0 0 20px -4px rgba(110,231,255,.25);position:relative;overflow:hidden" onclick="openBigAiPanel()">
-      <div class="mark" style="width:34px;height:34px;border-radius:10px;flex-shrink:0;overflow:hidden;background:#05030c;box-shadow:0 0 16px rgba(110,231,255,.4)">
-        <div class="mini-disk"></div><div class="mini-core"></div>
-      </div>
-      <div style="flex:1">
-        <h3 data-i18n="aiPanelTitle" style="font-size:.92rem;background:linear-gradient(135deg,#6ee7ff,#b46bff);-webkit-background-clip:text;background-clip:text;color:transparent;font-weight:700">Sor & Öğren</h3>
-        <span class="util" style="font-size:.6rem;color:rgba(110,231,255,.6)" data-i18n="aiPanelTagline">dosyasız da sorabilirsin</span>
-      </div>
-      <div id="chatLimitBadge" style="font-family:'Space Mono',monospace;font-size:.58rem;color:rgba(110,231,255,.7);text-align:right;line-height:1.5;display:none">
-        <div id="chatLimitText">— / 30</div>
-        <div style="color:rgba(180,160,255,.5)">mesaj</div>
-      </div>
-      <span style="color:#6ee7ff;font-size:1rem;margin-left:6px;filter:drop-shadow(0 0 6px rgba(110,231,255,.6))">↗</span>
-    </div>
-    <!-- Sol paneldeki chat/input gizli — büyük panel kullanılıyor -->
+  <!-- Hidden AI panel elements - JS için gerekli -->
+  <div id="aiPanel" style="display:none">
     <div class="ai-chat" id="aiChat" style="display:none">
-      <div class="ai-panel-empty" id="aiEmptyMsg" data-i18n="aiEmptyMsg">Bir konu, fikir veya soru yaz — Thinkle sana anlatmaya başlasın. PDF yüklemen gerekmiyor.</div>
+      <div class="ai-panel-empty" id="aiEmptyMsg" data-i18n="aiEmptyMsg">Bir konu, fikir veya soru yaz — Thinkle sana anlatmaya başlasın.</div>
     </div>
-    <div id="aiQuickPrompts" style="display:none">
-      <button class="ai-chip tr-text" data-prompt="Bu konuyu kısaca özetle">Özet ver</button>
-      <button class="ai-chip tr-text" data-prompt="Bu konuyla ilgili bana 3 soru sor, ben cevap vereyim">Soru sor</button>
-      <button class="ai-chip tr-text" data-prompt="Gerçek hayattan bir örnekle anlat">Örnekle anlat</button>
-      <button class="ai-chip tr-text" data-prompt="Bu konuyu başka derslerle ya da günlük hayatla bağlantılandır">Bağlantı kur</button>
-      <button class="ai-chip en-text" data-prompt="Give me a brief summary of this topic">Summarize</button>
-      <button class="ai-chip en-text" data-prompt="Ask me 3 questions about this topic so I can practice">Quiz me</button>
-      <button class="ai-chip en-text" data-prompt="Explain with a real-world example">Example</button>
-      <button class="ai-chip en-text" data-prompt="Connect this topic to everyday life or other subjects">Connect</button>
-    </div>
+    <div id="aiQuickPrompts" style="display:none"></div>
     <div class="ai-input-row" style="display:none">
-      <textarea id="aiInput" data-i18n-placeholder="aiInputPlaceholder" placeholder="Bir şey sor…"></textarea>
+      <textarea id="aiInput" placeholder="Bir şey sor…"></textarea>
       <button class="ai-send-btn" id="aiSendBtn">→</button>
     </div>
+    <div id="chatLimitBadge" style="display:none"><div id="chatLimitText">— / 30</div></div>
   </div>
 
   <!-- ✨ YENİ ÖĞRENME MODLARI -->
-  <div class="learn-modes" style="padding:0 8px 12px;display:flex;flex-direction:column;gap:8px">
-    <div style="font-size:.58rem;font-family:'Space Mono',monospace;color:rgba(180,160,255,.4);letter-spacing:.08em;text-transform:uppercase;padding:4px 8px 2px">✦ <span class="tr-text">Öğrenme Modları</span><span class="en-text">Learning Modes</span></div>
+  <div class="learn-modes" style="padding:0 8px 6px;display:flex;flex-direction:column;gap:4px">
+    <div style="font-size:.53rem;font-family:'Space Mono',monospace;color:rgba(180,160,255,.4);letter-spacing:.08em;text-transform:uppercase;padding:3px 4px 2px">✦ <span class="tr-text">Öğrenme Modları</span><span class="en-text">Learning Modes</span></div>
 
-    <!-- Sor & Öğren (ana AI paneli) -->
+    <!-- Sor & Öğren -->
     <button class="learn-mode-card askllm" onclick="openBigAiPanel()">
       <div class="lmc-icon">💬</div>
       <div class="lmc-text">
@@ -5417,7 +5397,7 @@
       <span class="lmc-arrow">→</span>
     </button>
 
-    <!-- Bana Anlat (Feynman) -->
+    <!-- Bana Anlat -->
     <button class="learn-mode-card feynman" onclick="openFeynmanMode()">
       <div class="lmc-icon">🎙️</div>
       <div class="lmc-text">
@@ -5441,7 +5421,7 @@
       <span class="lmc-arrow">→</span>
     </button>
 
-    <!-- Kendi Desteğinle Yarışma -->
+    <!-- Dosyandan Yarışma -->
     <button class="learn-mode-card owndeck" onclick="openOwnDeckBattle()">
       <div class="lmc-icon">⚔️</div>
       <div class="lmc-text">
@@ -12051,30 +12031,64 @@ window._ttsSettings = { enabled: false, gender: 'female', rate: 1, pitch: 1, voi
 function lmSpeak(text){
   if(!window._ttsSettings.enabled || !window.speechSynthesis) return;
   try {
-    window.speechSynthesis.cancel(); // önceki konuşmayı durdur
-    const clean = text.replace(/[*_#`>]/g,'').replace(/\n+/g,'. ');
+    window.speechSynthesis.cancel();
+    const clean = text.replace(/[*_#`[\]>]/g,'').replace(/\n+/g,'. ').trim();
+    if(!clean) return;
     const utter = new SpeechSynthesisUtterance(clean);
     utter.lang = currentLang === 'tr' ? 'tr-TR' : 'en-US';
-    utter.rate = window._ttsSettings.rate;
-    utter.pitch = window._ttsSettings.pitch;
-    // Uygun sesi seç (dil + cinsiyet)
+    utter.rate  = window._ttsSettings.rate  || 1;
+    utter.pitch = window._ttsSettings.pitch || 1;
+
     const voices = window.speechSynthesis.getVoices();
-    const langCode = currentLang === 'tr' ? 'tr' : 'en';
-    const langVoices = voices.filter(v => v.lang.toLowerCase().startsWith(langCode));
-    if(langVoices.length){
-      // Cinsiyet tahmini — isimde female/male ipucu ara
-      const g = window._ttsSettings.gender;
-      const genderMatch = langVoices.find(v => {
-        const n = v.name.toLowerCase();
-        return g === 'female'
-          ? /female|kadın|woman|zira|google.*türkçe|yelda|filiz/.test(n)
-          : /male|erkek|man|david|google.*erkek|tolga/.test(n);
-      });
-      utter.voice = genderMatch || langVoices[0];
+    const g = window._ttsSettings.gender || 'female';
+    const isTr = currentLang === 'tr';
+
+    // Öncelik sırası: Google Online > Google > Microsoft Online > diğer
+    const scoreVoice = (v) => {
+      const n = v.name.toLowerCase();
+      let s = 0;
+      // Dil eşleşmesi
+      if(isTr && v.lang.startsWith('tr')) s += 100;
+      if(!isTr && v.lang.startsWith('en')) s += 100;
+      // Online (Wavenet/Premium) sesler çok daha kaliteli
+      if(v.localService === false) s += 50; // online/cloud
+      if(/google/.test(n)) s += 30;
+      if(/premium|wavenet|neural|natural/.test(n)) s += 25;
+      if(/microsoft|zira|hazel|hedda|stefan|tolga|filiz/.test(n)) s += 15;
+      // Cinsiyet eşleşmesi
+      if(g === 'female') {
+        if(/female|woman|zira|filiz|yelda|hazel|samantha|karen|moira|fiona|victoria/.test(n)) s += 40;
+        // Türkçe için Google Türkçe sesi genellikle kadın
+        if(isTr && /google.*tr|google.*türk|google.*turkish/.test(n)) s += 20;
+      } else {
+        if(/male|man|david|daniel|alex|thomas|stefan|tolga|erkek/.test(n)) s += 40;
+        if(!(/female|woman|zira|filiz/).test(n) && g === 'male') s += 10;
+      }
+      return s;
+    };
+
+    const langVoices = voices.filter(v =>
+      isTr ? v.lang.toLowerCase().startsWith('tr') : v.lang.toLowerCase().startsWith('en')
+    );
+
+    if(langVoices.length) {
+      const sorted = [...langVoices].sort((a,b) => scoreVoice(b) - scoreVoice(a));
+      utter.voice = sorted[0];
     }
+
     window.speechSynthesis.speak(utter);
     window._ttsCurrentUtter = utter;
-  } catch(e){}
+
+    // Chrome bug: uzun metinlerde konuşma durabilir, interval ile canlı tut
+    const keepAlive = setInterval(() => {
+      if(!window.speechSynthesis.speaking) { clearInterval(keepAlive); return; }
+      window.speechSynthesis.pause();
+      window.speechSynthesis.resume();
+    }, 10000);
+    utter.onend = () => clearInterval(keepAlive);
+    utter.onerror = () => clearInterval(keepAlive);
+
+  } catch(e){ console.warn('TTS error:', e); }
 }
 function lmStopSpeak(){ try { window.speechSynthesis?.cancel(); } catch(e){} }
 
@@ -12426,13 +12440,25 @@ async function generateOwnDeckBattle(){
     const source = lastSourceText || (deck?.slides||[]).map(s=>s.title+' '+(s.bullets||[]).join(' ')).join('\n');
     const src = (source||'').slice(0, 8000);
     if(!src.trim()) throw new Error('empty source');
+
     const sys = isTr
-      ? 'Verilen ders içeriğinden 8 adet çoktan seçmeli yarışma sorusu üret. SADECE şu JSON formatında dön, başka HİÇBİR şey yazma: {"questions":[{"question":"...","options":["A","B","C","D"],"answerIndex":0}]}. Sorular içerikle ilgili, net ve tek doğru cevaplı olsun.'
-      : 'Generate 8 multiple-choice battle questions from the given content. Return ONLY this JSON, nothing else: {"questions":[{"question":"...","options":["A","B","C","D"],"answerIndex":0}]}.';
-    const raw = await lmCallAI(sys, [{role:'user', content:src}], 3000);
-    const clean = raw.replace(/```json|```/g,'').replace(/^[^{]*/,'').replace(/[^}]*$/,'').trim();
-    const parsed = JSON.parse(clean);
-    if(!parsed.questions?.length) throw new Error('no questions');
+      ? 'Verilen ders içeriğinden 8 adet çoktan seçmeli yarışma sorusu üret. SADECE aşağıdaki JSON formatında yanıt ver, başka hiçbir şey yazma:\n{"questions":[{"question":"soru metni","options":["A seçeneği","B seçeneği","C seçeneği","D seçeneği"],"answerIndex":0}]}\nanswerIndex 0-3 arası doğru cevabın index\'i. Sorular içerikle ilgili, net ve tek doğru cevaplı olsun.'
+      : 'Generate 8 multiple-choice questions from the content. Reply ONLY with this JSON format, nothing else:\n{"questions":[{"question":"question text","options":["A","B","C","D"],"answerIndex":0}]}\nanswerIndex is 0-3 for the correct answer.';
+
+    const raw = await lmCallAI(sys, [{role:'user', content:src}], 3500);
+
+    // Güvenli JSON parse — birden fazla strateji dene
+    let parsed = null;
+    const attempts = [
+      () => JSON.parse(raw),
+      () => JSON.parse(raw.replace(/```json|```/g,''). trim()),
+      () => { const m = raw.match(/\{[\s\S]*\}/); return m ? JSON.parse(m[0]) : null; },
+      () => { const m = raw.match(/\{[\s\S]*"questions"[\s\S]*\]/); return m ? JSON.parse(m[0]+'}') : null; }
+    ];
+    for(const attempt of attempts){
+      try { parsed = attempt(); if(parsed?.questions?.length) break; } catch(e2){ parsed = null; }
+    }
+    if(!parsed?.questions?.length) throw new Error('parse failed');
 
     // Soruları hazırla, battle modalını aç
     window._pendingOwnDeckQuestions = parsed.questions;
@@ -12442,9 +12468,11 @@ async function generateOwnDeckBattle(){
       showToast?.(isTr?'✅ Sorular hazır! Kategori seçip oda kur':'✅ Questions ready! Pick a category & create a room');
     }
   } catch(e){
+    console.error('generateOwnDeckBattle error:', e);
     body.innerHTML = `<div style="text-align:center;padding:24px 10px">
       <div style="font-size:2rem;margin-bottom:10px">😕</div>
-      <div style="font-size:.85rem;color:rgba(255,150,150,.8)">${isTr?'Soru üretilemedi, tekrar dene.':'Couldn\'t generate, try again.'}</div>
+      <div style="font-size:.85rem;color:rgba(255,150,150,.8);margin-bottom:8px">${isTr?'Soru üretilemedi, tekrar dene.':'Couldn\'t generate, try again.'}</div>
+      <div style="font-size:.7rem;color:rgba(180,160,255,.4)">${e.message||''}</div>
       <button class="lm-send" style="margin-top:16px;padding:0 20px;height:42px" onclick="generateOwnDeckBattle()">${isTr?'↺ Tekrar Dene':'↺ Retry'}</button>
     </div>`;
   }
